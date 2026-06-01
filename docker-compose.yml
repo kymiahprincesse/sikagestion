@@ -7,9 +7,8 @@ services:
       args:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
-    container_name: sikagestion_app
-    ports:
-      - '3000:80'
+    expose:
+      - "80"
     restart: unless-stopped
     healthcheck:
       test:
@@ -23,13 +22,7 @@ services:
       start_period: 15s
     volumes:
       - 'nginx_logs:/var/log/nginx'
-    networks:
-      - sikagestion_net
 
 volumes:
   nginx_logs:
     driver: local
-
-networks:
-  sikagestion_net:
-    driver: bridge
