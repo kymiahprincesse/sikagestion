@@ -1,30 +1,30 @@
-version: "3.9"
-
+version: '3.9'
 services:
   sikagestion:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_SUPABASE_URL: https://keyfnghpisdwwayrmlfk.supabase.co
-        VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtleWZuZ2hwaXNkd3dheXJtbGZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNjA3NDUsImV4cCI6MjA5NTYzNjc0NX0.IWdepYM5NNQp23Qa8YVxwTYY7ngzwtqBW6HSFNI71EQ
-    image: sikagestion:production
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
     container_name: sikagestion_app
     ports:
-      - "80:80"
+      - '3000:80'
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      test:
+        - CMD
+        - wget
+        - '-qO-'
+        - 'http://localhost:80/'
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
     volumes:
-      - nginx_logs:/var/log/nginx
+      - 'nginx_logs:/var/log/nginx'
     networks:
       - sikagestion_net
-    labels:
-      - "traefik.enable=false"
 
 volumes:
   nginx_logs:
