@@ -1,0 +1,866 @@
+# DOCUMENTATION COMPLÈTE SIKAGESTION - PARTIE 2C : PAGES FINALES
+
+## APPLICATION : SIKAGESTION (SIKA INDUSTRIE ERP/CRM)
+## VERSION : 1.0
+## DATE : 31 Mai 2026
+
+═══════════════════════════════════════════════════════════════════════════════
+PARTIE 2C - PAGES 12 ET 13 (FINAL)
+═══════════════════════════════════════════════════════════════════════════════
+
+12. PAGE IMPORT/EXPORT
+13. PAGE UTILISATEURS
+
+═══════════════════════════════════════════════════════════════════════════════
+12. PAGE IMPORT/EXPORT
+═══════════════════════════════════════════════════════════════════════════════
+
+### 12.1 INFORMATIONS GÉNÉRALES
+| Propriété | Valeur |
+|-----------|--------|
+| Route | `/import-export` |
+| Composant | `ImportExport.jsx` |
+| Accès | ADMIN, COMPTABLE |
+| Raccourci | Alt+I |
+| Breadcrumb | Accueil > Import / Export |
+
+### 12.2 STORES UTILISÉS
+- useClientsStore (clients)
+- useFournisseursStore (fournisseurs)
+- useDevisStore (devis)
+- useFacturesStore (factures)
+- useEncaissementsStore (encaissements)
+- useAOStore (appels d'offres)
+- useCaisseStore (caisse)
+- useJournalStore (journal)
+- usePlanificationStore (planification)
+
+### 12.3 ONGLETS PRINCIPAUX
+
+| Onglet | Icône | Contenu |
+|--------|-------|---------|
+| **Import** | Upload | Interface d'importation Excel |
+| **Export** | Download | Interface d'exportation Excel/PDF |
+
+### 12.4 MODULES DISPONIBLES
+
+#### 12.4.1 CONFIGURATION MODULES
+| Module | Label | Feuille Excel | Store | Méthode ajout |
+|--------|-------|---------------|-------|---------------|
+| **clients** | Clients | Clients | useClientsStore | addClient |
+| **fournisseurs** | Fournisseurs | Fournisseurs | useFournisseursStore | addFournisseur |
+| **devis** | Devis | Devis | useDevisStore | addDevis |
+| **factures** | Factures | Factures | useFacturesStore | addFacture |
+| **encaissements** | Encaissements | Encaissements | useEncaissementsStore | addEncaissement |
+| **ao** | Appels d'offres | AppelsOffres | useAOStore | addAO |
+| **caisse** | Caisse | Caisse | useCaisseStore | addOperation |
+| **journal** | Journal | Journal | useJournalStore | addEntry |
+| **planification** | Planification | Planification | usePlanificationStore | addTache |
+
+#### 12.4.2 CHAMPS PAR MODULE
+
+**Module CLIENTS** :
+- id
+- nom
+- raisonSociale
+- secteur
+- typeClient
+- contactNom
+- contactTelephone
+- contactEmail
+- adresse
+- ville
+- pays
+- conditionsPaiement
+- plafondCredit
+- isActif
+
+**Module FOURNISSEURS** :
+- id
+- nom
+- raisonSociale
+- type
+- secteur
+- adresse
+- ville
+- pays
+- contactNom
+- contactTelephone
+- contactEmail
+- conditionsPaiement
+- numeroCompte
+- banque
+- isActif
+- notes
+
+**Module DEVIS** :
+- id
+- numero
+- date
+- clientId
+- type
+- demandePar
+- objet
+- lignes (JSON)
+- montantHT
+- montantTVA
+- montantTTC
+- statut
+
+**Module FACTURES** :
+- id
+- numero
+- date
+- dateEcheance
+- clientId
+- reference
+- devisId
+- lignes (JSON)
+- montantHT
+- montantTVA
+- montantTTC
+- montantPaye
+- statut
+
+**Module ENCAISSEMENTS** :
+- id
+- factureId
+- montant
+- modePaiement
+- dateEncaissement
+- reference
+- observation
+
+**Module APPELS D'OFFRES** :
+- id
+- reference
+- titre
+- clientId
+- datePublication
+- dateLimite
+- montantEstime
+- description
+- cahierCharges
+- statut
+- priorite
+- notes
+
+**Module CAISSE** :
+- id
+- date
+- reference
+- libelles
+- entree
+- sortir
+- type
+
+**Module JOURNAL** :
+- id
+- date
+- reference
+- libelle
+- encaissement
+- decaissement
+- solde
+
+**Module PLANIFICATION** :
+- id
+- nom
+- description
+- dateDebut
+- dateFin
+- statut
+- responsable
+- nombrePersonnes
+- nombreJours
+- distanceKm
+
+═══════════════════════════════════════════════════════════════════════════════
+12.5 ONGLET IMPORT
+═══════════════════════════════════════════════════════════════════════════════
+
+### 12.5.1 ÉTAPES D'IMPORTATION
+
+**Étape 1 - Sélection fichier** :
+| Élément | Description |
+|---------|-------------|
+| Type fichier | .xlsx (Excel) uniquement |
+| Bouton | "Choisir un fichier Excel" |
+| Icône | Upload |
+| Couleur | #E8610A |
+| Validation | Extension .xlsx obligatoire |
+
+**Étape 2 - Sélection feuille** :
+| Élément | Description |
+|---------|-------------|
+| Type | Select dropdown |
+| Options | Liste des feuilles du fichier Excel |
+| Détection auto | Oui, lecture des noms de feuilles |
+| Affichage | Nom feuille + nombre de lignes |
+
+**Étape 3 - Mapping colonnes** :
+| Élément | Description |
+|---------|-------------|
+| Interface | Tableau de correspondance |
+| Colonne gauche | Colonnes du fichier Excel (A, B, C...) |
+| Colonne droite | Champs de la base de données |
+| Type | Select pour chaque colonne |
+| Auto-détection | Tentative de mapping automatique par nom |
+
+**Étape 4 - Prévisualisation** :
+| Élément | Description |
+|---------|-------------|
+| Affichage | Tableau avec 5 premières lignes |
+| Colonnes | Toutes les colonnes mappées |
+| Validation | Vérification types de données |
+| Erreurs | Affichage en rouge si problème |
+
+**Étape 5 - Mode d'import** :
+| Mode | Description | Icône | Couleur |
+|------|-------------|-------|---------|
+| **Fusion** | Ajoute aux données existantes | Plus | #1A7A4A |
+| **Remplacement** | Supprime et remplace toutes les données | RefreshCw | #C0392B |
+
+**Étape 6 - Confirmation et import** :
+| Élément | Description |
+|---------|-------------|
+| Bouton | "Lancer l'import" |
+| Couleur | #1A7A4A (vert) |
+| Confirmation | Modal si mode "Remplacement" |
+| Progression | Barre de progression animée |
+
+### 12.5.2 TRAITEMENT IMPORT
+
+#### 12.5.2.1 LECTURE FICHIER
+| Étape | Technologie | Description |
+|-------|-------------|-------------|
+| Upload | FileReader API | Lecture fichier en ArrayBuffer |
+| Parsing | XLSX library | Conversion en JSON |
+| Extraction | SheetJS | Récupération données par feuille |
+
+#### 12.5.2.2 CONVERSION DONNÉES
+| Type | Conversion |
+|------|------------|
+| **Dates Excel** | Conversion nombre Excel vers Date JS |
+| **JSON** | Parsing champs lignes (tableaux) |
+| **Nombres** | Conversion string vers number |
+| **Booléens** | Conversion "true"/"false" vers boolean |
+
+#### 12.5.2.3 VALIDATION
+| Règle | Action |
+|-------|--------|
+| Champ obligatoire manquant | Erreur ligne X |
+| Type incorrect | Erreur ligne X |
+| Valeur hors limites | Erreur ligne X |
+| Doublon ID | Génération nouvel ID |
+
+#### 12.5.2.4 INSERTION DONNÉES
+| Mode | Action |
+|------|--------|
+| **Fusion** | Appel méthode add du store pour chaque ligne |
+| **Remplacement** | Vide store puis appel méthode add |
+
+### 12.5.3 RAPPORT D'IMPORT
+
+#### 12.5.3.1 AFFICHAGE SUCCÈS
+| Élément | Contenu |
+|---------|---------|
+| Icône | CheckCircle (vert) |
+| Message | "Import réussi !" |
+| Détails | "X lignes importées avec succès" |
+| Couleur fond | #E8F5E9 |
+
+#### 12.5.3.2 AFFICHAGE ERREURS
+| Élément | Contenu |
+|---------|---------|
+| Icône | AlertTriangle (rouge) |
+| Message | "Import terminé avec erreurs" |
+| Détails | Liste des erreurs par ligne |
+| Format | "Ligne X: [message erreur]" |
+| Couleur fond | #FFEBEE |
+
+#### 12.5.3.3 BOUTONS POST-IMPORT
+| Bouton | Action |
+|--------|--------|
+| **Nouvel import** | Réinitialise le formulaire |
+| **Fermer** | Ferme le rapport |
+
+═══════════════════════════════════════════════════════════════════════════════
+12.6 ONGLET EXPORT
+═══════════════════════════════════════════════════════════════════════════════
+
+### 12.6.1 SÉLECTION MODULE
+
+| Élément | Description |
+|---------|-------------|
+| Type | Select dropdown |
+| Options | Tous les modules disponibles |
+| Affichage | Label du module |
+| Défaut | "clients" |
+
+### 12.6.2 FILTRES EXPORT
+
+#### 12.6.2.1 FILTRE PÉRIODE
+| Champ | Type | Label | Optionnel |
+|-------|------|-------|-----------|
+| **Date début** | date | "Du" | Oui |
+| **Date fin** | date | "Au" | Oui |
+
+**Logique filtre** :
+- Si vide : exporte toutes les données
+- Si rempli : filtre sur champ date, dateDebut ou datePublication selon module
+
+#### 12.6.2.2 FILTRE CLIENT
+| Champ | Type | Label | Optionnel |
+|-------|------|-------|-----------|
+| **Client** | select | "Client" | Oui |
+
+**Logique filtre** :
+- Si vide : exporte tous les clients
+- Si rempli : filtre sur clientId ou clientNom
+
+### 12.6.3 BOUTONS EXPORT
+
+| Bouton | Icône | Couleur | Format | Action |
+|--------|-------|---------|--------|--------|
+| **Exporter Excel** | FileSpreadsheet | #1A7A4A | .xlsx | Génère fichier Excel |
+| **Exporter PDF** | FileText | #C0392B | .pdf | Génère fichier PDF |
+
+### 12.6.4 EXPORT EXCEL
+
+#### 12.6.4.1 GÉNÉRATION
+| Étape | Technologie | Description |
+|-------|-------------|-------------|
+| Récupération données | Store | Lecture données filtrées |
+| Conversion | XLSX.utils | Conversion JSON vers feuille |
+| Création workbook | XLSX.utils | Création classeur |
+| Téléchargement | XLSX.writeFile | Sauvegarde fichier |
+
+#### 12.6.4.2 STRUCTURE FICHIER
+| Élément | Description |
+|---------|-------------|
+| Nom fichier | SIKA_[Module]_YYYY-MM-DD.xlsx |
+| Feuille | Nom du module |
+| En-têtes | Ligne 1, noms des champs |
+| Données | À partir ligne 2 |
+| Format | Standard Excel |
+
+#### 12.6.4.3 TRAITEMENT DONNÉES
+| Type | Traitement |
+|------|------------|
+| **Tableaux** | Conversion en JSON string |
+| **Objets** | Conversion en JSON string |
+| **Dates** | Format ISO 8601 |
+| **Null/Undefined** | Cellule vide |
+
+### 12.6.5 EXPORT PDF
+
+#### 12.6.5.1 GÉNÉRATION
+| Étape | Technologie | Description |
+|-------|-------------|-------------|
+| Création document | jsPDF | Nouveau document A4 portrait |
+| En-tête | Custom | Logo + titre + date |
+| Tableau | autoTable | Tableau des données |
+| Pied de page | Custom | Infos société + pagination |
+| Téléchargement | doc.save | Sauvegarde fichier |
+
+#### 12.6.5.2 EN-TÊTE PDF
+| Élément | Position | Style |
+|---------|----------|-------|
+| **Fond** | 0, 0, largeur, 30mm | #1B2A4A (navy) |
+| **Logo SIKA** | 20, 15 | Texte blanc, 20pt, gras |
+| **Point rouge** | 27, 11 | Cercle #E8610A, rayon 2 |
+| **INDUSTRIE** | 20, 22 | Texte blanc, 10pt |
+| **Lignes rouges** | 20, 24-26 | 2 lignes #E8610A, largeur 40 |
+| **Titre module** | Centre, 15 | Texte blanc, 14pt |
+| **Version** | Droite, 15 | "ERP/CRM SIKA v1.0", 9pt |
+| **Date** | Droite, 22 | Date du jour, 9pt |
+
+#### 12.6.5.3 TABLEAU PDF
+| Propriété | Valeur |
+|-----------|--------|
+| Position Y | 35mm |
+| Marges | 20mm gauche/droite, 20mm bas |
+| Police | Helvetica, 8pt |
+| Padding cellule | 2mm |
+| En-têtes fond | #1B2A4A (navy) |
+| En-têtes texte | Blanc, gras |
+| Lignes alternées | #E8ECF4 (navy clair) |
+
+#### 12.6.5.4 PIED DE PAGE PDF
+| Élément | Position | Style |
+|---------|----------|-------|
+| **Fond** | 0, hauteur-15, largeur, 15mm | #1B2A4A |
+| **Texte gauche** | 20, hauteur-8 | "SIKA INDUSTRIE - Confidentiel", blanc, 8pt |
+| **Texte centre** | Centre, hauteur-8 | "www.sika-industrie.com", blanc, 8pt |
+| **Pagination** | Droite, hauteur-8 | "Page X/Y", blanc, 8pt |
+
+#### 12.6.5.5 SIGNATURE (DEVIS UNIQUEMENT)
+| Élément | Position | Contenu |
+|---------|----------|---------|
+| Texte | 20, finalY+20 | "Le Gérant," |
+| Nom | 20, finalY+27 | "KOMLAN AMEMATCHRON" (gras) |
+
+#### 12.6.5.6 NOM FICHIER PDF
+| Format | Exemple |
+|--------|---------|
+| SIKA_[Module]_YYYY-MM-DD.pdf | SIKA_Clients_2026-05-31.pdf |
+
+### 12.6.6 TRAITEMENT DONNÉES EXPORT
+
+#### 12.6.6.1 FILTRAGE
+| Filtre | Champ testé | Condition |
+|--------|-------------|-----------|
+| **Période** | date, dateDebut, datePublication | >= dateDebut ET <= dateFin |
+| **Client** | clientId, clientNom | Égalité ID ou inclusion nom |
+
+#### 12.6.6.2 FORMATAGE
+| Type | Format export |
+|------|---------------|
+| **Tableaux** | "[X] lignes" (PDF) ou JSON string (Excel) |
+| **Objets** | JSON string |
+| **Dates** | Format local (PDF) ou ISO (Excel) |
+| **Montants** | Formaté FCFA (PDF) ou nombre (Excel) |
+| **Null** | Cellule vide |
+
+═══════════════════════════════════════════════════════════════════════════════
+13. PAGE UTILISATEURS
+═══════════════════════════════════════════════════════════════════════════════
+
+### 13.1 INFORMATIONS GÉNÉRALES
+| Propriété | Valeur |
+|-----------|--------|
+| Route | `/utilisateurs` |
+| Composant | `Utilisateurs.jsx` |
+| Accès | ADMIN uniquement |
+| Breadcrumb | Accueil > Gestion Utilisateurs |
+
+### 13.2 STORES UTILISÉS
+- useUtilisateursStore (utilisateurs)
+- useAuditStore (logs)
+- useAuthStore (utilisateur connecté)
+
+### 13.3 FILTRE PAR RÔLE
+
+#### 13.3.1 BOUTONS FILTRES
+| Bouton | Valeur | Couleur active | Couleur inactive |
+|--------|--------|----------------|------------------|
+| **TOUS** | "" | #E60000 (rouge) | Blanc |
+| **ADMIN** | "ADMIN" | #E60000 | Blanc |
+| **COMPTABLE** | "COMPTABLE" | #E60000 | Blanc |
+| **SECRETAIRE** | "SECRETAIRE" | #E60000 | Blanc |
+| **TECHNICIEN** | "TECHNICIEN" | #E60000 | Blanc |
+
+#### 13.3.2 LOGIQUE FILTRE
+| Filtre | Résultat |
+|--------|----------|
+| TOUS | Affiche tous les utilisateurs |
+| ADMIN | Affiche uniquement rôle ADMIN |
+| COMPTABLE | Affiche uniquement rôle COMPTABLE |
+| SECRETAIRE | Affiche uniquement rôle SECRETAIRE |
+| TECHNICIEN | Affiche uniquement rôle TECHNICIEN |
+
+### 13.4 MESSAGES NOTIFICATION
+
+#### 13.4.1 TYPES
+| Type | Couleur fond | Couleur bordure | Couleur texte |
+|------|--------------|-----------------|---------------|
+| **success** | #E8F5E9 | #1A7A4A | #1A7A4A |
+| **error** | #FFEBEE | #C0392B | #C0392B |
+
+#### 13.4.2 AFFICHAGE
+| Élément | Description |
+|---------|-------------|
+| Position | En haut de page |
+| Durée | Permanente jusqu'à fermeture |
+| Bouton fermer | ✕ en haut à droite |
+| Animation | Slide in from top |
+
+### 13.5 BOUTON AJOUTER UTILISATEUR
+
+| Propriété | Valeur |
+|-----------|--------|
+| Texte | "➕ Ajouter un utilisateur" |
+| Couleur | #E8610A (orange) |
+| Action | Affiche formulaire d'ajout |
+| Accès | ADMIN uniquement |
+
+### 13.6 FORMULAIRE AJOUT UTILISATEUR
+
+#### 13.6.1 AFFICHAGE
+| Propriété | Valeur |
+|-----------|--------|
+| Condition | modeAjout = true |
+| Fond | Blanc |
+| Bordure gauche | 4px, #E8610A |
+| Titre | "Nouvel utilisateur" |
+
+#### 13.6.2 CHAMPS
+| Champ | Type | Label | Obligatoire | Défaut |
+|-------|------|-------|-------------|--------|
+| **nom** | text | "Nom complet" | Oui | "" |
+| **login** | text | "Login" | Oui | "" |
+| **motDePasse** | password | "Mot de passe" | Oui | "" |
+| **role** | select | "Rôle" | Oui | "TECHNICIEN" |
+
+#### 13.6.3 OPTIONS RÔLE
+- ADMIN
+- COMPTABLE
+- SECRETAIRE
+- TECHNICIEN
+
+#### 13.6.4 VALIDATION AJOUT
+| Règle | Message |
+|-------|---------|
+| Nom vide | "Le nom est obligatoire" |
+| Login vide | "Le login est obligatoire" |
+| Mot de passe vide | "Le mot de passe est obligatoire" |
+| Login déjà existant | "Ce login existe déjà" |
+
+#### 13.6.5 BOUTONS FORMULAIRE AJOUT
+| Bouton | Icône | Couleur | Action |
+|--------|-------|---------|--------|
+| **Enregistrer** | ✓ | #1A7A4A (vert) | Sauvegarde utilisateur |
+| **Annuler** | ✕ | #C8C8D0 (gris) | Ferme formulaire |
+
+### 13.7 LISTE DES UTILISATEURS
+
+#### 13.7.1 EN-TÊTE LISTE
+| Élément | Contenu |
+|---------|---------|
+| Titre | "Personnel SIKA (X personnes)" |
+| X | Nombre d'utilisateurs filtrés |
+
+#### 13.7.2 CARTE UTILISATEUR
+
+**Style par rôle** :
+| Rôle | Couleur fond | Couleur bordure gauche | Opacité |
+|------|--------------|------------------------|---------|
+| **ADMIN** (actif) | #FFF0E6 | #E60000 (rouge) | 1 |
+| **COMPTABLE** (actif) | #FFF0E6 | #06006E (bleu foncé) | 1 |
+| **SECRETAIRE** (actif) | #FFF0E6 | #1A7A4A (vert) | 1 |
+| **TECHNICIEN** (actif) | #FFF0E6 | #C8C8D0 (gris) | 1 |
+| **Inactif** | #F5F5F5 | Selon rôle | 0.6 |
+
+**Informations affichées** :
+| Élément | Description |
+|---------|-------------|
+| Nom | Nom complet utilisateur |
+| Login | Login de connexion |
+| Rôle | Badge rôle avec couleur |
+| Statut | Badge Actif/Inactif |
+| Boutons | Actions disponibles |
+
+#### 13.7.3 BADGES RÔLE
+| Rôle | Couleur fond | Couleur texte | Icône |
+|------|--------------|---------------|-------|
+| **ADMIN** | #FFEBEE | #E60000 | 👑 |
+| **COMPTABLE** | #E8ECF4 | #06006E | 💼 |
+| **SECRETAIRE** | #E8F5E9 | #1A7A4A | 📋 |
+| **TECHNICIEN** | #F5F5F5 | #C8C8D0 | 🔧 |
+
+#### 13.7.4 BADGES STATUT
+| Statut | Couleur fond | Couleur texte | Texte |
+|--------|--------------|---------------|-------|
+| **Actif** | #E8F5E9 | #1A7A4A | "✓ Actif" |
+| **Inactif** | #FFEBEE | #C0392B | "✗ Inactif" |
+
+#### 13.7.5 BOUTONS D'ACTION PAR UTILISATEUR
+| Bouton | Icône | Couleur | Tooltip | Action |
+|--------|-------|---------|---------|--------|
+| **Modifier** | Edit2 | #E8610A | "Modifier" | Active mode édition |
+| **Changer MDP** | Key | #1F5C99 | "Changer mot de passe" | Active mode mot de passe |
+| **Activer/Désactiver** | Power | #1A7A4A ou #C0392B | "Activer" ou "Désactiver" | Toggle statut actif |
+| **Supprimer** | Trash2 | #C0392B | "Supprimer" | Confirmation puis suppression |
+
+### 13.8 MODE ÉDITION UTILISATEUR
+
+#### 13.8.1 AFFICHAGE
+| Propriété | Valeur |
+|-----------|--------|
+| Condition | modeEdition = user.id |
+| Remplacement | Remplace affichage normal de la carte |
+| Champs | Nom, Login, Rôle |
+
+#### 13.8.2 CHAMPS ÉDITION
+| Champ | Type | Modifiable |
+|-------|------|------------|
+| **nom** | text | Oui |
+| **login** | text | Oui |
+| **role** | select | Oui |
+
+#### 13.8.3 BOUTONS MODE ÉDITION
+| Bouton | Icône | Couleur | Action |
+|--------|-------|---------|--------|
+| **Sauvegarder** | ✓ | #1A7A4A | Sauvegarde modifications |
+| **Annuler** | ✕ | #C8C8D0 | Annule édition |
+
+### 13.9 MODE CHANGEMENT MOT DE PASSE
+
+#### 13.9.1 AFFICHAGE
+| Propriété | Valeur |
+|-----------|--------|
+| Condition | modeMotDePasse = user.id |
+| Titre | "Changer le mot de passe - [Nom utilisateur]" |
+
+#### 13.9.2 CHAMPS
+| Champ | Type | Label | Obligatoire |
+|-------|------|-------|-------------|
+| **ancien** | password | "Ancien mot de passe" | Oui |
+| **nouveau** | password | "Nouveau mot de passe" | Oui |
+| **confirmation** | password | "Confirmer" | Oui |
+
+#### 13.9.3 VALIDATION MOT DE PASSE
+| Règle | Message |
+|-------|---------|
+| Ancien MDP incorrect | "Ancien mot de passe incorrect" |
+| Nouveau vide | "Le nouveau mot de passe est obligatoire" |
+| Confirmation différente | "Les mots de passe ne correspondent pas" |
+| Nouveau = Ancien | "Le nouveau mot de passe doit être différent" |
+
+#### 13.9.4 BOUTONS MODE MOT DE PASSE
+| Bouton | Icône | Couleur | Action |
+|--------|-------|---------|--------|
+| **Valider** | ✓ | #1A7A4A | Change mot de passe |
+| **Annuler** | ✕ | #C8C8D0 | Annule changement |
+
+### 13.10 RÉINITIALISATION MOT DE PASSE
+
+#### 13.10.1 MODAL RÉINITIALISATION
+| Élément | Valeur |
+|---------|--------|
+| Titre | "Réinitialiser le mot de passe" |
+| Message | "Réinitialiser le mot de passe de [Nom] ?" |
+| Nouveau MDP | "sika2026" (par défaut) |
+
+#### 13.10.2 BOUTONS MODAL
+| Bouton | Couleur | Action |
+|--------|---------|--------|
+| **Confirmer** | #1A7A4A | Réinitialise à "sika2026" |
+| **Annuler** | #C8C8D0 | Ferme modal |
+
+### 13.11 ACTIVATION/DÉSACTIVATION
+
+#### 13.11.1 CONFIRMATION
+| Statut actuel | Message |
+|---------------|---------|
+| Actif | "Désactiver l'utilisateur [Nom] ?" |
+| Inactif | "Activer l'utilisateur [Nom] ?" |
+
+#### 13.11.2 EFFET
+| Action | Résultat |
+|--------|----------|
+| Désactivation | isActif = false, opacité 0.6, badge "Inactif" |
+| Activation | isActif = true, opacité 1, badge "Actif" |
+
+### 13.12 SUPPRESSION UTILISATEUR
+
+#### 13.12.1 CONFIRMATION
+| Élément | Valeur |
+|---------|--------|
+| Message | "Supprimer définitivement l'utilisateur [Nom] ?" |
+| Avertissement | "Cette action est irréversible" |
+
+#### 13.12.2 RESTRICTIONS
+| Condition | Action |
+|-----------|--------|
+| Utilisateur connecté | Impossible de se supprimer soi-même |
+| Dernier ADMIN | Impossible de supprimer le dernier ADMIN |
+
+### 13.13 MATRICE DES DROITS D'ACCÈS
+
+#### 13.13.1 AFFICHAGE
+| Propriété | Valeur |
+|-----------|--------|
+| Position | Après la liste des utilisateurs |
+| Titre | "Matrice des droits d'accès par rôle" |
+| Type | Tableau |
+
+#### 13.13.2 STRUCTURE TABLEAU
+| Colonne | Largeur | Contenu |
+|---------|---------|---------|
+| **Module** | 200px | Nom du module |
+| **SUPER_ADMIN** | 150px | Droits super admin |
+| **ADMIN** | 150px | Droits admin |
+| **COMPTABLE** | 150px | Droits comptable |
+| **SECRETAIRE** | 150px | Droits secrétaire |
+| **TECHNICIEN** | 150px | Droits technicien |
+
+#### 13.13.3 MODULES DOCUMENTÉS
+| Module | Description |
+|--------|-------------|
+| **DASHBOARD** | Tableau de bord |
+| **CLIENTS** | Référentiel clients |
+| **APPELS_OFFRES** | Appels d'offres |
+| **DEVIS** | Création devis |
+| **DEVIS_LECTURE** | Consultation devis |
+| **FACTURES** | Factures clients |
+| **ENCAISSEMENTS** | Encaissements |
+| **CAISSE** | Enregistrement caisse |
+| **JOURNAL** | Journal de caisse |
+| **FOURNISSEURS** | Référentiel fournisseurs |
+| **IMPORT_EXPORT** | Import/Export |
+| **PLANIFICATION** | Planification projets |
+| **PARAMETRES** | Paramètres système |
+
+#### 13.13.4 SYMBOLES DROITS
+| Symbole | Signification |
+|---------|---------------|
+| **✓** | Accès complet (lecture + écriture) |
+| **✓ tout** | Accès total toutes fonctions |
+| **✓ modif** | Accès lecture + modification |
+| **✓ lecture** | Accès lecture seule |
+| **✓ seul** | Accès exclusif (ADMIN uniquement) |
+| **lecture** | Lecture seule |
+| **✗** | Aucun accès |
+
+#### 13.13.5 DROITS PAR MODULE ET RÔLE
+
+**DASHBOARD** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ |
+| ADMIN | ✓ |
+| COMPTABLE | ✓ |
+| SECRETAIRE | ✓ |
+| TECHNICIEN | ✓ |
+
+**CLIENTS** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ |
+| ADMIN | ✓ |
+| COMPTABLE | ✓ |
+| SECRETAIRE | ✓ modif |
+| TECHNICIEN | ✗ |
+
+**APPELS_OFFRES** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ |
+| ADMIN | ✓ |
+| COMPTABLE | ✗ |
+| SECRETAIRE | ✓ |
+| TECHNICIEN | lecture |
+
+**DEVIS (Création)** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ |
+| ADMIN | ✓ |
+| COMPTABLE | ✗ |
+| SECRETAIRE | ✓ |
+| TECHNICIEN | ✗ |
+
+**DEVIS_LECTURE (Consultation)** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ |
+| ADMIN | ✓ |
+| COMPTABLE | ✓ |
+| SECRETAIRE | ✓ |
+| TECHNICIEN | ✓ |
+
+**FACTURES** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ tout |
+| ADMIN | ✓ tout |
+| COMPTABLE | ✓ tout |
+| SECRETAIRE | ✓ lecture |
+| TECHNICIEN | ✗ |
+
+**ENCAISSEMENTS** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ tout |
+| ADMIN | ✓ tout |
+| COMPTABLE | ✓ tout |
+| SECRETAIRE | ✗ |
+| TECHNICIEN | ✗ |
+
+**CAISSE** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ tout |
+| ADMIN | ✓ tout |
+| COMPTABLE | ✓ tout |
+| SECRETAIRE | ✗ |
+| TECHNICIEN | ✗ |
+
+**JOURNAL** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ tout |
+| ADMIN | ✓ tout |
+| COMPTABLE | ✓ tout |
+| SECRETAIRE | ✗ |
+| TECHNICIEN | ✗ |
+
+**FOURNISSEURS** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ tout |
+| ADMIN | ✓ tout |
+| COMPTABLE | ✓ tout |
+| SECRETAIRE | ✗ |
+| TECHNICIEN | ✗ |
+
+**IMPORT_EXPORT** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ |
+| ADMIN | ✓ |
+| COMPTABLE | ✓ |
+| SECRETAIRE | ✗ |
+| TECHNICIEN | ✗ |
+
+**PLANIFICATION** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ |
+| ADMIN | ✓ |
+| COMPTABLE | ✓ |
+| SECRETAIRE | ✓ lecture |
+| TECHNICIEN | ✓ lecture |
+
+**PARAMETRES** :
+| Rôle | Droit |
+|------|-------|
+| SUPER_ADMIN | ✓ seul |
+| ADMIN | ✓ seul |
+| COMPTABLE | ✗ |
+| SECRETAIRE | ✗ |
+| TECHNICIEN | ✗ |
+
+### 13.14 AUDIT ET LOGS
+
+#### 13.14.1 ACTIONS LOGGÉES
+| Action | Module | Détails |
+|--------|--------|---------|
+| Ajout utilisateur | Utilisateurs | Nom + rôle |
+| Modification utilisateur | Utilisateurs | Nom + champs modifiés |
+| Changement mot de passe | Utilisateurs | Nom utilisateur |
+| Réinitialisation MDP | Utilisateurs | Nom + nouveau MDP |
+| Activation/Désactivation | Utilisateurs | Nom + nouveau statut |
+| Suppression utilisateur | Utilisateurs | Nom + rôle |
+
+#### 13.14.2 FORMAT LOG
+| Champ | Contenu |
+|-------|---------|
+| module | "Utilisateurs" |
+| action | Type d'action |
+| utilisateur | Nom utilisateur connecté |
+| details | Détails de l'action |
+| timestamp | Date et heure |
+
+═══════════════════════════════════════════════════════════════════════════════
+FIN DE LA PARTIE 2C - PAGES FINALES
+═══════════════════════════════════════════════════════════════════════════════
+
+RÉCAPITULATIF PARTIE 2 COMPLÈTE :
+- DOCUMENTATION_PARTIE_2_PAGES.txt : Dashboard, Clients, Planification, AO, 7 types Devis
+- DOCUMENTATION_PARTIE_2B_PAGES_SUITE.txt : Liste Devis, Factures, Encaissements, Caisse, Journal, Fournisseurs
+- DOCUMENTATION_PARTIE_2C_PAGES_FINAL.txt : Import/Export, Utilisateurs
+
+TOUTES LES PAGES SONT DOCUMENTÉES DE MANIÈRE EXHAUSTIVE.

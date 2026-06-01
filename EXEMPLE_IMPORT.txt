@@ -1,0 +1,59 @@
+FICHIER D'EXEMPLE POUR IMPORT/EXPORT - SIKA INDUSTRIE
+=====================================================
+
+Pour tester le module Import/Export, créez un fichier Excel (.xlsx) avec les feuilles suivantes :
+
+FEUILLE "Clients" :
+-------------------
+Colonnes : code | nom | contact | telephone | email | adresse | ville | pays | typeClient | conditionsPaiement | delaiPaiement | plafondCredit | solde | statut
+
+Exemple de données :
+CLI001 | GMCI | M. Hassan BENALI | +225 27 21 25 36 48 | contact@gmci.ci | Zone Industrielle | Abidjan | Côte d'Ivoire | Entreprise | Net 30 | 30 | 500000 | 0 | Actif
+
+
+FEUILLE "Fournisseurs" :
+------------------------
+Colonnes : code | nom | contact | telephone | email | adresse | ville | pays | categorie | conditionsPaiement | delaiPaiement | solde | statut
+
+Exemple de données :
+FRN001 | ACIER CI | M. Koné | +225 07 08 09 10 11 | acier@ci.com | Zone 4C | Abidjan | Côte d'Ivoire | Matériaux | Net 45 | 45 | 0 | Actif
+
+
+FEUILLE "Devis" :
+-----------------
+Colonnes : numero | date | clientId | clientNom | montantHT | tva | montantTTC | validiteJours | statut | lignes
+
+Exemple de données :
+DEV-2026-001 | 2026-01-15 | 1 | GMCI | 1000000 | 180000 | 1180000 | 30 | En attente | []
+
+
+FEUILLE "Factures" :
+--------------------
+Colonnes : numero | date | dateEcheance | clientId | clientNom | montantHT | tva | montantTTC | montantPaye | solde | statut | lignes
+
+Exemple de données :
+FAC-2026-001 | 2026-01-20 | 2026-02-20 | 1 | GMCI | 1000000 | 180000 | 1180000 | 500000 | 680000 | Partiel | []
+
+
+FEUILLE "Journal" (Journal_de_caisse.xlsm) :
+--------------------------------------------
+Colonnes : date | libelle | entrees | sorties | solde | modePaiement | reference
+
+Exemple de données :
+2026-01-15 | Vente produit A | 500000 | 0 | 500000 | Espèces | REF001
+
+
+NOTES IMPORTANTES :
+-------------------
+1. Les dates Excel sont automatiquement converties (format numérique Excel → Date JS)
+2. Les colonnes sont mappées automatiquement selon leur nom
+3. Vous pouvez choisir entre "Fusionner" (ajouter aux données) ou "Remplacer" (effacer tout)
+4. Un rapport détaillé est généré après chaque import
+5. Les 5 premières lignes sont prévisualisées avant import
+
+EXPORT :
+--------
+- Excel : Conserve les noms de colonnes exacts du fichier source
+- PDF : Format A4 avec en-tête SIKA INDUSTRIE et pied de page confidentiel
+- Filtres disponibles : Période, Client, Toutes données
+- Signature automatique du gérant sur les devis PDF uniquement

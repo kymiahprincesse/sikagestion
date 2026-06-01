@@ -1,0 +1,450 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export const STATUTS_PROJET = {
+  EN_PREPARATION: 'EN_PREPARATION',
+  EN_COURS: 'EN_COURS',
+  TERMINE: 'TERMINE',
+  EN_RETARD: 'EN_RETARD',
+  SUSPENDU: 'SUSPENDU'
+};
+
+export const STATUTS_TACHE = {
+  A_FAIRE: 'A_FAIRE',
+  EN_COURS: 'EN_COURS',
+  TERMINE: 'TERMINE',
+  EN_RETARD: 'EN_RETARD',
+  BLOQUE: 'BLOQUE',
+  SUSPENDU: 'SUSPENDU'
+};
+
+export const usePlanificationStore = create(
+  persist(
+    (set, get) => ({
+      projets: [],
+      taches: [],
+      ressourcesHebdo: [],
+      seuilAlerteBudget: 0.8,
+
+      // Gestion des projets
+      addProjet: (projet) => {
+        const nouveauProjet = {
+          ...projet,
+          id: Date.now(),
+          dateCreation: projet.dateCreation || new Date().toISOString().split('T')[0],
+          statut: projet.statut || STATUTS_PROJET.EN_PREPARATION
+        };
+
+        set((state) => ({
+          projets: [...state.projets, nouveauProjet]
+        }));
+
+        return nouveauProjet;
+      },
+
+      updateProjet: (id, modifications, utilisateur = 'Utilisateur') => {
+        const projet = get().getProjetById(id);
+        const projetAvant = { ...projet };
+        
+        set((state) => ({
+          projets: state.projets.map((p) =>
+            p.id === id ? { ...p, ...modifications } : p
+          )
+        }));
+        
+        const projetApres = get().getProjetById(id);
+        
+        if (typeof window !== 'undefined' && projet) {
+          // Notification
+          import('./useNotificationsStore').then(({ useNotificationsStore }) => {
+            useNotificationsStore.getState().notifierModificationPlanning(
+              utilisateur,
+              projet.nom || `Projet #${id}`
+            );
+          });
+          
+          // Audit Trail avec calcul d'impact financier
+          import('./useAuditStore').then(({ useAuditStore, ACTIONS_AUDIT, MODULES_AUDIT, calculerEcartFinancier }) => {
+            const impactFinancier = calculerEcartFinancier(projetAvant, projetApres);
+            
+            useAuditStore.getState().addLog({
+              module: MODULES_AUDIT.PLANIFICATION,
+              action: ACTIONS_AUDIT.PLANNING_UPDATE,
+              utilisateur: utilisateur,
+              avant: projetAvant,
+              apres: projetApres,
+              impactFinancier: impactFinancier
+            });
+          });
+        }
+      },
+
+      deleteProjet: (id) => {
+        // Supprimer aussi les tâches associées
+        set((state) => ({
+          projets: state.projets.filter((p) => p.id !== id),
+          taches: state.taches.filter((t) => t.projetId !== id),
+          ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.projetId !== id)
+        }));
+      },
+
+      getProjetById: (id) => {
+        const { projets } = get();
+        return projets.find((p) => p.id === id);
+      },
+
+      getProjetsByClient: (clientId) => {
+        const { projets } = get();
+        return projets.filter((p) => p.clientId === clientId);
+      },
+
+      getProjetsByStatut: (statut) => {
+        const { projets } = get();
+        return projets.filter((p) => p.statut === statut);
+      },
+
+      // Gestion des tâches
+      addTache: (tache) => {
+        const nouvelleTache = {
+          ...tache,
+          id: Date.now(),
+          dateCreation: tache.dateCreation || new Date().toISOString().split('T')[0],
+          statut: tache.statut || 'A_FAIRE'
+        };
+
+        set((state) => ({
+          taches: [...state.taches, nouvelleTache]
+        }));
+
+        return nouvelleTache;
+      },
+
+      updateTache: (id, modifications) => {
+        set((state) => ({
+          taches: state.taches.map((t) =>
+            t.id === id ? { ...t, ...modifications } : t
+          )
+        }));
+      },
+
+      deleteTache: (id) => {
+        set((state) => ({
+          taches: state.taches.filter((t) => t.id !== id),
+          ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.tacheId !== id)
+        }));
+      },
+
+      getTacheById: (id) => {
+        const { taches } = get();
+        return taches.find((t) => t.id === id);
+      },
+
+      getTachesByProjet: (projetId) => {
+        const { taches } = get();
+        return taches.filter((t) => t.projetId === projetId);
+      },
+
+      getTachesByStatut: (statut) => {
+        const { taches } = get();
+        return taches.filter((t) => t.statut === statut);
+      },
+
+      // Gestion des ressources hebdomadaires
+      addRessource: (ressource) => {
+        const nouvelleRessource = {
+          ...ressource,
+          id: Date.now()
+        };
+
+        set((state) => ({
+          ressourcesHebdo: [...state.ressourcesHebdo, nouvelleRessource]
+        }));
+
+        return nouvelleRessource;
+      },
+
+      updateRessource: (id, modifications) => {
+        set((state) => ({
+          ressourcesHebdo: state.ressourcesHebdo.map((r) =>
+            r.id === id ? { ...r, ...modifications } : r
+          )
+        }));
+      },
+
+      deleteRessource: (id) => {
+        set((state) => ({
+          ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.id !== id)
+        }));
+      },
+
+      getRessourcesByTache: (tacheId) => {
+        const { ressourcesHebdo } = get();
+        return ressourcesHebdo.filter((r) => r.tacheId === tacheId);
+      },
+
+      getRessourcesByProjet: (projetId) => {
+        const { ressourcesHebdo } = get();
+        return ressourcesHebdo.filter((r) => r.projetId === projetId);
+      },
+
+      // Calculs budgétaires
+      calculerBudgetTotal: (projetId) => {
+        const taches = get().getTachesByProjet(projetId);
+        return taches.reduce((total, tache) => {
+          const budgetTache = tache.budgetPrevu || 0;
+          return total + budgetTache;
+        }, 0);
+      },
+
+      calculerBudgetReel: (projetId) => {
+        const taches = get().getTachesByProjet(projetId);
+        return taches.reduce((total, tache) => {
+          const budgetReel = tache.budgetReel || 0;
+          return total + budgetReel;
+        }, 0);
+      },
+
+      getEcart: (projetId) => {
+        const prevu = get().calculerBudgetTotal(projetId);
+        const reel = get().calculerBudgetReel(projetId);
+        const ecart = reel - prevu;
+        const pourcentage = prevu > 0 ? (ecart / prevu) * 100 : 0;
+
+        return {
+          prevu,
+          reel,
+          ecart,
+          pourcentage: Math.round(pourcentage * 100) / 100
+        };
+      },
+
+      // Calcul des ressources totales
+      getTotalHeuresPrevu: (projetId) => {
+        const ressources = get().getRessourcesByProjet(projetId);
+        return ressources.reduce((total, r) => total + (r.heuresPrevu || 0), 0);
+      },
+
+      getTotalHeuresReel: (projetId) => {
+        const ressources = get().getRessourcesByProjet(projetId);
+        return ressources.reduce((total, r) => total + (r.heuresReel || 0), 0);
+      },
+
+      // Avancement du projet
+      getAvancementProjet: (projetId) => {
+        const taches = get().getTachesByProjet(projetId);
+        if (taches.length === 0) return 0;
+
+        const tachesTerminees = taches.filter((t) => t.statut === 'TERMINE');
+        return Math.round((tachesTerminees.length / taches.length) * 100);
+      },
+
+      // Calculs budgétaires avancés pour tâches
+      calculerBudgetTache: (tache, parametres) => {
+        if (!tache || !parametres) return null;
+
+        const dureeJours = tache.dureeJours || 0;
+        const nbTechniciens = tache.nbTechniciens || 1;
+        const kmSite = tache.kmSite || 0;
+        const nbDeplacements = tache.nbDeplacements || 0;
+        const budgetMateriel = tache.budgetMateriel || 0;
+        const budgetSousTraitance = tache.budgetSousTraitance || 0;
+
+        const budgetCarburant = (kmSite * 2 * nbDeplacements / 100) 
+          * parametres.consommationMoyenne 
+          * parametres.prixCarburant;
+
+        const budgetNourriture = nbTechniciens * dureeJours * parametres.indemniteRepas;
+
+        const budgetLogistique = budgetMateriel + budgetSousTraitance;
+
+        const coutHebdo = budgetNourriture 
+          + (nbDeplacements * kmSite * 2 / 100 * parametres.consommationMoyenne * parametres.prixCarburant)
+          + budgetLogistique;
+
+        const coutTotal = budgetCarburant + budgetNourriture + budgetLogistique;
+
+        return {
+          budgetCarburant: Math.round(budgetCarburant),
+          budgetNourriture: Math.round(budgetNourriture),
+          budgetLogistique: Math.round(budgetLogistique),
+          coutHebdo: Math.round(coutHebdo),
+          coutTotal: Math.round(coutTotal)
+        };
+      },
+
+      // Récupérer coût réel depuis caisse
+      getCoutReelProjet: (projetId, referenceProjet) => {
+        if (typeof window === 'undefined') return 0;
+        
+        try {
+          const caisseStore = require('./useCaisseStore').useCaisseStore.getState();
+          const mouvements = caisseStore.mouvements || [];
+          
+          const mouvementsProjet = mouvements.filter(m => 
+            m.type === 'SORTIE' && 
+            m.referenceProjet === referenceProjet
+          );
+
+          return mouvementsProjet.reduce((total, m) => total + (m.montant || 0), 0);
+        } catch (error) {
+          return 0;
+        }
+      },
+
+      // Récupérer budget prévu depuis devis
+      getBudgetPrevuDevis: (devisId) => {
+        if (typeof window === 'undefined' || !devisId) return 0;
+        
+        try {
+          const devisStore = require('./useDevisStore').useDevisStore.getState();
+          const devis = devisStore.getDevisById(devisId);
+          
+          return devis?.montantTotal || 0;
+        } catch (error) {
+          return 0;
+        }
+      },
+
+      // Vérifier alerte 80% budget
+      verifierAlerteBudget: (projetId) => {
+        const projet = get().getProjetById(projetId);
+        if (!projet) return null;
+
+        const budgetPrevu = projet.budgetPrevu || get().getBudgetPrevuDevis(projet.devisId);
+        const coutReel = projet.coutReel || get().getCoutReelProjet(projetId, projet.referenceProjet);
+        
+        if (budgetPrevu === 0) return null;
+
+        const pourcentageConsomme = (coutReel / budgetPrevu) * 100;
+        const seuil = get().seuilAlerteBudget * 100;
+
+        if (pourcentageConsomme >= seuil) {
+          return {
+            projetId,
+            projetNom: projet.nom,
+            clientId: projet.clientId,
+            budgetPrevu,
+            coutReel,
+            pourcentageConsomme: Math.round(pourcentageConsomme * 100) / 100,
+            seuil,
+            niveau: pourcentageConsomme >= 100 ? 'CRITIQUE' : pourcentageConsomme >= 90 ? 'URGENT' : 'ALERTE'
+          };
+        }
+
+        return null;
+      },
+
+      // Déclencher alerte automatique
+      declencherAlerteBudget: (alerte, utilisateur = 'Système') => {
+        if (!alerte || typeof window === 'undefined') return;
+
+        try {
+          // Notification
+          import('./useNotificationsStore').then(({ useNotificationsStore }) => {
+            useNotificationsStore.getState().addNotification({
+              type: 'ALERTE_BUDGET',
+              titre: `⚠️ ALERTE BUDGET - ${alerte.projetNom}`,
+              message: `Budget consommé à ${alerte.pourcentageConsomme}% | Prévu: ${alerte.budgetPrevu.toLocaleString('fr-FR')} FCFA | Dépensé: ${alerte.coutReel.toLocaleString('fr-FR')} FCFA`,
+              niveau: alerte.niveau,
+              projetId: alerte.projetId
+            });
+          });
+
+          // Audit
+          import('./useAuditStore').then(({ useAuditStore, ACTIONS_AUDIT, MODULES_AUDIT }) => {
+            useAuditStore.getState().addLog({
+              module: MODULES_AUDIT.PLANIFICATION,
+              action: ACTIONS_AUDIT.ALERTE_BUDGET,
+              utilisateur,
+              details: `Projet ${alerte.projetNom} - Budget consommé à ${alerte.pourcentageConsomme}%`,
+              impactFinancier: alerte.coutReel - alerte.budgetPrevu
+            });
+          });
+        } catch (error) {
+          console.error('Erreur déclenchement alerte:', error);
+        }
+      },
+
+      // Vérifier toutes les alertes
+      verifierToutesAlertes: () => {
+        const { projets } = get();
+        const alertes = [];
+
+        projets.forEach(projet => {
+          if (projet.statut !== STATUTS_PROJET.TERMINE && projet.statut !== STATUTS_PROJET.SUSPENDU) {
+            const alerte = get().verifierAlerteBudget(projet.id);
+            if (alerte) {
+              alertes.push(alerte);
+              get().declencherAlerteBudget(alerte);
+            }
+          }
+        });
+
+        return alertes;
+      },
+
+      // Import planning depuis fichier
+      importerTaches: (tachesImportees, projetId) => {
+        const tachesAjoutees = [];
+
+        tachesImportees.forEach(tacheData => {
+          const nouvelleTache = get().addTache({
+            ...tacheData,
+            projetId,
+            statut: tacheData.statut || STATUTS_TACHE.A_FAIRE
+          });
+          tachesAjoutees.push(nouvelleTache);
+        });
+
+        return tachesAjoutees;
+      },
+
+      // Mise à jour seuil alerte
+      setSeuilAlerteBudget: (seuil) => {
+        if (seuil > 0 && seuil <= 1) {
+          set({ seuilAlerteBudget: seuil });
+        }
+      },
+
+      // Statistiques projet
+      getStatistiquesProjet: (projetId) => {
+        const projet = get().getProjetById(projetId);
+        const taches = get().getTachesByProjet(projetId);
+        
+        if (!projet) return null;
+
+        const budgetPrevu = projet.budgetPrevu || get().getBudgetPrevuDevis(projet.devisId);
+        const coutReel = projet.coutReel || get().getCoutReelProjet(projetId, projet.referenceProjet);
+        const ecart = coutReel - budgetPrevu;
+        const pourcentageConsomme = budgetPrevu > 0 ? (coutReel / budgetPrevu) * 100 : 0;
+
+        const tachesTerminees = taches.filter(t => t.statut === STATUTS_TACHE.TERMINE).length;
+        const tachesEnCours = taches.filter(t => t.statut === STATUTS_TACHE.EN_COURS).length;
+        const tachesEnRetard = taches.filter(t => t.statut === STATUTS_TACHE.EN_RETARD).length;
+
+        return {
+          projetId,
+          nom: projet.nom,
+          budgetPrevu,
+          coutReel,
+          ecart,
+          pourcentageConsomme: Math.round(pourcentageConsomme * 100) / 100,
+          nbTaches: taches.length,
+          tachesTerminees,
+          tachesEnCours,
+          tachesEnRetard,
+          avancement: get().getAvancementProjet(projetId),
+          indicateurBudget: pourcentageConsomme < 60 ? 'ECONOME' : pourcentageConsomme < 80 ? 'ALERTE' : 'DEPASSEMENT'
+        };
+      }
+,
+
+      setProjets: (projets) => {
+        set({ projets });
+      }
+    }),
+    {
+      name: 'sika_planification'
+    }
+  )
+);

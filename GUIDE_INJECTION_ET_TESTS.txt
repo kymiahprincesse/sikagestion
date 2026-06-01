@@ -1,0 +1,341 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    GUIDE D'INJECTION ET DE TESTS - SIKAGESTION
+═══════════════════════════════════════════════════════════════════════════════
+
+📅 Date: 31 Mai 2026
+🎯 Objectif: Injecter des données réelles et tester exhaustivement l'application
+
+═══════════════════════════════════════════════════════════════════════════════
+ÉTAPE 1 - DONNÉES DÉJÀ INJECTÉES ✅
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ 5 CLIENTS RÉELS injectés:
+   1. GESTOCI SA (Énergie - Hydrocarbures)
+   2. SUCRIVOIRE SA (Agroalimentaire - Sucre)
+   3. CIE (Énergie - Électricité)
+   4. PALM CI (Agroalimentaire - Huile de palme)
+   5. SODEMI (Industrie - Mines)
+
+✅ 4 FOURNISSEURS RÉELS injectés:
+   1. METALTECH SOUDURE CI (Sous-traitant)
+   2. ISOTHERM AFRIQUE (Service - Calorifugeage)
+   3. TRANS-CI LOGISTIQUE (Transport)
+   4. ACIER DISTRIBUTION CI (Matériel)
+
+✅ 15 PROJETS RÉELS injectés (3 par client):
+   - Statuts variés: En cours, Terminé, En retard, En préparation, Suspendu
+   - Budgets réalistes entre 6M et 58M FCFA
+   - Dates cohérentes
+
+═══════════════════════════════════════════════════════════════════════════════
+ÉTAPE 2 - INJECTION DES DEVIS, FACTURES ET APPELS D'OFFRES
+═══════════════════════════════════════════════════════════════════════════════
+
+🌐 MÉTHODE 1: Via l'interface web (RECOMMANDÉE)
+   
+   1. Ouvrez votre navigateur
+   2. Accédez à: http://localhost:5187/injection-donnees
+   3. Cliquez sur le bouton "✨ Injecter les données"
+   4. Attendez le rapport de confirmation
+   
+   Cela va injecter:
+   - 4 Devis (Calorifuge, Réservoir, Tuyauterie, Pliage)
+   - 3 Factures (1 partielle, 1 en attente, 1 payée)
+   - 3 Appels d'offres (différents statuts)
+
+💻 MÉTHODE 2: Via script Node.js (si l'interface ne fonctionne pas)
+   
+   Créer un fichier inject-devis-factures.mjs et exécuter:
+   node inject-devis-factures.mjs
+
+═══════════════════════════════════════════════════════════════════════════════
+ÉTAPE 3 - VÉRIFICATION DANS SUPABASE
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Accédez au Dashboard Supabase:
+   https://supabase.com/dashboard/project/keyfnghpisdwwayrmlfk
+
+2. Allez dans "Table Editor"
+
+3. Vérifiez chaque table:
+   □ clients: 5 lignes
+   □ fournisseurs: 4 lignes
+   □ projets: 15 lignes
+   □ devis: 4 lignes
+   □ lignes_devis: ~20 lignes
+   □ factures: 3 lignes
+   □ lignes_factures: ~10 lignes
+   □ paiements_factures: 2 lignes
+   □ appels_offres: 3 lignes
+
+4. Vérifiez les foreign keys:
+   - Chaque devis doit avoir un client_id valide
+   - Chaque facture doit avoir un client_id et éventuellement un devis_id
+   - Chaque projet doit avoir un client_id
+
+═══════════════════════════════════════════════════════════════════════════════
+ÉTAPE 4 - TESTS EXHAUSTIFS DES MODULES
+═══════════════════════════════════════════════════════════════════════════════
+
+🔍 MODULE CLIENTS (http://localhost:5187/clients)
+────────────────────────────────────────────────────────────────────────────
+□ Vérifier que les 5 clients s'affichent
+□ Cliquer sur "Voir" pour GESTOCI → Vérifier toutes les sections
+□ Modifier GESTOCI: changer conditionsPaiement de 60 à 45
+□ Vérifier que le CA et les projets liés s'affichent
+□ Exporter Excel → Vérifier 16 colonnes remplies
+□ Exporter PDF → Vérifier logo, tableau, pagination
+□ Ajouter un nouveau client test
+□ Supprimer le client test → Confirmer la modale
+
+🔍 MODULE APPELS D'OFFRES (http://localhost:5187/ao)
+────────────────────────────────────────────────────────────────────────────
+□ Vérifier que les 3 AO s'affichent avec les bons statuts
+□ Vérifier les badges de priorité (Haute, Moyenne, Basse)
+□ Vérifier l'indicateur URGENT pour AO-GESTOCI-2026-07
+□ Modifier AO-CIE-2026-05: passer de SOUMIS à GAGNE
+□ Vérifier que le KPI "Gagnés" augmente de 1
+□ Convertir AO-GESTOCI-2026-07 en Devis
+□ Exporter Excel et PDF
+□ Imprimer fiche AO
+
+🔍 MODULE DEVIS (http://localhost:5187/devis/liste)
+────────────────────────────────────────────────────────────────────────────
+□ Vérifier que les 4 devis s'affichent
+□ Ouvrir DEV-CAL-2026-001 (Calorifuge)
+   □ Vérifier toutes les lignes (6 lignes)
+   □ Modifier PU de la ligne 1 (+5%)
+   □ Vérifier recalcul automatique du TTC
+   □ Dupliquer une ligne
+   □ Monter/Descendre une ligne
+   □ Générer PDF → Vérifier mise en page
+
+□ Ouvrir DEV-RES-2026-002 (Réservoir)
+   □ Modifier taux remise de 8% à 10%
+   □ Vérifier recalcul HT après remise et TTC
+   □ Vérifier section "Paramètres réservoir"
+   □ Générer PDF
+
+□ Valider DEV-TUY-2026-003 (passer de BROUILLON à VALIDE)
+
+□ Convertir DEV-CAL-2026-001 en FACTURE
+   □ Vérifier que le statut du devis passe à "FACTURE"
+   □ Vérifier qu'une nouvelle facture est créée
+
+□ Créer un nouveau Devis Soudure:
+   - Client: CIE
+   - 5 lignes avec désignations et prix réels
+   - Sauvegarder en BROUILLON
+
+🔍 MODULE FACTURES (http://localhost:5187/factures)
+────────────────────────────────────────────────────────────────────────────
+□ Vérifier que les 3 factures s'affichent
+
+□ FACT-2026-001 (GESTOCI):
+   □ Statut: EN_ATTENTE
+   □ Montant payé: 50% du TTC
+   □ Reste à payer: 50% du TTC
+   □ Ajouter un 2ème paiement: 25% du TTC, mode ESPECES
+   □ Vérifier recalcul: reste = 25% du TTC
+
+□ FACT-2026-002 (CIE):
+   □ Statut: EN_ATTENTE
+   □ Montant payé: 0
+   □ Modifier date échéance → mettre à hier
+   □ Vérifier badge "En retard" rouge
+
+□ FACT-2026-003 (SUCRIVOIRE):
+   □ Statut: PAYEE (badge vert ✓)
+   □ Montant payé: 100% du TTC
+   □ Reste: 0
+
+□ Générer PDF de chaque facture
+   □ Vérifier: numéro, client, lignes, totaux, paiements
+
+□ Exporter liste Excel et PDF
+
+🔍 MODULE ENCAISSEMENTS (http://localhost:5187/encaissements)
+────────────────────────────────────────────────────────────────────────────
+□ Sélectionner client GESTOCI
+   □ Vérifier solde initial, TTC, réglé, reste
+   □ Ajouter encaissement: FACT-2026-001, 25% TTC, VIREMENT
+   □ Vérifier mise à jour solde en temps réel
+
+□ Tester sélection rapide AMCC (si existe)
+□ Revenir à GESTOCI
+□ Modifier l'encaissement: changer mode de VIREMENT à TRAITE
+□ Exporter Excel et PDF encaissements GESTOCI
+□ Supprimer l'encaissement → Vérifier que solde revient
+
+🔍 MODULE CAISSE (http://localhost:5187/caisse)
+────────────────────────────────────────────────────────────────────────────
+□ Ajouter ENTRÉE:
+   - Date: aujourd'hui
+   - Ref: "REC-2026-051"
+   - Libellé: "Règlement SUCRIVOIRE facture 003 – Chèque N°458720"
+   - Montant: 9500000
+
+□ Ajouter SORTIE:
+   - Date: aujourd'hui
+   - Ref: "DEP-2026-022"
+   - Libellé: "Achat laine de roche DN100 – ISOTHERM AFRIQUE"
+   - Montant: 3250000
+
+□ Tester BLOCAGE: tenter sortie > solde disponible
+   → Vérifier message d'erreur
+
+□ Vérifier calcul solde cumulé ligne par ligne
+□ Modifier libellé de la sortie
+□ Exporter Excel et PDF
+□ Supprimer la sortie → Vérifier recalcul solde
+
+🔍 MODULE PLANIFICATION (http://localhost:5187/planification)
+────────────────────────────────────────────────────────────────────────────
+□ Vérifier que les 15 projets s'affichent
+□ Filtrer par client GESTOCI → 3 projets
+□ Filtrer par statut EN_COURS → plusieurs projets
+
+□ Ouvrir projet "Calorifugeage conduites vapeur – Dépôt Vridi"
+   □ Ajouter 3 tâches:
+      1. "Installation échafaudages", 4 pers, 2j, 45km, Terminée
+      2. "Dépose ancien calorifuge", 6 pers, 3j, 45km, En cours
+      3. "Pose nouveau calorifuge DN200", 6 pers, 5j, 45km, À faire
+   □ Vérifier calcul automatique budget
+   □ Vérifier barre de progression: 1/3 = 33% (rouge)
+   □ Passer Tâche 2 à "Terminée"
+   □ Vérifier progression = 67% (orange)
+
+□ Modifier date fin projet → mettre date passée
+   □ Vérifier badge "En retard"
+
+□ Exporter Excel
+
+🔍 MODULE FOURNISSEURS (http://localhost:5187/fournisseurs)
+────────────────────────────────────────────────────────────────────────────
+□ Vérifier que les 4 fournisseurs s'affichent
+□ Modifier METALTECH: changer conditionsPaiement de 30 à 15
+□ Voir détail ISOTHERM → Vérifier toutes les sections
+□ Désactiver TRANS-CI → Vérifier badge Inactif + opacité
+□ Réactiver TRANS-CI
+□ Exporter Excel et PDF
+
+🔍 MODULE IMPORT/EXPORT (http://localhost:5187/import-export)
+────────────────────────────────────────────────────────────────────────────
+□ EXPORT Clients → Excel → Vérifier 5 clients, toutes colonnes
+□ EXPORT Clients → PDF → Vérifier logo, tableau, pagination
+□ EXPORT Factures → PDF → Filtrer par client GESTOCI uniquement
+□ EXPORT Devis → Excel → Filtrer par statut VALIDE uniquement
+
+□ Préparer fichier Excel avec 2 clients fictifs
+□ IMPORTER en mode Fusion
+   □ Vérifier que les 2 clients s'ajoutent (total = 7)
+□ IMPORTER en mode Remplacement
+   □ Confirmer modal avertissement
+   □ Vérifier rapport: nombre lignes importées
+
+═══════════════════════════════════════════════════════════════════════════════
+ÉTAPE 5 - VÉRIFICATION SYNCHRONISATION SUPABASE TEMPS RÉEL
+═══════════════════════════════════════════════════════════════════════════════
+
+□ Ouvrir 2 onglets simultanément sur la même page (ex: Clients)
+□ Dans l'onglet 1: Modifier un client
+□ Dans l'onglet 2: Vérifier que la modification apparaît automatiquement
+
+□ Ouvrir Supabase Dashboard + l'application
+□ Modifier une donnée dans Supabase
+□ Vérifier que l'application se met à jour
+
+□ Simuler perte de connexion (désactiver WiFi)
+□ Tenter une action
+□ Vérifier message d'erreur gracieux
+
+═══════════════════════════════════════════════════════════════════════════════
+ÉTAPE 6 - VALIDATION DES CHAÎNES DE DONNÉES BOUT À BOUT
+═══════════════════════════════════════════════════════════════════════════════
+
+CHAÎNE 1: Du client au paiement
+────────────────────────────────────────────────────────────────────────────
+GESTOCI (client) 
+  → AO-GESTOCI-2026-07 (AO) 
+  → DEV-CAL-2026-001 (devis) 
+  → FACT-2026-001 (facture)
+  → Encaissement 50% + 25% = 75% payé
+  → Dashboard: CA GESTOCI visible dans Top 5 clients
+  → Dashboard: reste à encaisser = 25% de FACT-2026-001
+
+□ Vérifier chaque étape de la chaîne
+□ Vérifier les montants à chaque niveau
+□ Vérifier les liens entre les entités
+
+CHAÎNE 2: Du projet au budget
+────────────────────────────────────────────────────────────────────────────
+GESTOCI 
+  → Projet "Calorifugeage Vridi" 
+  → 3 tâches avec budgets
+  → Budget total projet calculé automatiquement
+  → Visible dans barre de progression + carte projet
+
+□ Vérifier calcul budget total
+□ Vérifier progression en %
+□ Vérifier statut du projet
+
+CHAÎNE 3: Du devis à la facture
+────────────────────────────────────────────────────────────────────────────
+DEV-CAL-2026-001 (VALIDE) 
+  → Convertir en facture
+  → FACT-2026-004 créée automatiquement avec lignes copiées
+  → DEV-CAL-2026-001 passe à statut "FACTURE"
+  → Liste devis: badge "FACTURE" visible
+  → Liste factures: FACT-2026-004 apparaît avec statut "En attente"
+
+□ Tester la conversion
+□ Vérifier copie des lignes
+□ Vérifier changement de statut
+
+═══════════════════════════════════════════════════════════════════════════════
+ÉTAPE 7 - RAPPORT FINAL
+═══════════════════════════════════════════════════════════════════════════════
+
+À la fin des tests, créer un rapport avec:
+
+✅ DONNÉES INJECTÉES
+| Type             | Quantité | Statut Supabase |
+|------------------|----------|-----------------|
+| Clients          | 5        | ✅ Synchronisé  |
+| Projets          | 15       | ✅ Synchronisé  |
+| Devis            | 4+       | ✅ Synchronisé  |
+| Factures         | 3+       | ✅ Synchronisé  |
+| Fournisseurs     | 4        | ✅ Synchronisé  |
+| Appels d'offres  | 3        | ✅ Synchronisé  |
+
+✅ BOUTONS TESTÉS
+Liste chaque bouton testé avec ✅ OK ou ❌ PROBLÈME + détail
+
+✅ LIENS DE DONNÉES VÉRIFIÉS
+Chaîne 1 à 3: ✅ ou ❌
+
+❌ ANOMALIES DÉTECTÉES
+(Lister tout ce qui ne fonctionne pas exactement comme prévu)
+
+💡 RECOMMANDATIONS
+(Actions correctives si des bugs sont trouvés)
+
+═══════════════════════════════════════════════════════════════════════════════
+COMMANDES UTILES
+═══════════════════════════════════════════════════════════════════════════════
+
+# Démarrer le serveur de développement
+npm run dev
+
+# Injecter les données de base (clients, fournisseurs, projets)
+node inject-data.mjs
+
+# Nettoyer toutes les données
+# (Exécuter dans Supabase SQL Editor ou via MCP)
+
+# Vérifier l'état de Supabase
+# Accéder à: https://supabase.com/dashboard/project/keyfnghpisdwwayrmlfk
+
+═══════════════════════════════════════════════════════════════════════════════
+FIN DU GUIDE
+═══════════════════════════════════════════════════════════════════════════════
