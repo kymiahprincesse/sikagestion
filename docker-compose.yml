@@ -11,17 +11,13 @@ services:
       - "80"
     restart: unless-stopped
     healthcheck:
-      test:
-        - CMD
-        - wget
-        - '-qO-'
-        - 'http://localhost:80/'
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 20s
     volumes:
-      - 'nginx_logs:/var/log/nginx'
+      - nginx_logs:/var/log/nginx
 
 volumes:
   nginx_logs:
