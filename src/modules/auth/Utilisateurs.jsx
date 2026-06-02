@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MATRIX_DROITS } from '../../utils/droits';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useUtilisateursStore } from '../../store/useUtilisateursStore';
@@ -94,12 +94,15 @@ const Utilisateurs = () => {
   const { enregistrerAction } = useAudit();
 
   const utilisateurs = useUtilisateursStore((state) => state.getUtilisateurs());
+  const fetchUtilisateurs = useUtilisateursStore((state) => state.fetchUtilisateurs);
   const modifierUtilisateur = useUtilisateursStore((state) => state.modifierUtilisateur);
   const changerMotDePasse = useUtilisateursStore((state) => state.changerMotDePasse);
   const reinitialiserMotDePasse = useUtilisateursStore((state) => state.reinitialiserMotDePasse);
   const ajouterUtilisateur = useUtilisateursStore((state) => state.ajouterUtilisateur);
   const toggleActif = useUtilisateursStore((state) => state.toggleActif);
   const supprimerUtilisateur = useUtilisateursStore((state) => state.supprimerUtilisateur);
+  const lierAuthSupabase = useUtilisateursStore((state) => state.lierAuthSupabase);
+  const envoyerEmailRecuperation = useUtilisateursStore((state) => state.envoyerEmailRecuperation);
 
   const [onglet, setOnglet] = useState('liste');
   const [filtreRole, setFiltreRole] = useState('TOUS');
@@ -112,7 +115,17 @@ const Utilisateurs = () => {
   const [message, setMessage] = useState(null);
   const [modalDelete, setModalDelete] = useState({ open: false, user: null });
   const [modalReinit, setModalReinit] = useState({ open: false, user: null, mdp: '', mdpConfirm: '' });
-  const [showPwd, setShowPwd] = useState({ ancien: false, nouveau: false, conf: false, reinit: false, reinitConf: false, ajout: false });
+  const [modalLierAuth, setModalLierAuth] = useState({ open: false, user: null, mdp: '' });
+  const [showPwd, setShowPwd] = useState({ ancien: false, nouveau: false, conf: false, reinit: false, reinitConf: false, ajout: false, lier: false });
+  const [loadingCreate, setLoadingCreate] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingReinit, setLoadingReinit] = useState(false);
+  const [loadingLier, setLoadingLier] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    fetchUtilisateurs();
+  }, []);
 
   if (!utilisateurConnecte || (utilisateurConnecte.role !== 'ADMIN' && utilisateurConnecte.role !== 'SUPER_ADMIN')) {
     return <Navigate to="/dashboard" replace />;
@@ -162,10 +175,10 @@ const Utilisateurs = () => {
     setPasswordData({ ancien: '', nouveau: '', confirmation: '' });
   };
 
-  const handleSauvegarderMotDePasse = () => {
+  const handleSauvegarderMotDePasse = async () => {
     if (passwordData.nouveau !== passwordData.confirmation) { afficherMessage('error', 'Les mots de passe ne correspondent pas'); return; }
     if (passwordData.nouveau.length < 6) { afficherMessage('error', 'Minimum 6 caractères'); return; }
-    const result = changerMotDePasse(modeMotDePasse, passwordData.ancien, passwordData.nouveau);
+    const result = await changerMotDePasse(modeMotDePasse, passwordData.ancien, passwordData.nouveau);
     if (result.success) {
       const user = utilisateurs.find(u => u.id === modeMotDePasse);
       enregistrerAction('UTILISATEUR', 'MOT_DE_PASSE', `Mot de passe changé pour ${user?.nom}`);
@@ -174,15 +187,18 @@ const Utilisateurs = () => {
     } else { afficherMessage('error', result.message); }
   };
 
-  const handleConfirmReinit = () => {
+  const handleConfirmReinit = async () => {
     if (modalReinit.mdp !== modalReinit.mdpConfirm) { afficherMessage('error', 'Les mots de passe ne correspondent pas'); return; }
     if (modalReinit.mdp.length < 6) { afficherMessage('error', 'Minimum 6 caractères'); return; }
-    const result = reinitialiserMotDePasse(modalReinit.user.id, modalReinit.mdp);
-    if (result.success) {
-      enregistrerAction('UTILISATEUR', 'REINIT_MDP', `Mot de passe réinitialisé pour ${modalReinit.user.nom}`);
-      afficherMessage('success', result.message);
-      setModalReinit({ open: false, user: null, mdp: '', mdpConfirm: '' });
-    } else { afficherMessage('error', result.message); }
+    setLoadingReinit(true);
+    try {
+      const result = await reinitialiserMotDePasse(modalReinit.user.id, modalReinit.mdp);
+      if (result.success) {
+        enregistrerAction('UTILISATEUR', 'REINIT_MDP', `Mot de passe réinitialisé pour ${modalReinit.user.nom}`);
+        afficherMessage('success', result.message);
+        setModalReinit({ open: false, user: null, mdp: '', mdpConfirm: '' });
+      } else { afficherMessage('error', result.message); }
+    } finally { setLoadingReinit(false); }
   };
 
   const handleToggleActif = (userId) => {
@@ -194,25 +210,63 @@ const Utilisateurs = () => {
     } else { afficherMessage('error', result.message); }
   };
 
-  const handleSauvegarderAjout = () => {
+  const handleSauvegarderAjout = async () => {
     if (!formData.nom || !formData.login || !formData.motDePasse) { afficherMessage('error', 'Tous les champs sont obligatoires'); return; }
+    if (!formData.email) { afficherMessage('error', 'L\'email est obligatoire pour créer un compte Supabase'); return; }
     if (formData.motDePasse.length < 6) { afficherMessage('error', 'Minimum 6 caractères pour le mot de passe'); return; }
-    const result = ajouterUtilisateur(formData);
+    setLoadingCreate(true);
+    try {
+      const result = await ajouterUtilisateur(formData);
+      if (result.success) {
+        enregistrerAction('UTILISATEUR', 'CREATION', `Nouvel utilisateur ${formData.nom} créé avec rôle ${formData.role}`);
+        afficherMessage('success', `✅ ${formData.nom} créé — peut maintenant se connecter avec son email`);
+        setModeAjout(false); setFormData({});
+      } else { afficherMessage('error', result.message); }
+    } finally { setLoadingCreate(false); }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!modalDelete.user) return;
+    setLoadingDelete(true);
+    try {
+      const result = await supprimerUtilisateur(modalDelete.user.id);
+      if (result.success) {
+        enregistrerAction('UTILISATEUR', 'SUPPRESSION', `Utilisateur ${modalDelete.user.nom} supprimé définitivement`);
+        afficherMessage('success', `🗑️ ${result.message}`);
+        setModalDelete({ open: false, user: null });
+      } else { afficherMessage('error', result.message); }
+    } finally { setLoadingDelete(false); }
+  };
+
+  const handleLierAuth = async () => {
+    if (!modalLierAuth.mdp || modalLierAuth.mdp.length < 6) { afficherMessage('error', 'Mot de passe: minimum 6 caractères'); return; }
+    setLoadingLier(true);
+    try {
+      const result = await lierAuthSupabase(modalLierAuth.user.id, modalLierAuth.mdp);
+      if (result.success) {
+        enregistrerAction('UTILISATEUR', 'LIAISON_AUTH', `${modalLierAuth.user.nom} lié à Supabase Auth`);
+        afficherMessage('success', `🔗 ${result.message}`);
+        setModalLierAuth({ open: false, user: null, mdp: '' });
+      } else { afficherMessage('error', result.message); }
+    } finally { setLoadingLier(false); }
+  };
+
+  const handleEnvoyerEmailRecup = async (user) => {
+    if (!user.email) { afficherMessage('error', 'Cet utilisateur n\'a pas d\'email'); return; }
+    const result = await envoyerEmailRecuperation(user.email);
     if (result.success) {
-      enregistrerAction('UTILISATEUR', 'CREATION', `Nouvel utilisateur ${formData.nom} créé avec rôle ${formData.role}`);
-      afficherMessage('success', `Utilisateur ${formData.nom} créé avec succès`);
-      setModeAjout(false); setFormData({});
+      afficherMessage('success', `📧 Email de récupération envoyé à ${user.email}`);
     } else { afficherMessage('error', result.message); }
   };
 
-  const handleConfirmSupprimer = () => {
-    const result = supprimerUtilisateur(modalDelete.user.id);
-    if (result.success) {
-      enregistrerAction('UTILISATEUR', 'SUPPRESSION', `Utilisateur ${modalDelete.user.nom} supprimé`);
-      afficherMessage('success', result.message);
-    } else { afficherMessage('error', result.message); }
-    setModalDelete({ open: false, user: null });
+  const handleSyncSupabase = async () => {
+    setSyncing(true);
+    try {
+      await fetchUtilisateurs();
+      afficherMessage('success', '🔄 Synchronisation avec Supabase effectuée');
+    } finally { setSyncing(false); }
   };
+
 
   const roleColor = (role) => ROLE_CONFIG[role]?.couleur || '#C8C8D0';
   const roleFond = (role) => ROLE_CONFIG[role]?.fond || '#F5F5F5';
@@ -237,12 +291,21 @@ const Utilisateurs = () => {
               <h1 style={{ color: 'white', fontSize: '22px', fontWeight: 800, margin: 0 }}>🔐 Gestion des Utilisateurs</h1>
               <p style={{ color: '#C8C8D0', fontSize: '13px', margin: '4px 0 0' }}>Administration du personnel SIKA INDUSTRIE — droits et rôles</p>
             </div>
-            <button
-              onClick={() => navigate('/parametres')}
-              style={{ background: '#E60000', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}
-            >
-              ⚙️ Paramètres
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={handleSyncSupabase}
+                disabled={syncing}
+                style={{ background: syncing ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '8px', padding: '9px 16px', fontWeight: 700, cursor: syncing ? 'not-allowed' : 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {syncing ? '⏳' : '🔄'} {syncing ? 'Sync...' : 'Synchroniser'}
+              </button>
+              <button
+                onClick={() => navigate('/parametres')}
+                style={{ background: '#E60000', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}
+              >
+                ⚙️ Paramètres
+              </button>
+            </div>
           </div>
 
           {/* Stats Row */}
@@ -274,17 +337,22 @@ const Utilisateurs = () => {
 
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '24px 28px' }}>
 
-        {/* ─── NOTIFICATION ────────────────────────────────────────── */}
+        {/* ─── TOAST NOTIFICATION ──────────────────────────────────── */}
         {message && (
           <div style={{
-            marginBottom: '16px', padding: '12px 16px', borderRadius: '8px',
-            borderLeft: `4px solid ${message.type === 'success' ? '#1A7A4A' : '#E60000'}`,
-            background: message.type === 'success' ? '#E8F5E9' : '#FFE6E6',
-            color: message.type === 'success' ? '#1A7A4A' : '#E60000',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600
+            position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+            minWidth: '320px', maxWidth: '480px',
+            padding: '14px 18px', borderRadius: '12px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            background: message.type === 'success' ? '#1A7A4A' : '#E60000',
+            color: 'white',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            fontWeight: 700, fontSize: '14px',
+            animation: 'slideInRight 0.3s ease-out',
           }}>
-            <span>{message.type === 'success' ? '✅' : '❌'} {message.texte}</span>
-            <button onClick={() => setMessage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'inherit' }}>✕</button>
+            <style>{`@keyframes slideInRight { from { transform: translateX(110%); opacity:0 } to { transform: translateX(0); opacity:1 } }`}</style>
+            <span>{message.texte}</span>
+            <button onClick={() => setMessage(null)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', fontSize: '14px', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '12px', flexShrink: 0 }}>✕</button>
           </div>
         )}
 
@@ -327,11 +395,14 @@ const Utilisateurs = () => {
             {/* ── FORMULAIRE AJOUT ── */}
             {modeAjout && (
               <div style={{ background: 'white', borderRadius: '10px', border: '2px solid #E60000', padding: '20px', marginBottom: '20px', boxShadow: '0 4px 16px rgba(230,0,0,0.1)' }}>
-                <h3 style={{ color: '#1B2A4A', fontWeight: 800, fontSize: '15px', margin: '0 0 16px' }}>➕ Créer un nouvel utilisateur</h3>
+                <h3 style={{ color: '#1B2A4A', fontWeight: 800, fontSize: '15px', margin: '0 0 8px' }}>➕ Créer un nouvel utilisateur</h3>
+                <div style={{ background: '#E3F0FB', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '12px', color: '#1F5C99', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  🔗 Un compte Supabase Auth sera créé — l'utilisateur pourra se connecter et récupérer son mot de passe par email.
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
                   <InputField label="Nom complet" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} placeholder="Ex: KOUASSI Jean" required />
                   <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} placeholder="Ex: kouassi.j" required />
-                  <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Ex: nom@sikaindustrie.ci" />
+                  <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Ex: nom@sikaindustrie.ci" required />
                   <div>
                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
                       Mot de passe <span style={{ color: '#E60000' }}>*</span>
@@ -364,8 +435,8 @@ const Utilisateurs = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <BTN onClick={handleSauvegarderAjout} color="#1A7A4A">✓ Créer l'utilisateur</BTN>
-                  <BTN onClick={() => { setModeAjout(false); setFormData({}); }} color="#C8C8D0" bg="#F5F5F5">✕ Annuler</BTN>
+                  <BTN onClick={handleSauvegarderAjout} color="#1A7A4A" disabled={loadingCreate}>{loadingCreate ? '⏳ Création Supabase...' : '✓ Créer l\'utilisateur'}</BTN>
+                  <BTN onClick={() => { setModeAjout(false); setFormData({}); }} color="#C8C8D0" bg="#F5F5F5" disabled={loadingCreate}>✕ Annuler</BTN>
                 </div>
               </div>
             )}
@@ -464,6 +535,15 @@ const Utilisateurs = () => {
                               <span style={{ background: user.actif ? '#E8F5E9' : '#F5F5F5', color: user.actif ? '#1A7A4A' : '#C8C8D0', border: `1px solid ${user.actif ? '#1A7A4A' : '#C8C8D0'}`, borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700 }}>
                                 {user.actif ? '● Actif' : '○ Inactif'}
                               </span>
+                              {user.auth_user_id ? (
+                                <span title="Compte Supabase Auth actif — connexion et récupération par email disponibles" style={{ background: '#E3F0FB', color: '#1F5C99', border: '1px solid #1F5C99', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700, cursor: 'default' }}>
+                                  🔗 Supabase Auth
+                                </span>
+                              ) : (
+                                <span title="Compte local uniquement — pas de récupération email" style={{ background: '#F5F5F5', color: '#888', border: '1px solid #C8C8D0', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700, cursor: 'default' }}>
+                                  💾 Local
+                                </span>
+                              )}
                             </div>
                             <div style={{ fontSize: '12px', color: '#888', marginTop: '3px' }}>
                               Login : <strong>{user.login}</strong> &nbsp;|&nbsp; ID : #{String(user.id).padStart(3, '0')}
@@ -478,6 +558,12 @@ const Utilisateurs = () => {
                             <BTN onClick={() => handleEditer(user)} color="#1F5C99">✏️ Modifier</BTN>
                             <BTN onClick={() => handleChangerMotDePasse(user.id)} color="#1B2A4A">🔑 MDP</BTN>
                             <BTN onClick={() => setModalReinit({ open: true, user, mdp: '', mdpConfirm: '' })} color="#E60000" bg="#FFE6E6" border>🔄 Réinit</BTN>
+                            {!user.auth_user_id && user.email && (
+                              <BTN onClick={() => setModalLierAuth({ open: true, user, mdp: '' })} color="#1F5C99" bg="#E3F0FB" border>🔗 Lier Auth</BTN>
+                            )}
+                            {user.auth_user_id && user.email && (
+                              <BTN onClick={() => handleEnvoyerEmailRecup(user)} color="#6B7280" bg="#F3F4F6" border>📧 Email récup</BTN>
+                            )}
                             <BTN onClick={() => handleToggleActif(user.id)} color={user.actif ? '#E60000' : '#1A7A4A'} bg={user.actif ? '#FFE6E6' : '#E8F5E9'} border>
                               {user.actif ? '⊘ Désactiver' : '✓ Activer'}
                             </BTN>
@@ -714,8 +800,8 @@ const Utilisateurs = () => {
               <p style={{ color: '#E60000', fontSize: '12px', marginTop: '12px' }}>⚠️ Cette action est irréversible.</p>
             </div>
             <div style={{ padding: '12px 20px', borderTop: '1px solid #E8ECF4', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: '#F8F9FA' }}>
-              <BTN onClick={() => setModalDelete({ open: false, user: null })} color="#888" bg="#F0F0F0">Annuler</BTN>
-              <BTN onClick={handleConfirmSupprimer} color="#E60000">🗑️ Supprimer définitivement</BTN>
+              <BTN onClick={() => setModalDelete({ open: false, user: null })} color="#888" bg="#F0F0F0" disabled={loadingDelete}>Annuler</BTN>
+              <BTN onClick={handleConfirmDelete} color="#E60000" disabled={loadingDelete}>{loadingDelete ? '⏳ Suppression...' : '🗑️ Supprimer définitivement'}</BTN>
             </div>
           </div>
         </div>
@@ -789,8 +875,47 @@ const Utilisateurs = () => {
               </div>
             </div>
             <div style={{ padding: '12px 20px', borderTop: '1px solid #E8ECF4', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: '#F8F9FA' }}>
-              <BTN onClick={() => setModalReinit({ open: false, user: null, mdp: '', mdpConfirm: '' })} color="#888" bg="#F0F0F0">Annuler</BTN>
-              <BTN onClick={handleConfirmReinit} color="#1B2A4A">🔄 Réinitialiser</BTN>
+              <BTN onClick={() => setModalReinit({ open: false, user: null, mdp: '', mdpConfirm: '' })} color="#888" bg="#F0F0F0" disabled={loadingReinit}>Annuler</BTN>
+              <BTN onClick={handleConfirmReinit} color="#1B2A4A" disabled={loadingReinit}>{loadingReinit ? '⏳ En cours...' : '🔄 Réinitialiser'}</BTN>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ─── MODAL : LIER AUTH SUPABASE ─────────────────────────── */}
+      {modalLierAuth.open && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setModalLierAuth({ open: false, user: null, mdp: '' })}>
+          <div style={{ background: 'white', borderRadius: '12px', width: '440px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ background: '#1F5C99', padding: '16px 20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 800, fontSize: '15px' }}>🔗 Lier à Supabase Auth</span>
+              <button onClick={() => setModalLierAuth({ open: false, user: null, mdp: '' })} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+            </div>
+            <div style={{ padding: '20px' }}>
+              <div style={{ background: '#E3F0FB', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px', fontSize: '13px', color: '#1F5C99', fontWeight: 600 }}>
+                🔗 <strong>{modalLierAuth.user?.nom}</strong> pourra se connecter avec son email et récupérer son mot de passe.
+              </div>
+              <div style={{ fontSize: '13px', color: '#555', marginBottom: '12px' }}>
+                Email : <strong>{modalLierAuth.user?.email}</strong>
+              </div>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
+                Définir un mot de passe <span style={{ color: '#E60000' }}>*</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input type={showPwd.lier ? 'text' : 'password'} value={modalLierAuth.mdp}
+                  onChange={e => setModalLierAuth(m => ({ ...m, mdp: e.target.value }))}
+                  placeholder="Minimum 6 caractères"
+                  style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid #C8C8D0', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+                <button type="button" onClick={() => setShowPwd(p => ({ ...p, lier: !p.lier }))}
+                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
+                  {showPwd.lier ? '🙈' : '👁️'}
+                </button>
+              </div>
+            </div>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid #E8ECF4', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: '#F8F9FA' }}>
+              <BTN onClick={() => setModalLierAuth({ open: false, user: null, mdp: '' })} color="#888" bg="#F0F0F0" disabled={loadingLier}>Annuler</BTN>
+              <BTN onClick={handleLierAuth} color="#1F5C99" disabled={loadingLier}>{loadingLier ? '⏳ Liaison...' : '🔗 Lier le compte'}</BTN>
             </div>
           </div>
         </div>

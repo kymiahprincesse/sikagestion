@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronRight, LogOut } from 'lucide-react'
 import { useAuthStore } from '../store/useAuthStore'
 import Breadcrumb from './Breadcrumb'
-import { EtabliPar } from '../hoc/withAuth'
 import NotificationSettings from './NotificationSettings'
 import ShortcutsHelp from './ShortcutsHelp'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
@@ -19,7 +18,6 @@ export default function Layout() {
   const sessionExpirant = useAuthStore((state) => state.sessionExpirant)
   const updateActivite = useAuthStore((state) => state.updateActivite)
   const [devisExpanded, setDevisExpanded] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Activer les raccourcis clavier
@@ -28,21 +26,8 @@ export default function Layout() {
   useEffect(() => {
     if (!utilisateurConnecte) {
       navigate('/login')
-    } else {
-      setIsLoading(false)
     }
   }, [utilisateurConnecte, navigate])
-
-  if (isLoading && utilisateurConnecte) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#1B2A4A' }}>
-        <div className="text-center">
-          <SikaLogo size="md" />
-          <p className="mt-4 text-white">Chargement...</p>
-        </div>
-      </div>
-    )
-  }
 
   if (!utilisateurConnecte) {
     return (

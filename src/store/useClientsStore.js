@@ -154,11 +154,19 @@ export const useClientsStore = create(
       },
 
       setClients: (clients) => {
-        set({ clients, compteurId: Math.max(...clients.map(c => c.id), 0) + 1 });
+        const maxId = clients.length > 0 ? Math.max(...clients.map(c => c.id)) : 0;
+        set({ clients, compteurId: maxId + 1 });
       }
     }),
     {
-      name: 'sika_clients'
+      name: 'sika_clients',
+      version: 1,
+      migrate: (persistedState) => {
+        if (!persistedState.clients || persistedState.clients.length === 0) {
+          return { ...persistedState, clients: CLIENTS_INITIAUX, compteurId: 4 };
+        }
+        return persistedState;
+      }
     }
   )
 );

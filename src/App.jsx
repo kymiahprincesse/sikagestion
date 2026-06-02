@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { supabase } from './lib/supabaseClient'
 import { useClientsStore } from './store/useClientsStore'
 import { useAuthStore } from './store/useAuthStore'
@@ -51,7 +51,6 @@ function AdminRoute({ children }) {
 }
 
 function App() {
-  const [loading, setLoading] = useState(true)
   const setClients = useClientsStore(state => state.setClients)
 
   useEffect(() => {
@@ -85,10 +84,8 @@ function App() {
           }))
           setClients(clients)
         }
-        setLoading(false)
       } catch (err) {
         console.error('Erreur chargement Supabase:', err)
-        setLoading(false)
       }
     }
     loadData()

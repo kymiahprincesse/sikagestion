@@ -36,6 +36,7 @@ export default function DevisChaudronnerie() {
     
     lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
     tauxRemise: 0,
+    tvaActive: true,
     statut: 'BROUILLON'
   })
 
@@ -58,7 +59,7 @@ export default function DevisChaudronnerie() {
     const tauxRemise = parseFloat(devisData.tauxRemise) || 0
     const remise = montantBrut * (tauxRemise / 100)
     const montantHT = montantBrut - remise
-    const tva = montantHT * 0.18
+    const tva = devisData.tvaActive ? montantHT * 0.18 : 0
     const ttc = montantHT + tva
     return { montantBrut, remise, montantHT, tva, ttc }
   }
@@ -99,6 +100,7 @@ export default function DevisChaudronnerie() {
         lieuInstallation: '',
         lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
         tauxRemise: 0,
+        tvaActive: true,
         statut: 'BROUILLON'
       })
       setDevisId(null)
@@ -187,12 +189,13 @@ export default function DevisChaudronnerie() {
     doc.setTextColor(27, 42, 74);
     
     const totaux = calculerTotaux();
-    [
+    const rowsTotaux = [
       ['Montant HT', formatMontant(totaux.montantHT) + ' FCFA'],
-      ['TVA (18%)', formatMontant(totaux.tva) + ' FCFA'],
+      ...(devisData.tvaActive ? [['TVA (18%)', formatMontant(totaux.tva) + ' FCFA']] : []),
       ['MONTANT TTC', formatMontant(totaux.ttc) + ' FCFA']
-    ].forEach(([label, val], idx) => {
-      if (idx === 2) {
+    ];
+    rowsTotaux.forEach(([label, val], idx) => {
+      if (idx === rowsTotaux.length - 1) {
         doc.setFillColor(27, 42, 74);
         doc.rect(totauxX - 2, y - 4, 82, 8, 'F');
         doc.setTextColor(255, 255, 255);
@@ -200,7 +203,7 @@ export default function DevisChaudronnerie() {
       }
       doc.text(label, totauxX, y);
       doc.text(val, PAGE_W - 15, y, { align: 'right' });
-      y += (idx === 2) ? 10 : 6;
+      y += (idx === rowsTotaux.length - 1) ? 10 : 6;
       doc.setTextColor(27, 42, 74);
       doc.setFontSize(9);
     });
@@ -228,6 +231,12 @@ export default function DevisChaudronnerie() {
           </button>
           <button onClick={handleDupliquer} className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-opacity-90 transition">
             📋 Dupliquer
+          </button>
+          <button
+            onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium ${devisData.tvaActive ? 'bg-vert text-white hover:bg-opacity-90' : 'bg-argent text-navy hover:bg-opacity-80'}`}
+          >
+            🔄 TVA 18% : {devisData.tvaActive ? 'Activée' : 'Désactivée'}
           </button>
         </div>
 
@@ -346,10 +355,12 @@ export default function DevisChaudronnerie() {
               <span className="text-xl font-bold text-navy">{formatFCFA(totaux.montantHT)}</span>
             </div>
             
-            <div className="flex justify-between items-center">
-              <span className="text-navy font-semibold">TVA 18%</span>
-              <span className="text-lg font-bold text-bleu">{formatFCFA(totaux.tva)}</span>
-            </div>
+            {devisData.tvaActive && (
+              <div className="flex justify-between items-center">
+                <span className="text-navy font-semibold">TVA 18%</span>
+                <span className="text-lg font-bold text-bleu">{formatFCFA(totaux.tva)}</span>
+              </div>
+            )}
             
             <div className="flex justify-between items-center bg-navy text-white p-3 rounded-lg">
               <span className="font-bold text-lg">MONTANT TTC</span>

@@ -1,5 +1,5 @@
-export default function TVABlock({ ht }) {
-  const tva = ht * 0.18
+export default function TVABlock({ ht, tvaActive = true }) {
+  const tva = tvaActive ? ht * 0.18 : 0
   const ttc = ht + tva
 
   const formatFCFA = (amount) => {
@@ -13,10 +13,12 @@ export default function TVABlock({ ht }) {
           <span className="text-sm font-medium text-bleu">MONTANT HT</span>
           <span className="text-lg font-bold text-navy">{formatFCFA(ht)}</span>
         </div>
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-bleu">TVA 18%</span>
-          <span className="text-lg font-bold text-orange">{formatFCFA(tva)}</span>
-        </div>
+        {tvaActive && (
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium text-bleu">TVA 18%</span>
+            <span className="text-lg font-bold text-orange">{formatFCFA(tva)}</span>
+          </div>
+        )}
         <div className="border-t-2 border-orange pt-2 flex justify-between items-center">
           <span className="text-base font-bold text-navy">MONTANT TTC</span>
           <span className="text-xl font-bold text-navy">{formatFCFA(ttc)}</span>

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { useCaisseStore } from './useCaisseStore';
+import { useDevisStore } from './useDevisStore';
 
 function projetToRow(p) {
   return {
@@ -369,33 +371,23 @@ export const usePlanificationStore = create(
 
       // Récupérer coût réel depuis caisse
       getCoutReelProjet: (projetId, referenceProjet) => {
-        if (typeof window === 'undefined') return 0;
-        
         try {
-          const caisseStore = require('./useCaisseStore').useCaisseStore.getState();
-          const mouvements = caisseStore.mouvements || [];
-          
-          const mouvementsProjet = mouvements.filter(m => 
-            m.type === 'SORTIE' && 
-            m.referenceProjet === referenceProjet
-          );
-
-          return mouvementsProjet.reduce((total, m) => total + (m.montant || 0), 0);
-        } catch (error) {
+          const mouvements = useCaisseStore.getState().mouvements || [];
+          return mouvements
+            .filter(m => m.type === 'SORTIE' && m.referenceProjet === referenceProjet)
+            .reduce((total, m) => total + (m.montant || 0), 0);
+        } catch {
           return 0;
         }
       },
 
       // Récupérer budget prévu depuis devis
       getBudgetPrevuDevis: (devisId) => {
-        if (typeof window === 'undefined' || !devisId) return 0;
-        
+        if (!devisId) return 0;
         try {
-          const devisStore = require('./useDevisStore').useDevisStore.getState();
-          const devis = devisStore.getDevisById(devisId);
-          
+          const devis = useDevisStore.getState().getDevisById(devisId);
           return devis?.montantTotal || 0;
-        } catch (error) {
+        } catch {
           return 0;
         }
       },

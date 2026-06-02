@@ -40,7 +40,10 @@ const Login = () => {
   const loginAction = useAuthStore(state => state.login);
   const genererCodeRecuperation = useUtilisateursStore(state => state.genererCodeRecuperation);
   const reinitialiserAvecCode = useUtilisateursStore(state => state.reinitialiserAvecCode);
+  const envoyerEmailRecuperation = useUtilisateursStore(state => state.envoyerEmailRecuperation);
   const navigate = useNavigate();
+
+  const [modeEmail, setModeEmail] = useState(false);
 
   useEffect(() => {
     const savedLogin = localStorage.getItem('sika_saved_login');
@@ -79,7 +82,7 @@ const Login = () => {
     setErreur('');
     setIsLoading(true);
     try {
-      const res = loginAction(identifiant, motDePasse);
+      const res = await loginAction(identifiant, motDePasse);
       if (res && res.success) {
         if (rememberMe) {
           localStorage.setItem('sika_saved_login', identifiant);
@@ -101,14 +104,23 @@ const Login = () => {
     }
   };
 
-  const handleDemandeCode = (e) => {
+  const handleDemandeCode = async (e) => {
     e.preventDefault();
     setErreurRecup('');
-    const res = genererCodeRecuperation(emailRecup.trim().toLowerCase());
+    const emailNorm = emailRecup.trim().toLowerCase();
+    const res = genererCodeRecuperation(emailNorm);
     if (!res.success) { setErreurRecup(res.message); return; }
-    setCodeGenere(res.code);
     setNomUser(res.nom);
-    setVue('code');
+    if (res.hasAuthAccount) {
+      const emailRes = await envoyerEmailRecuperation(emailNorm);
+      if (!emailRes.success) { setErreurRecup(emailRes.message); return; }
+      setModeEmail(true);
+      setVue('email-sent');
+    } else {
+      setModeEmail(false);
+      setCodeGenere(res.code);
+      setVue('code');
+    }
   };
 
   const handleReinit = (e) => {
@@ -391,6 +403,31 @@ const Login = () => {
                   </button>
                 </form>
               </>
+            )}
+
+            {/* ══════════════════════════════════════════ VUE : EMAIL ENVOYÉ */}
+            {vue === 'email-sent' && (
+              <div className="text-center py-8">
+                <div className="flex items-center justify-center w-20 h-20 rounded-full mx-auto mb-4"
+                  style={{ background: '#E3F0FB' }}>
+                  <Mail size={42} style={{ color: '#1F5C99' }} />
+                </div>
+                <h2 className="text-xl font-bold mb-2" style={{ color: '#1B2A4A' }}>
+                  Email envoyé !
+                </h2>
+                <p className="text-sm mb-4" style={{ color: '#555' }}>
+                  Bonjour <strong>{nomUser.split(' ')[0]}</strong>, un lien de réinitialisation<br />
+                  a été envoyé à <strong>{emailRecup}</strong>.
+                </p>
+                <div className="p-3 rounded-lg mb-4 text-sm" style={{ background: '#E8F5E9', color: '#1A7A4A', fontWeight: 600 }}>
+                  ✉️ Vérifiez votre boîte mail et cliquez sur le lien pour réinitialiser votre mot de passe.
+                </div>
+                <button type="button" onClick={() => goBack('login')}
+                  className="w-full py-3 rounded-xl font-bold text-white"
+                  style={{ backgroundColor: '#1B2A4A', fontSize: '14px' }}>
+                  ← Retour à la connexion
+                </button>
+              </div>
             )}
 
             {/* ══════════════════════════════════════════ VUE : SUCCÈS */}

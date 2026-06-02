@@ -43,6 +43,7 @@ export default function DevisCalorifuge() {
     demandePar: '',
     objet: '',
     lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    tvaActive: true,
     statut: 'BROUILLON'
   })
 
@@ -71,7 +72,7 @@ export default function DevisCalorifuge() {
 
   const calculerTotaux = () => {
     const montantHT = devisData.lignes.reduce((sum, ligne) => sum + calculerMontant(ligne), 0)
-    const tva = montantHT * 0.18
+    const tva = devisData.tvaActive ? montantHT * 0.18 : 0
     const ttc = montantHT + tva
     return { montantHT, tva, ttc }
   }
@@ -178,6 +179,7 @@ export default function DevisCalorifuge() {
         demandePar: '',
         objet: '',
         lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+        tvaActive: true,
         statut: 'BROUILLON'
       })
       setDevisId(null)
@@ -293,12 +295,13 @@ export default function DevisCalorifuge() {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(27, 42, 74);
       
-      [
+      const rowsTotaux = [
         ['Montant HT', formatMontant(totaux.montantHT) + ' FCFA'],
-        ['TVA (18%)', formatMontant(totaux.tva) + ' FCFA'],
+        ...(devisData.tvaActive ? [['TVA (18%)', formatMontant(totaux.tva) + ' FCFA']] : []),
         ['MONTANT TTC', formatMontant(totaux.ttc) + ' FCFA']
-      ].forEach(([label, val], idx) => {
-        const isTTC = idx === 2;
+      ];
+      rowsTotaux.forEach(([label, val], idx) => {
+        const isTTC = idx === rowsTotaux.length - 1;
         if (isTTC) {
           doc.setFillColor(27, 42, 74);
           doc.rect(totauxX - 2, y - 4, 82, 8, 'F');
@@ -373,6 +376,12 @@ export default function DevisCalorifuge() {
             className="px-4 py-2 bg-argent text-navy rounded-lg hover:bg-argent/80 transition-colors font-medium"
           >
             📋 Dupliquer
+          </button>
+          <button
+            onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}
+            className={`px-4 py-2 rounded-lg hover:opacity-90 transition-colors font-medium ${devisData.tvaActive ? 'bg-vert text-white' : 'bg-argent text-navy'}`}
+          >
+            🔄 TVA 18% : {devisData.tvaActive ? 'Activée' : 'Désactivée'}
           </button>
         </div>
       </div>
@@ -599,7 +608,7 @@ export default function DevisCalorifuge() {
         {/* TOTAUX */}
         <div className="flex justify-end">
           <div className="w-full md:w-1/2">
-            <TVABlock ht={totaux.montantHT} />
+            <TVABlock ht={totaux.montantHT} tvaActive={devisData.tvaActive} />
           </div>
         </div>
       </div>
@@ -670,10 +679,12 @@ export default function DevisCalorifuge() {
                 <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT HT</td>
                 <td className="border border-navy px-3 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantHT)}</td>
               </tr>
-              <tr className="bg-orangeClair">
-                <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-orange">TVA 18%</td>
-                <td className="border border-navy px-3 py-2 text-right font-bold text-orange">{formatFCFA(totaux.tva)}</td>
-              </tr>
+              {devisData.tvaActive && (
+                <tr className="bg-orangeClair">
+                  <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-orange">TVA 18%</td>
+                  <td className="border border-navy px-3 py-2 text-right font-bold text-orange">{formatFCFA(totaux.tva)}</td>
+                </tr>
+              )}
               <tr className="bg-navy text-white">
                 <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-lg">MONTANT TTC</td>
                 <td className="border border-navy px-3 py-2 text-right font-bold text-lg">{formatFCFA(totaux.ttc)}</td>

@@ -2,39 +2,89 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 
-function utilisateurToRow(u) {
+const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET || 'sika_industrie_admin_2026';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+async function callManageUsers(action, payload) {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/manage-users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+      'x-sika-admin': MGMT_SECRET,
+    },
+    body: JSON.stringify({ action, ...payload }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+  return data;
+}
+
+function rowToUtilisateur(row, localUser = null) {
   return {
-    nom: u.nom,
-    login: u.login,
-    email: u.email || null,
-    role: u.role || 'TECHNICIEN',
-    is_actif: u.actif !== undefined ? u.actif : true,
-    permissions: u.permissions || null,
+    id: row.id,
+    nom: row.nom,
+    login: row.login,
+    email: row.email || '',
+    role: row.role,
+    actif: row.is_actif,
+    auth_user_id: row.auth_user_id || null,
+    motDePasse: localUser?.motDePasse || null,
+    permissions: row.permissions || null,
   };
 }
 
 const PERSONNEL_INITIAL = [
-  { id: 1,  nom: 'KOMLAN AMEMATCHRON', login: 'komlan', email: 'komlan.amematchron@sikaindustrie.ci', motDePasse: 'admin123',  role: 'ADMIN',      actif: true },
-  { id: 2,  nom: 'ANANI ALIDA OLGA',   login: 'anani',  email: 'anani.alida@sikaindustrie.ci',        motDePasse: 'compta123', role: 'COMPTABLE',  actif: true },
-  { id: 3,  nom: 'KOUASSI JULIANA',    login: 'kouassi',email: 'kouassi.juliana@sikaindustrie.ci',    motDePasse: 'sec123',    role: 'SECRETAIRE', actif: true },
-  { id: 4,  nom: 'Technicien 1',       login: 'tech1',  email: 'tech1@sikaindustrie.ci',              motDePasse: 'tech123',   role: 'TECHNICIEN', actif: true },
-  { id: 5,  nom: 'Technicien 2',       login: 'tech2',  email: 'tech2@sikaindustrie.ci',              motDePasse: 'tech456',   role: 'TECHNICIEN', actif: true },
-  { id: 6,  nom: 'Technicien 3',       login: 'tech3',  email: 'tech3@sikaindustrie.ci',              motDePasse: 'tech789',   role: 'TECHNICIEN', actif: true },
-  { id: 7,  nom: 'Technicien 4',       login: 'tech4',  email: 'tech4@sikaindustrie.ci',              motDePasse: 'tech012',   role: 'TECHNICIEN', actif: true },
-  { id: 8,  nom: 'Technicien 5',       login: 'tech5',  email: 'tech5@sikaindustrie.ci',              motDePasse: 'tech345',   role: 'TECHNICIEN', actif: true },
-  { id: 9,  nom: 'Technicien 6',       login: 'tech6',  email: 'tech6@sikaindustrie.ci',              motDePasse: 'tech678',   role: 'TECHNICIEN', actif: true },
-  { id: 10, nom: 'Technicien 7',       login: 'tech7',  email: 'tech7@sikaindustrie.ci',              motDePasse: 'tech901',   role: 'TECHNICIEN', actif: true },
-  { id: 11, nom: 'Technicien 8',       login: 'tech8',  email: 'tech8@sikaindustrie.ci',              motDePasse: 'tech234',   role: 'TECHNICIEN', actif: true },
-  { id: 12, nom: 'Technicien 9',       login: 'tech9',  email: 'tech9@sikaindustrie.ci',              motDePasse: 'tech567',   role: 'TECHNICIEN', actif: true },
-  { id: 13, nom: 'Technicien 10',      login: 'tech10', email: 'tech10@sikaindustrie.ci',             motDePasse: 'tech890',   role: 'TECHNICIEN', actif: true }
+  { id: 101, nom: 'KOMLAN AMEMATCHRON', login: 'komlan', email: 'komlan.amematchron@sikaindustrie.ci', motDePasse: 'admin123',  role: 'ADMIN',      actif: true, auth_user_id: null },
+  { id: 102, nom: 'ANANI ALIDA OLGA',   login: 'anani',  email: 'anani.alida@sikaindustrie.ci',        motDePasse: 'compta123', role: 'COMPTABLE',  actif: true, auth_user_id: null },
+  { id: 103, nom: 'KOUASSI JULIANA',    login: 'kouassi',email: 'kouassi.juliana@sikaindustrie.ci',    motDePasse: 'sec123',    role: 'SECRETAIRE', actif: true, auth_user_id: null },
+  { id: 104, nom: 'Technicien 1',       login: 'tech1',  email: 'tech1@sikaindustrie.ci',              motDePasse: 'tech123',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 105, nom: 'Technicien 2',       login: 'tech2',  email: 'tech2@sikaindustrie.ci',              motDePasse: 'tech456',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 106, nom: 'Technicien 3',       login: 'tech3',  email: 'tech3@sikaindustrie.ci',              motDePasse: 'tech789',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 107, nom: 'Technicien 4',       login: 'tech4',  email: 'tech4@sikaindustrie.ci',              motDePasse: 'tech012',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 108, nom: 'Technicien 5',       login: 'tech5',  email: 'tech5@sikaindustrie.ci',              motDePasse: 'tech345',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 109, nom: 'Technicien 6',       login: 'tech6',  email: 'tech6@sikaindustrie.ci',              motDePasse: 'tech678',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 110, nom: 'Technicien 7',       login: 'tech7',  email: 'tech7@sikaindustrie.ci',              motDePasse: 'tech901',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 111, nom: 'Technicien 8',       login: 'tech8',  email: 'tech8@sikaindustrie.ci',              motDePasse: 'tech234',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 112, nom: 'Technicien 9',       login: 'tech9',  email: 'tech9@sikaindustrie.ci',              motDePasse: 'tech567',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 113, nom: 'Technicien 10',      login: 'tech10', email: 'tech10@sikaindustrie.ci',             motDePasse: 'tech890',   role: 'TECHNICIEN', actif: true, auth_user_id: null }
 ];
-
-const EMAIL_PAR_ID = PERSONNEL_INITIAL.reduce((acc, u) => { acc[u.id] = u.email; return acc; }, {});
 
 export const useUtilisateursStore = create(
   persist(
     (set, get) => ({
       utilisateurs: PERSONNEL_INITIAL,
+
+      fetchUtilisateurs: async () => {
+        try {
+          const { data, error } = await supabase
+            .from('utilisateurs')
+            .select('*')
+            .order('id');
+          if (error || !data || data.length === 0) return;
+
+          const localUsers = get().utilisateurs;
+
+          const supabaseLogins = new Set(data.map(r => r.login));
+          const merged = localUsers
+            .filter(u => !u.auth_user_id || supabaseLogins.has(u.login))
+            .map(u => {
+              const row = data.find(r => r.login === u.login);
+              return row ? rowToUtilisateur(row, u) : u;
+            });
+
+          data.forEach(row => {
+            if (!merged.find(u => u.login === row.login)) {
+              merged.push(rowToUtilisateur(row));
+            }
+          });
+
+          set({ utilisateurs: merged });
+        } catch (err) {
+          console.error('fetchUtilisateurs:', err.message);
+        }
+      },
 
       getUtilisateurs: () => get().utilisateurs,
 
@@ -63,7 +113,7 @@ export const useUtilisateursStore = create(
         const code = String(Math.floor(100000 + Math.random() * 900000));
         const expiry = Date.now() + 15 * 60 * 1000;
         localStorage.setItem('sika_recovery', JSON.stringify({ userId: user.id, email: emailLower, code, expiry }));
-        return { success: true, code, nom: user.nom };
+        return { success: true, code, nom: user.nom, hasAuthAccount: !!user.auth_user_id };
       },
 
       reinitialiserAvecCode: (email, code, nouveauMdp) => {
@@ -91,21 +141,25 @@ export const useUtilisateursStore = create(
         if (utilisateur.email && utilisateurs.find(u => u.email && u.email.toLowerCase() === utilisateur.email.toLowerCase())) {
           return { success: false, message: 'Cet email est déjà utilisé par un autre compte' };
         }
-        const nouvelId = Math.max(...utilisateurs.map(u => u.id), 0) + 1;
-        const nouvelUtilisateur = { ...utilisateur, id: nouvelId, actif: true };
-        set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
-
-        const { data, error } = await supabase.from('utilisateurs').insert(utilisateurToRow(nouvelUtilisateur)).select().single();
-        if (error) {
-          console.error('Supabase ajouterUtilisateur:', error.message);
-        } else if (data) {
-          set((state) => ({
-            utilisateurs: state.utilisateurs.map((u) => u.id === nouvelUtilisateur.id ? { ...u, id: data.id } : u)
-          }));
-          return { success: true, utilisateur: { ...nouvelUtilisateur, id: data.id } };
+        if (!utilisateur.email) {
+          return { success: false, message: 'Un email est requis pour créer le compte de connexion' };
         }
 
-        return { success: true, utilisateur: nouvelUtilisateur };
+        try {
+          const result = await callManageUsers('create', {
+            email: utilisateur.email,
+            password: utilisateur.motDePasse,
+            nom: utilisateur.nom,
+            login: utilisateur.login,
+            role: utilisateur.role || 'TECHNICIEN',
+          });
+
+          const nouvelUtilisateur = rowToUtilisateur(result.user);
+          set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
+          return { success: true, utilisateur: nouvelUtilisateur };
+        } catch (err) {
+          return { success: false, message: err.message };
+        }
       },
 
       modifierUtilisateur: (id, modifications) => {
@@ -122,37 +176,78 @@ export const useUtilisateursStore = create(
             return { success: false, message: 'Cet email est déjà utilisé par un autre compte' };
           }
         }
-        const utilisateursModifies = [...utilisateurs];
-        utilisateursModifies[index] = { ...utilisateursModifies[index], ...modifications };
-        set({ utilisateurs: utilisateursModifies });
+        const modifies = [...utilisateurs];
+        modifies[index] = { ...modifies[index], ...modifications };
+        set({ utilisateurs: modifies });
 
-        supabase.from('utilisateurs').update(utilisateurToRow(utilisateursModifies[index])).eq('id', id).then(({ error }) => {
+        supabase.from('utilisateurs').update({
+          nom: modifies[index].nom,
+          login: modifies[index].login,
+          email: modifies[index].email || null,
+          role: modifies[index].role,
+          is_actif: modifies[index].actif,
+          permissions: modifies[index].permissions || null,
+        }).eq('id', id).then(({ error }) => {
           if (error) console.error('Supabase modifierUtilisateur:', error.message);
         });
 
-        return { success: true, utilisateur: utilisateursModifies[index] };
+        return { success: true, utilisateur: modifies[index] };
       },
 
-      changerMotDePasse: (id, ancienMotDePasse, nouveauMotDePasse) => {
+      changerMotDePasse: async (id, ancienMotDePasse, nouveauMotDePasse) => {
         const { utilisateurs } = get();
         const index = utilisateurs.findIndex(u => u.id === id);
         if (index === -1) return { success: false, message: 'Utilisateur non trouvé' };
-        if (utilisateurs[index].motDePasse !== ancienMotDePasse) return { success: false, message: 'Ancien mot de passe incorrect' };
         if (nouveauMotDePasse.length < 6) return { success: false, message: 'Le mot de passe doit contenir au moins 6 caractères' };
-        const utilisateursModifies = [...utilisateurs];
-        utilisateursModifies[index] = { ...utilisateursModifies[index], motDePasse: nouveauMotDePasse };
-        set({ utilisateurs: utilisateursModifies });
+
+        const user = utilisateurs[index];
+
+        if (user.auth_user_id) {
+          if (ancienMotDePasse && user.motDePasse && user.motDePasse !== ancienMotDePasse) {
+            return { success: false, message: 'Ancien mot de passe incorrect' };
+          }
+          try {
+            await callManageUsers('update-password', {
+              auth_user_id: user.auth_user_id,
+              new_password: nouveauMotDePasse,
+            });
+          } catch (err) {
+            return { success: false, message: err.message };
+          }
+        } else {
+          if (user.motDePasse !== ancienMotDePasse) {
+            return { success: false, message: 'Ancien mot de passe incorrect' };
+          }
+        }
+
+        const modifies = [...utilisateurs];
+        modifies[index] = { ...modifies[index], motDePasse: nouveauMotDePasse };
+        set({ utilisateurs: modifies });
         return { success: true, message: 'Mot de passe modifié avec succès' };
       },
 
-      reinitialiserMotDePasse: (id, nouveauMotDePasse) => {
+      reinitialiserMotDePasse: async (id, nouveauMotDePasse) => {
         const { utilisateurs } = get();
         const index = utilisateurs.findIndex(u => u.id === id);
         if (index === -1) return { success: false, message: 'Utilisateur non trouvé' };
         if (nouveauMotDePasse.length < 6) return { success: false, message: 'Le mot de passe doit contenir au moins 6 caractères' };
-        const utilisateursModifies = [...utilisateurs];
-        utilisateursModifies[index] = { ...utilisateursModifies[index], motDePasse: nouveauMotDePasse };
-        set({ utilisateurs: utilisateursModifies });
+
+        const user = utilisateurs[index];
+
+        if (user.auth_user_id) {
+          try {
+            await callManageUsers('update-password', {
+              auth_user_id: user.auth_user_id,
+              new_password: nouveauMotDePasse,
+            });
+          } catch (err) {
+            return { success: false, message: err.message };
+          }
+        }
+
+        const modifies = [...utilisateurs];
+        modifies[index] = { ...modifies[index], motDePasse: nouveauMotDePasse };
+        set({ utilisateurs: modifies });
         return { success: true, message: 'Mot de passe réinitialisé avec succès' };
       },
 
@@ -160,58 +255,87 @@ export const useUtilisateursStore = create(
         const { utilisateurs } = get();
         const index = utilisateurs.findIndex(u => u.id === id);
         if (index === -1) return { success: false, message: 'Utilisateur non trouvé' };
-        const utilisateursModifies = [...utilisateurs];
-        utilisateursModifies[index] = { ...utilisateursModifies[index], actif: !utilisateursModifies[index].actif };
-        set({ utilisateurs: utilisateursModifies });
+        const modifies = [...utilisateurs];
+        modifies[index] = { ...modifies[index], actif: !modifies[index].actif };
+        set({ utilisateurs: modifies });
 
-        supabase.from('utilisateurs').update({ is_actif: utilisateursModifies[index].actif }).eq('id', id).then(({ error }) => {
+        supabase.from('utilisateurs').update({ is_actif: modifies[index].actif }).eq('id', id).then(({ error }) => {
           if (error) console.error('Supabase toggleActif:', error.message);
         });
 
-        return { success: true, utilisateur: utilisateursModifies[index] };
+        return { success: true, utilisateur: modifies[index] };
       },
 
-      supprimerUtilisateur: (id) => {
+      supprimerUtilisateur: async (id) => {
         const { utilisateurs } = get();
-        if (utilisateurs.find(u => u.id === id && u.role === 'ADMIN')) {
+        const user = utilisateurs.find(u => u.id === id);
+        if (!user) return { success: false, message: 'Utilisateur non trouvé' };
+
+        if (user.role === 'ADMIN') {
           const admins = utilisateurs.filter(u => u.role === 'ADMIN' && u.actif);
           if (admins.length <= 1) {
             return { success: false, message: 'Impossible de supprimer le dernier administrateur actif' };
           }
         }
+
+        try {
+          await callManageUsers('delete', {
+            id,
+            auth_user_id: user.auth_user_id || null,
+          });
+        } catch (err) {
+          if (!err.message.includes('not found') && !err.message.includes('0 rows')) {
+            return { success: false, message: err.message };
+          }
+        }
+
         set({ utilisateurs: utilisateurs.filter(u => u.id !== id) });
-        supabase.from('utilisateurs').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase supprimerUtilisateur:', error.message);
-        });
-        return { success: true, message: 'Utilisateur supprimé avec succès' };
+        return { success: true, message: `${user.nom} supprimé définitivement` };
       },
 
-      setUtilisateurs: (utilisateursSupabase) => {
+      lierAuthSupabase: async (id, password) => {
         const { utilisateurs } = get();
-        const utilisateursLocaux = utilisateurs;
-        utilisateursSupabase.forEach(su => {
-          const idx = utilisateursLocaux.findIndex(u => u.login === su.login);
-          if (idx >= 0) {
-            utilisateursLocaux[idx] = { ...utilisateursLocaux[idx], id: su.id, email: su.email, role: su.role, actif: su.is_actif };
-          }
-        });
-        set({ utilisateurs: [...utilisateursLocaux] });
-      }
+        const user = utilisateurs.find(u => u.id === id);
+        if (!user) return { success: false, message: 'Utilisateur non trouvé' };
+        if (user.auth_user_id) return { success: false, message: 'Déjà lié à Supabase Auth' };
+        if (!user.email) return { success: false, message: 'Email manquant — modifiez d\'abord l\'utilisateur' };
+
+        try {
+          const result = await callManageUsers('link-auth', {
+            id,
+            email: user.email,
+            password,
+          });
+          const index = utilisateurs.findIndex(u => u.id === id);
+          const modifies = [...utilisateurs];
+          modifies[index] = { ...modifies[index], auth_user_id: result.user.auth_user_id };
+          set({ utilisateurs: modifies });
+          return { success: true, message: 'Compte lié à Supabase Auth avec succès' };
+        } catch (err) {
+          return { success: false, message: err.message };
+        }
+      },
+
+      envoyerEmailRecuperation: async (email) => {
+        try {
+          await callManageUsers('send-reset-email', { email });
+          return { success: true, message: 'Email de récupération envoyé' };
+        } catch (err) {
+          return { success: false, message: err.message };
+        }
+      },
     }),
     {
       name: 'sika_utilisateurs',
-      version: 2,
-      migrate: (persistedState, version) => {
-        if (version < 2) {
-          return {
-            ...persistedState,
-            utilisateurs: (persistedState.utilisateurs || PERSONNEL_INITIAL).map(u => ({
-              ...u,
-              email: u.email || EMAIL_PAR_ID[u.id] || `${u.login}@sikaindustrie.ci`
-            }))
-          };
-        }
-        return persistedState;
+      version: 3,
+      migrate: (persistedState) => {
+        return {
+          ...persistedState,
+          utilisateurs: (persistedState.utilisateurs || PERSONNEL_INITIAL).map(u => ({
+            ...u,
+            auth_user_id: u.auth_user_id || null,
+          }))
+        };
       }
     }
   )

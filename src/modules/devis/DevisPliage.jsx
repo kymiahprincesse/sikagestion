@@ -40,7 +40,7 @@ export default function DevisPliage() {
     objet: '',
     lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
     statut: 'BROUILLON',
-    tvaActive: false
+    tvaActive: true
   })
 
   const [specifications, setSpecifications] = useState({
@@ -159,7 +159,7 @@ export default function DevisPliage() {
         objet: '',
         lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
         statut: 'BROUILLON',
-        tvaActive: false
+        tvaActive: true
       })
       setSpecifications({
         typeTole: 'Galvanisé',
@@ -282,12 +282,13 @@ export default function DevisPliage() {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(27, 42, 74);
       
-      [
+      const rowsTotaux = [
         ['Montant HT', formatMontant(totaux.montantHT) + ' FCFA'],
-        ['TVA (18%)', formatMontant(totaux.tva) + ' FCFA'],
+        ...(devisData.tvaActive ? [['TVA (18%)', formatMontant(totaux.tva) + ' FCFA']] : []),
         ['MONTANT TTC', formatMontant(totaux.ttc) + ' FCFA']
-      ].forEach(([label, val], idx) => {
-        if (idx === 2) {
+      ];
+      rowsTotaux.forEach(([label, val], idx) => {
+        if (idx === rowsTotaux.length - 1) {
           doc.setFillColor(27, 42, 74);
           doc.rect(totauxX - 2, y - 4, 82, 8, 'F');
           doc.setTextColor(255, 255, 255);
@@ -295,7 +296,7 @@ export default function DevisPliage() {
         }
         doc.text(label, totauxX, y);
         doc.text(val, PAGE_W - 15, y, { align: 'right' });
-        y += (idx === 2) ? 10 : 6;
+        y += (idx === rowsTotaux.length - 1) ? 10 : 6;
         doc.setTextColor(27, 42, 74);
         doc.setFontSize(9);
       });
@@ -372,6 +373,12 @@ export default function DevisPliage() {
             className="px-4 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium"
           >
             🗑 Supprimer
+          </button>
+          <button
+            onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}
+            className={`px-4 py-2 rounded-lg hover:opacity-90 transition-colors font-medium ${devisData.tvaActive ? 'bg-vert text-white' : 'bg-argent text-navy'}`}
+          >
+            🔄 TVA 18% : {devisData.tvaActive ? 'Activée' : 'Désactivée'}
           </button>
         </div>
       </div>

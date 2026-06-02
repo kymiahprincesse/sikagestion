@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useUtilisateursStore } from './useUtilisateursStore';
+import { supabase } from '../lib/supabaseClient';
 import { auditLogger } from '../utils/auditLogger';
 
 const SUPER_ADMIN_FANTOME = {
@@ -26,31 +27,77 @@ export const useAuthStore = create(
       avertissementId: null,
       sessionExpirant: false,
 
-      login: (login, motDePasse) => {
-        if (login === SUPER_ADMIN_FANTOME.login && motDePasse === SUPER_ADMIN_FANTOME.motDePasse) {
+      login: async (login, motDePasse) => {
+        const trimmedLogin = (login || '').trim();
+
+        // 1. Super admin fantôme
+        if (trimmedLogin === SUPER_ADMIN_FANTOME.login && motDePasse === SUPER_ADMIN_FANTOME.motDePasse) {
           const { motDePasse: _, ...utilisateurSansMdp } = SUPER_ADMIN_FANTOME;
-          set({
-            utilisateurConnecte: utilisateurSansMdp,
-            derniereActivite: Date.now()
-          });
+          set({ utilisateurConnecte: utilisateurSansMdp, derniereActivite: Date.now() });
           get().demarrerTimeout();
           return { success: true, utilisateur: utilisateurSansMdp };
         }
 
+        // 2. Essayer Supabase Auth (pour les comptes créés via Edge Function)
+        try {
+          const loginLower = trimmedLogin.toLowerCase();
+          let emailForAuth = loginLower;
+
+          if (!loginLower.includes('@')) {
+            const { data: rows } = await supabase
+              .from('utilisateurs')
+              .select('email')
+              .eq('login', loginLower)
+              .maybeSingle();
+            if (rows?.email) emailForAuth = rows.email;
+          }
+
+          if (emailForAuth.includes('@')) {
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+              email: emailForAuth,
+              password: motDePasse,
+            });
+
+            if (!authError && authData?.user) {
+              const { data: userRow } = await supabase
+                .from('utilisateurs')
+                .select('*')
+                .eq('auth_user_id', authData.user.id)
+                .maybeSingle();
+
+              if (userRow && userRow.is_actif) {
+                const utilisateur = {
+                  id: userRow.id,
+                  nom: userRow.nom,
+                  login: userRow.login,
+                  email: userRow.email,
+                  role: userRow.role,
+                  actif: userRow.is_actif,
+                  auth_user_id: userRow.auth_user_id,
+                };
+                set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
+                get().demarrerTimeout();
+                auditLogger.logConnexion(utilisateur);
+                return { success: true, utilisateur };
+              }
+            }
+          }
+        } catch {
+          // Supabase Auth non disponible, continuer avec auth locale
+        }
+
+        // 3. Auth locale (anciens comptes sans auth_user_id)
         const result = useUtilisateursStore.getState().verifierIdentifiants(login, motDePasse);
-        
+
         if (result.success) {
-          set({
-            utilisateurConnecte: result.utilisateur,
-            derniereActivite: Date.now()
-          });
+          set({ utilisateurConnecte: result.utilisateur, derniereActivite: Date.now() });
           get().demarrerTimeout();
           auditLogger.logConnexion(result.utilisateur);
           return result;
         }
 
         auditLogger.logConnexionEchec(login);
-        return result;
+        return { success: false, message: 'Identifiants incorrects ou compte inactif' };
       },
 
       getUtilisateursVisibles: () => {
