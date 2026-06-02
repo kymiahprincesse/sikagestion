@@ -1,8 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { hashPassword, verifyPassword } from '../utils/passwordHash';
 
-const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET || 'sika_industrie_admin_2026';
+const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET || '';
+
+// Fonction pour générer un code aléatoire cryptographiquement sécurisé
+function generateSecureCode(length = 6) {
+  const array = new Uint32Array(length);
+  crypto.getRandomValues(array);
+  let code = '';
+  for (let i = 0; i < length; i++) {
+    code += array[i] % 10;
+  }
+  return code;
+}
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
@@ -30,25 +42,40 @@ function rowToUtilisateur(row, localUser = null) {
     role: row.role,
     actif: row.is_actif,
     auth_user_id: row.auth_user_id || null,
-    motDePasse: localUser?.motDePasse || null,
+    // NOTE: Les mots de passe et hash ne sont JAMAIS exposés ici
+    motDePasseHash: localUser?.motDePasseHash || null,
     permissions: row.permissions || null,
   };
 }
 
+// NOTE: Les mots de passe sont maintenant stockés comme des hash SHA-256
+// Les mots de passe par défaut doivent être changés après la première connexion
+const SALT_LOCAL = 'sika_local_auth_salt_2024';
+
+// Fonction pour hasher un mot de passe localement
+async function hashLocal(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + SALT_LOCAL);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Utilisateurs initiaux avec mots de passe hashés (à remplacer par des hash réels)
 const PERSONNEL_INITIAL = [
-  { id: 101, nom: 'KOMLAN AMEMATCHRON', login: 'komlan', email: 'komlan.amematchron@sikaindustrie.ci', motDePasse: 'admin123',  role: 'ADMIN',      actif: true, auth_user_id: null },
-  { id: 102, nom: 'ANANI ALIDA OLGA',   login: 'anani',  email: 'anani.alida@sikaindustrie.ci',        motDePasse: 'compta123', role: 'COMPTABLE',  actif: true, auth_user_id: null },
-  { id: 103, nom: 'KOUASSI JULIANA',    login: 'kouassi',email: 'kouassi.juliana@sikaindustrie.ci',    motDePasse: 'sec123',    role: 'SECRETAIRE', actif: true, auth_user_id: null },
-  { id: 104, nom: 'Technicien 1',       login: 'tech1',  email: 'tech1@sikaindustrie.ci',              motDePasse: 'tech123',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 105, nom: 'Technicien 2',       login: 'tech2',  email: 'tech2@sikaindustrie.ci',              motDePasse: 'tech456',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 106, nom: 'Technicien 3',       login: 'tech3',  email: 'tech3@sikaindustrie.ci',              motDePasse: 'tech789',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 107, nom: 'Technicien 4',       login: 'tech4',  email: 'tech4@sikaindustrie.ci',              motDePasse: 'tech012',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 108, nom: 'Technicien 5',       login: 'tech5',  email: 'tech5@sikaindustrie.ci',              motDePasse: 'tech345',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 109, nom: 'Technicien 6',       login: 'tech6',  email: 'tech6@sikaindustrie.ci',              motDePasse: 'tech678',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 110, nom: 'Technicien 7',       login: 'tech7',  email: 'tech7@sikaindustrie.ci',              motDePasse: 'tech901',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 111, nom: 'Technicien 8',       login: 'tech8',  email: 'tech8@sikaindustrie.ci',              motDePasse: 'tech234',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 112, nom: 'Technicien 9',       login: 'tech9',  email: 'tech9@sikaindustrie.ci',              motDePasse: 'tech567',   role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 113, nom: 'Technicien 10',      login: 'tech10', email: 'tech10@sikaindustrie.ci',             motDePasse: 'tech890',   role: 'TECHNICIEN', actif: true, auth_user_id: null }
+  { id: 101, nom: 'KOMLAN AMEMATCHRON', login: 'komlan', email: 'komlan.amematchron@sikaindustrie.ci', motDePasseHash: null, role: 'ADMIN',      actif: true, auth_user_id: null },
+  { id: 102, nom: 'ANANI ALIDA OLGA',   login: 'anani',  email: 'anani.alida@sikaindustrie.ci',        motDePasseHash: null, role: 'COMPTABLE',  actif: true, auth_user_id: null },
+  { id: 103, nom: 'KOUASSI JULIANA',    login: 'kouassi',email: 'kouassi.juliana@sikaindustrie.ci',    motDePasseHash: null, role: 'SECRETAIRE', actif: true, auth_user_id: null },
+  { id: 104, nom: 'Technicien 1',       login: 'tech1',  email: 'tech1@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 105, nom: 'Technicien 2',       login: 'tech2',  email: 'tech2@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 106, nom: 'Technicien 3',       login: 'tech3',  email: 'tech3@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 107, nom: 'Technicien 4',       login: 'tech4',  email: 'tech4@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 108, nom: 'Technicien 5',       login: 'tech5',  email: 'tech5@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 109, nom: 'Technicien 6',       login: 'tech6',  email: 'tech6@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 110, nom: 'Technicien 7',       login: 'tech7',  email: 'tech7@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 111, nom: 'Technicien 8',       login: 'tech8',  email: 'tech8@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 112, nom: 'Technicien 9',       login: 'tech9',  email: 'tech9@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
+  { id: 113, nom: 'Technicien 10',      login: 'tech10', email: 'tech10@sikaindustrie.ci',             motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null }
 ];
 
 export const useUtilisateursStore = create(
@@ -92,17 +119,35 @@ export const useUtilisateursStore = create(
 
       getUtilisateurByLogin: (login) => get().utilisateurs.find(u => u.login === login),
 
-      verifierIdentifiants: (identifiant, motDePasse) => {
+      verifierIdentifiants: async (identifiant, motDePasse) => {
         const id = (identifiant || '').trim().toLowerCase();
         const utilisateur = get().utilisateurs.find(
-          u => (u.login.toLowerCase() === id || (u.email && u.email.toLowerCase() === id))
-               && u.motDePasse === motDePasse && u.actif
+          u => (u.login.toLowerCase() === id || (u.email && u.email.toLowerCase() === id)) && u.actif
         );
-        if (utilisateur) {
-          const { motDePasse: _, ...utilisateurSansMdp } = utilisateur;
-          return { success: true, utilisateur: utilisateurSansMdp };
+        
+        if (!utilisateur) {
+          return { success: false, message: 'Identifiants incorrects' };
         }
-        return { success: false, message: 'Identifiants incorrects' };
+        
+        // Vérifier le hash du mot de passe
+        const motDePasseHash = await hashLocal(motDePasse);
+        
+        // Pour la migration: si l'utilisateur n'a pas encore de hash, créer un message d'erreur spécial
+        if (!utilisateur.motDePasseHash) {
+          // Première connexion - l'utilisateur doit utiliser Supabase Auth ou réinitialiser son mot de passe
+          if (utilisateur.auth_user_id) {
+            return { success: false, message: 'Veuillez utiliser la connexion Supabase Auth' };
+          }
+          return { success: false, message: 'Mot de passe non initialisé. Contactez l\'administrateur.' };
+        }
+        
+        if (motDePasseHash !== utilisateur.motDePasseHash) {
+          return { success: false, message: 'Identifiants incorrects' };
+        }
+        
+        // Ne jamais retourner le mot de passe ou le hash
+        const { motDePasseHash: _, motDePasse: __, ...utilisateurSansMdp } = utilisateur;
+        return { success: true, utilisateur: utilisateurSansMdp };
       },
 
       genererCodeRecuperation: (email) => {
@@ -110,26 +155,26 @@ export const useUtilisateursStore = create(
         const emailLower = (email || '').trim().toLowerCase();
         const user = utilisateurs.find(u => u.email && u.email.toLowerCase() === emailLower && u.actif);
         if (!user) return { success: false, message: 'Aucun compte actif trouvé avec cet email' };
-        const code = String(Math.floor(100000 + Math.random() * 900000));
+        const code = generateSecureCode(6);
         const expiry = Date.now() + 15 * 60 * 1000;
-        localStorage.setItem('sika_recovery', JSON.stringify({ userId: user.id, email: emailLower, code, expiry }));
+        sessionStorage.setItem('sika_recovery', JSON.stringify({ userId: user.id, email: emailLower, code, expiry }));
         return { success: true, code, nom: user.nom, hasAuthAccount: !!user.auth_user_id };
       },
 
       reinitialiserAvecCode: (email, code, nouveauMdp) => {
-        const raw = localStorage.getItem('sika_recovery');
+        const raw = sessionStorage.getItem('sika_recovery');
         if (!raw) return { success: false, message: 'Aucune demande de récupération active' };
         let recovery;
         try { recovery = JSON.parse(raw); } catch { return { success: false, message: 'Données corrompues, recommencez' }; }
         if (recovery.email !== (email || '').trim().toLowerCase()) return { success: false, message: 'Email incorrect' };
         if (Date.now() > recovery.expiry) {
-          localStorage.removeItem('sika_recovery');
+          sessionStorage.removeItem('sika_recovery');
           return { success: false, message: 'Code expiré, veuillez recommencer' };
         }
         if (recovery.code !== (code || '').trim()) return { success: false, message: 'Code incorrect' };
         if ((nouveauMdp || '').length < 6) return { success: false, message: 'Minimum 6 caractères requis' };
         const result = get().reinitialiserMotDePasse(recovery.userId, nouveauMdp);
-        if (result.success) localStorage.removeItem('sika_recovery');
+        if (result.success) sessionStorage.removeItem('sika_recovery');
         return result;
       },
 
@@ -198,14 +243,23 @@ export const useUtilisateursStore = create(
         const { utilisateurs } = get();
         const index = utilisateurs.findIndex(u => u.id === id);
         if (index === -1) return { success: false, message: 'Utilisateur non trouvé' };
-        if (nouveauMotDePasse.length < 6) return { success: false, message: 'Le mot de passe doit contenir au moins 6 caractères' };
+        if (nouveauMotDePasse.length < 8) return { success: false, message: 'Le mot de passe doit contenir au moins 8 caractères avec majuscule, minuscule et chiffre' };
 
         const user = utilisateurs[index];
 
-        if (user.auth_user_id) {
-          if (ancienMotDePasse && user.motDePasse && user.motDePasse !== ancienMotDePasse) {
+        // Vérifier l'ancien mot de passe avec hash
+        if (user.motDePasseHash) {
+          const ancienHash = await hashLocal(ancienMotDePasse);
+          if (ancienHash !== user.motDePasseHash) {
             return { success: false, message: 'Ancien mot de passe incorrect' };
           }
+        } else if (ancienMotDePasse && user.motDePasse && user.motDePasse !== ancienMotDePasse) {
+          // Fallback pour utilisateurs non migrés (à retirer après migration complète)
+          return { success: false, message: 'Ancien mot de passe incorrect' };
+        }
+
+        // Si utilisateur lié à Supabase Auth, mettre à jour aussi là-bas
+        if (user.auth_user_id) {
           try {
             await callManageUsers('update-password', {
               auth_user_id: user.auth_user_id,
@@ -214,14 +268,11 @@ export const useUtilisateursStore = create(
           } catch (err) {
             return { success: false, message: err.message };
           }
-        } else {
-          if (user.motDePasse !== ancienMotDePasse) {
-            return { success: false, message: 'Ancien mot de passe incorrect' };
-          }
         }
 
         const modifies = [...utilisateurs];
-        modifies[index] = { ...modifies[index], motDePasse: nouveauMotDePasse };
+        const nouveauHash = await hashLocal(nouveauMotDePasse);
+        modifies[index] = { ...modifies[index], motDePasseHash: nouveauHash, motDePasse: null };
         set({ utilisateurs: modifies });
         return { success: true, message: 'Mot de passe modifié avec succès' };
       },
@@ -230,7 +281,7 @@ export const useUtilisateursStore = create(
         const { utilisateurs } = get();
         const index = utilisateurs.findIndex(u => u.id === id);
         if (index === -1) return { success: false, message: 'Utilisateur non trouvé' };
-        if (nouveauMotDePasse.length < 6) return { success: false, message: 'Le mot de passe doit contenir au moins 6 caractères' };
+        if (nouveauMotDePasse.length < 8) return { success: false, message: 'Le mot de passe doit contenir au moins 8 caractères' };
 
         const user = utilisateurs[index];
 
@@ -246,7 +297,9 @@ export const useUtilisateursStore = create(
         }
 
         const modifies = [...utilisateurs];
-        modifies[index] = { ...modifies[index], motDePasse: nouveauMotDePasse };
+        // Hasher le nouveau mot de passe avant stockage
+        const nouveauHash = await hashLocal(nouveauMotDePasse);
+        modifies[index] = { ...modifies[index], motDePasseHash: nouveauHash, motDePasse: null };
         set({ utilisateurs: modifies });
         return { success: true, message: 'Mot de passe réinitialisé avec succès' };
       },

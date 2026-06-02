@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { useAuditStore } from '../../store/useAuditStore'
@@ -6,8 +6,9 @@ import { useClientsStore } from '../../store/useClientsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
-import { createSikaPDF, finalizeSikaPDF, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
+import { createSikaPDF, finalizeSikaPDF, openPDFForPrint, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
 import { useNavigate } from 'react-router-dom'
+import { useEscapeKey } from '../../hooks/useEscapeKey'
 
 const STATUTS = ['BROUILLON', 'VALIDE', 'FACTURE', 'ANNULE']
 const TYPES = ['CALORIFUGE', 'PLIAGE', 'RESERVOIR', 'SOUDURE', 'CHARPENTE', 'TUYAUTERIE', 'CHAUDRONNERIE']
@@ -30,11 +31,54 @@ export default function ListeDevis() {
   const [devisSelectionne, setDevisSelectionne] = useState(null)
   const [showModalVoir, setShowModalVoir] = useState(false)
 
+  // Fermer la modale avec la touche Escape
+  useEscapeKey(showModalVoir, () => setShowModalVoir(false))
+
+  // Défini avant les colonnes pour éviter les dépendances circulaires
+  const handleChangerStatut = useCallback((devis, nouveauStatut) => {
+    if (!confirm(`Changer le statut du devis ${devis.numero} en "${nouveauStatut}" ?`)) return
+
+    updateDevis(devis.id, { statut: nouveauStatut })
+
+    addLog({
+      module: 'LISTE_DEVIS',
+      action: 'CHANGER_STATUT',
+      utilisateur: 'Utilisateur',
+      avant: { numero: devis.numero, statut: devis.statut },
+      apres: { numero: devis.numero, statut: nouveauStatut }
+    })
+
+    // Notification
+    import('../../store/useNotificationsStore').then(({ useNotificationsStore }) => {
+      useNotificationsStore.getState().ajouterNotification({
+        type: 'INFO',
+        icone: nouveauStatut === 'VALIDE' ? '✅' : nouveauStatut === 'ANNULE' ? '❌' : '📋',
+        titre: 'STATUT MODIFIÉ',
+        message: `Devis ${devis.numero} passé en ${nouveauStatut}`,
+        lien: '/devis/liste'
+      })
+    })
+  }, [updateDevis, addLog])
+
   const devisAvecClients = useMemo(() => {
     return devis.map(d => {
       const client = clients.find(c => c.id === d.clientId)
+      // Assurer la compatibilité type/typeDevis - garder la valeur originale si elle existe
+      const typeDevis = d.typeDevis || d.type || null
+      // Normaliser les montants (certains devis utilisent ttc, d'autres montantTTC)
+      const ttc = d.ttc || d.montantTTC || d.montantTotal || 0
+      const montantHT = d.montantHT || d.montantHt || 0
+      const montantTVA = d.montantTVA || d.montantTva || d.tva || 0
+      // Assurer qu'on a toujours un ID valide
+      const id = d.id || d.id_devis || d.devis_id || `temp-${Date.now()}-${Math.random()}`
       return {
         ...d,
+        id,
+        typeDevis,
+        ttc,
+        montantHT,
+        montantTVA,
+        montantTTC: ttc,
         clientNom: client?.nom || 'Client inconnu',
         etabliPar: d.etabliPar || 'Utilisateur'
       }
@@ -48,7 +92,7 @@ export default function ListeDevis() {
         d.clientNom?.toLowerCase().includes(recherche.toLowerCase()) ||
         d.objet?.toLowerCase().includes(recherche.toLowerCase())
       
-      const matchType = !filtreType || d.type === filtreType
+      const matchType = !filtreType || d.typeDevis === filtreType
       const matchStatut = !filtreStatut || d.statut === filtreStatut
       const matchClient = !filtreClient || d.clientId === parseInt(filtreClient)
       
@@ -81,13 +125,16 @@ export default function ListeDevis() {
       cell: info => <span className="text-navy">{info.getValue()}</span>
     },
     {
-      accessorKey: 'type',
+      accessorKey: 'typeDevis',
       header: 'Type',
-      cell: info => (
-        <span className="px-2 py-1 bg-bleu text-white rounded text-xs font-semibold">
-          {info.getValue()}
-        </span>
-      )
+      cell: info => {
+        const value = info.getValue()
+        return (
+          <span className={`px-2 py-1 rounded text-xs font-semibold ${value ? 'bg-bleu text-white' : 'bg-gray-300 text-gray-600'}`}>
+            {value || 'Non défini'}
+          </span>
+        )
+      }
     },
     {
       accessorKey: 'date',
@@ -97,24 +144,42 @@ export default function ListeDevis() {
     {
       accessorKey: 'ttc',
       header: 'Montant TTC',
-      cell: info => <span className="font-bold text-orange">{formatFCFA(info.getValue())}</span>
+      cell: info => {
+        const montant = info.getValue()
+        return <span className="font-bold text-orange">{formatFCFA(montant || 0)}</span>
+      }
     },
     {
       accessorKey: 'statut',
       header: 'Statut',
       cell: info => {
         const statut = info.getValue()
+        const row = info.row.original
         const configs = {
-          'BROUILLON': { bg: 'bg-bleu', text: 'text-white' },
-          'VALIDE': { bg: 'bg-vert', text: 'text-white' },
-          'FACTURE': { bg: 'bg-orange', text: 'text-white' },
-          'ANNULE': { bg: 'bg-rouge', text: 'text-white' }
+          'BROUILLON': { bg: 'bg-bleu', text: 'text-white', label: 'Brouillon' },
+          'VALIDE': { bg: 'bg-vert', text: 'text-white', label: 'Validé' },
+          'FACTURE': { bg: 'bg-orange', text: 'text-white', label: 'Facturé' },
+          'ANNULE': { bg: 'bg-rouge', text: 'text-white', label: 'Annulé' }
         }
-        const config = configs[statut] || { bg: 'bg-argent', text: 'text-gray-700' }
+        const config = configs[statut] || { bg: 'bg-argent', text: 'text-gray-700', label: statut }
+
         return (
-          <span className={`${config.bg} ${config.text} px-3 py-1 rounded-full text-xs font-bold`}>
-            {statut}
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className={`${config.bg} ${config.text} px-3 py-1 rounded-full text-xs font-bold text-center`}>
+              {config.label}
+            </span>
+            {statut !== 'FACTURE' && (
+              <select
+                value={statut}
+                onChange={(e) => handleChangerStatut(row, e.target.value)}
+                className="text-xs px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange bg-white"
+              >
+                <option value="BROUILLON">📝 Brouillon</option>
+                <option value="VALIDE">✅ Valider</option>
+                <option value="ANNULE">❌ Annuler</option>
+              </select>
+            )}
+          </div>
         )
       }
     },
@@ -127,7 +192,7 @@ export default function ListeDevis() {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <button
             onClick={() => handleVoir(row.original)}
             className="px-2 py-1 bg-bleu text-white rounded hover:bg-opacity-90 text-xs"
@@ -143,18 +208,18 @@ export default function ListeDevis() {
             📝
           </button>
           <button
-            onClick={() => handleDupliquer(row.original)}
-            className="px-2 py-1 bg-navy text-white rounded hover:bg-opacity-90 text-xs"
-            title="Dupliquer"
-          >
-            📋
-          </button>
-          <button
             onClick={() => handleExportPDF(row.original)}
             className="px-2 py-1 bg-vert text-white rounded hover:bg-opacity-90 text-xs"
             title="PDF"
           >
             📄
+          </button>
+          <button
+            onClick={() => handlePrintDevis(row.original)}
+            className="px-2 py-1 bg-navy text-white rounded hover:bg-opacity-90 text-xs"
+            title="Imprimer"
+          >
+            🖨️
           </button>
           {row.original.statut !== 'FACTURE' && (
             <button
@@ -165,17 +230,35 @@ export default function ListeDevis() {
               🔄
             </button>
           )}
+          {row.original.statut === 'BROUILLON' && (
+            <button
+              onClick={() => handleChangerStatut(row.original, 'VALIDE')}
+              className="px-2 py-1 bg-vert text-white rounded hover:bg-opacity-90 text-xs"
+              title="Valider le devis"
+            >
+              ✓
+            </button>
+          )}
+          {row.original.statut === 'BROUILLON' && (
+            <button
+              onClick={() => handleChangerStatut(row.original, 'ANNULE')}
+              className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
+              title="Annuler le devis"
+            >
+              ✕
+            </button>
+          )}
           <button
             onClick={() => handleSupprimer(row.original)}
-            className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
+            className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-opacity-90 text-xs"
             title="Supprimer"
           >
-            🗑
+            🗑️
           </button>
         </div>
       )
     }
-  ], [])
+  ], [handleChangerStatut])
 
   const table = useReactTable({
     data: devisFiltres,
@@ -200,35 +283,74 @@ export default function ListeDevis() {
   }
 
   const handleModifier = (devis) => {
+    // Vérifier que le devis a un ID
+    if (!devis || !devis.id) {
+      alert('Erreur: Ce devis n\'a pas d\'identifiant. Impossible de le modifier.')
+      console.error('Devis sans ID:', devis)
+      return
+    }
+
+    // Utiliser typeDevis déjà normalisé, ou chercher dans type si non défini
+    const typeDevis = devis.typeDevis || devis.type || null
+
+    // Si toujours pas de type, on ne peut pas modifier
+    if (!typeDevis || typeDevis === 'INCONNU') {
+      alert(`Ce devis n'a pas de type défini (type: ${typeDevis || 'null'}). Impossible de l'ouvrir pour modification.`)
+      console.error('Devis sans type valide:', devis)
+      return
+    }
+
+
     const routeMap = {
       'PLIAGE': '/devis/pliage',
       'CALORIFUGE': '/devis/calorifuge',
       'TUYAUTERIE': '/devis/tuyauterie',
+      'SOUDURE': '/devis/soudure',
+      'MECANO-SOUDURE': '/devis/soudure',
       'CHAUDRONNERIE': '/devis/chaudronnerie',
-      'MECANO-SOUDURE': '/devis/mecano-soudure'
+      'RESERVOIR': '/devis/reservoir',
+      'CHARPENTE': '/devis/charpente'
     }
-    const route = routeMap[devis.type] || '/devis/liste'
+
+    const route = routeMap[typeDevis]
+
+    if (!route) {
+      alert(`Type de devis non reconnu: "${typeDevis}".\nRoutes disponibles: ${Object.keys(routeMap).join(', ')}`)
+      console.error('Type devis inconnu:', devis)
+      return
+    }
+
     navigate(route, { state: { devisId: devis.id } })
-    addLog({ module: 'LISTE_DEVIS', action: 'MODIFIER', utilisateur: 'Utilisateur', apres: { numero: devis.numero } })
+    addLog({ module: 'LISTE_DEVIS', action: 'MODIFIER', utilisateur: 'Utilisateur', apres: { numero: devis.numero, type: typeDevis, id: devis.id } })
   }
 
-  const handleDupliquer = (devis) => {
-    if (!confirm(`Dupliquer le devis ${devis.numero} ?`)) return
-    
-    const { id, numero, dateCreation, ...devisData } = devis
-    const nouveauDevis = addDevis({
-      ...devisData,
-      statut: 'BROUILLON',
-      date: new Date().toISOString().split('T')[0]
+  const handleSupprimer = (devis) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer le devis ${devis.numero} ?\n\nCette action est irréversible.`)) return
+
+    deleteDevis(devis.id)
+
+    addLog({
+      module: 'LISTE_DEVIS',
+      action: 'SUPPRIMER',
+      utilisateur: 'Utilisateur',
+      avant: { numero: devis.numero, montantTTC: devis.ttc }
     })
-    
-    addLog({ module: 'LISTE_DEVIS', action: 'DUPLICATION', utilisateur: 'Utilisateur', apres: { ancien: numero, nouveau: nouveauDevis.numero } })
-    alert(`Devis dupliqué : ${nouveauDevis.numero}`)
+
+    // Notification de suppression
+    import('../../store/useNotificationsStore').then(({ useNotificationsStore }) => {
+      useNotificationsStore.getState().ajouterNotification({
+        type: 'INFO',
+        icone: '🗑️',
+        titre: 'DEVIS SUPPRIMÉ',
+        message: `Le devis ${devis.numero} a été supprimé avec succès`,
+        lien: '/devis/liste'
+      })
+    })
   }
 
   const handleExportPDF = async (devis) => {
     const client = clients.find(c => c.id === devis.clientId)
-    const ctx = await createSikaPDF(`DEVIS ${devis.type} - ${devis.numero}`)
+    const ctx = await createSikaPDF(`DEVIS ${devis.typeDevis || devis.type} - ${devis.numero}`)
     const { doc, startY, MARGE_G, PAGE_W } = ctx
     
     let y = startY
@@ -277,44 +399,41 @@ export default function ListeDevis() {
     addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devis.numero } })
   }
 
-  const handleConvertirEnFacture = (devis) => {
+  const handleConvertirEnFacture = async (devis) => {
     if (!confirm(`Convertir le devis ${devis.numero} en facture ?`)) return
-    
+
     const client = clients.find(c => c.id === devis.clientId)
-    
+
     const nouvelleFacture = {
       clientId: devis.clientId,
       clientNom: client?.nom || 'Client inconnu',
       montantHT: devis.montantHT || 0,
+      montantTVA: devis.montantTVA || devis.tva || 0,
       montantTTC: devis.ttc || 0,
-      tva: devis.tva || 0,
       numeroDevis: devis.numero,
-      type: devis.type,
+      type: devis.typeDevis || devis.type,
       objet: devis.objet,
       lignes: devis.lignes || [],
       statut: 'EMISE',
-      date: new Date().toISOString().split('T')[0]
+      dateDepot: new Date().toISOString().split('T')[0]
     }
-    
-    const facture = addFacture(nouvelleFacture)
-    transformerEnFacture(devis.id)
-    
-    addLog({ 
-      module: 'LISTE_DEVIS', 
-      action: 'CONVERT_TO_FACTURE', 
-      utilisateur: 'Utilisateur', 
-      apres: { devis: devis.numero, facture: facture.numero } 
-    })
-    
-    alert(`Devis ${devis.numero} converti en facture avec succès !`)
-  }
 
-  const handleSupprimer = (devis) => {
-    if (!confirm(`Supprimer définitivement le devis ${devis.numero} ?`)) return
-    
-    deleteDevis(devis.id)
-    addLog({ module: 'LISTE_DEVIS', action: 'SUPPRESSION', utilisateur: 'Utilisateur', apres: { numero: devis.numero } })
-    alert('Devis supprimé')
+    try {
+      const facture = await addFacture(nouvelleFacture)
+      transformerEnFacture(devis.id)
+
+      addLog({
+        module: 'LISTE_DEVIS',
+        action: 'CONVERT_TO_FACTURE',
+        utilisateur: 'Utilisateur',
+        apres: { devis: devis.numero, facture: facture?.numero }
+      })
+
+      alert(`Devis ${devis.numero} converti en facture ${facture?.numero} avec succès !`)
+    } catch (error) {
+      console.error('Erreur conversion devis en facture:', error)
+      alert('Erreur lors de la conversion du devis en facture')
+    }
   }
 
   const handleExportExcel = () => {
@@ -339,33 +458,265 @@ export default function ListeDevis() {
   }
 
   const handleExportPDFListe = async () => {
-    const ctx = await createSikaPDF('LISTE DES DEVIS');
+    const titre = filtreType ? `LISTE DES DEVIS - ${filtreType}` : 'LISTE DES DEVIS';
+    const ctx = await createSikaPDF(titre);
     const { doc, startY, MARGE_G, PAGE_W } = ctx;
-    
+
     let y = startY;
-    
-    // Info
+
+    // En-tête avec filtres
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
-    doc.text(`Date d'édition : ${formatDate(new Date())}`, MARGE_G, y);
+    doc.text(`Date d'édition : ${formatDatePDF(new Date())}`, MARGE_G, y);
     doc.text(`Total : ${devisFiltres.length} devis`, MARGE_G + 60, y);
-    y += 8;
-    
-    // Tableau
-    const columns = ['N° Devis', 'Client', 'Type', 'Date', 'Montant TTC (FCFA)', 'Statut'];
+    if (filtreType) doc.text(`Catégorie : ${filtreType}`, MARGE_G + 110, y);
+    if (filtreStatut) doc.text(`Statut : ${filtreStatut}`, MARGE_G + 160, y);
+    y += 10;
+
+    // Tableau avec Établi par
+    const columns = ['N° Devis', 'Client', 'Type', 'Date', 'Montant TTC', 'Statut', 'Établi par'];
     const rows = devisFiltres.map(d => [
       d.numero,
       d.clientNom,
-      d.type,
-      formatDate(d.date),
+      d.typeDevis || d.type,
+      formatDatePDF(d.date),
       formatMontant(d.ttc),
-      d.statut
+      d.statut,
+      d.etabliPar || 'Utilisateur'
     ]);
-    
-    sikaTable(doc, columns, rows, y, ctx);
-    
+
+    const finalY = sikaTable(doc, columns, rows, y, ctx);
+    y = finalY + 10;
+
+    // Récapitulatif des statuts
+    const stats = {
+      BROUILLON: devisFiltres.filter(d => d.statut === 'BROUILLON').length,
+      VALIDE: devisFiltres.filter(d => d.statut === 'VALIDE').length,
+      FACTURE: devisFiltres.filter(d => d.statut === 'FACTURE').length,
+      ANNULE: devisFiltres.filter(d => d.statut === 'ANNULE').length
+    };
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(27, 42, 74);
+    doc.text('RÉCAPITULATIF PAR STATUT :', MARGE_G, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Brouillon: ${stats.BROUILLON} | Validé: ${stats.VALIDE} | Facturé: ${stats.FACTURE} | Annulé: ${stats.ANNULE}`, MARGE_G, y);
+    y += 10;
+
+    // Total général
+    const totalTTC = devisFiltres.reduce((sum, d) => sum + (d.ttc || 0), 0);
+    doc.setFillColor(27, 42, 74);
+    doc.rect(MARGE_G, y - 4, PAGE_W - MARGE_G * 2, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL GÉNÉRAL TTC :', MARGE_G + 5, y + 4);
+    doc.text(formatMontant(totalTTC) + ' FCFA', PAGE_W - MARGE_G - 5, y + 4, { align: 'right' });
+
     await finalizeSikaPDF(ctx, `SIKA_Liste_Devis_${new Date().toISOString().split('T')[0]}.pdf`);
     addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_PDF_LISTE', utilisateur: 'Utilisateur' });
+  }
+
+  const handlePrintListe = async () => {
+    const titre = filtreType ? `LISTE DES DEVIS - ${filtreType}` : 'LISTE DES DEVIS';
+    const ctx = await createSikaPDF(titre);
+    const { doc, startY, MARGE_G, PAGE_W } = ctx;
+
+    let y = startY;
+
+    // En-tête avec filtre appliqué
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Date d'édition : ${formatDatePDF(new Date())}`, MARGE_G, y);
+    doc.text(`Total : ${devisFiltres.length} devis`, MARGE_G + 60, y);
+    if (filtreType) doc.text(`Catégorie : ${filtreType}`, MARGE_G + 110, y);
+    if (filtreStatut) doc.text(`Statut : ${filtreStatut}`, MARGE_G + 160, y);
+    y += 10;
+
+    // Tableau avec colonne Établi par ajoutée
+    const columns = ['N° Devis', 'Client', 'Type', 'Date', 'Montant TTC', 'Statut', 'Établi par'];
+    const rows = devisFiltres.map(d => [
+      d.numero,
+      d.clientNom,
+      d.typeDevis || d.type,
+      formatDatePDF(d.date),
+      formatMontant(d.ttc),
+      d.statut,
+      d.etabliPar || 'Utilisateur'
+    ]);
+
+    const finalY = sikaTable(doc, columns, rows, y, ctx);
+    y = finalY + 10;
+
+    // Récapitulatif des statuts
+    const stats = {
+      BROUILLON: devisFiltres.filter(d => d.statut === 'BROUILLON').length,
+      VALIDE: devisFiltres.filter(d => d.statut === 'VALIDE').length,
+      FACTURE: devisFiltres.filter(d => d.statut === 'FACTURE').length,
+      ANNULE: devisFiltres.filter(d => d.statut === 'ANNULE').length
+    };
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(27, 42, 74);
+    doc.text('RÉCAPITULATIF PAR STATUT :', MARGE_G, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Brouillon: ${stats.BROUILLON} | Validé: ${stats.VALIDE} | Facturé: ${stats.FACTURE} | Annulé: ${stats.ANNULE}`, MARGE_G, y);
+    y += 10;
+
+    // Total général
+    const totalTTC = devisFiltres.reduce((sum, d) => sum + (d.ttc || 0), 0);
+    doc.setFillColor(27, 42, 74);
+    doc.rect(MARGE_G, y - 4, PAGE_W - MARGE_G * 2, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL GÉNÉRAL TTC :', MARGE_G + 5, y + 4);
+    doc.text(formatMontant(totalTTC) + ' FCFA', PAGE_W - MARGE_G - 5, y + 4, { align: 'right' });
+
+    await openPDFForPrint(ctx);
+    addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_LISTE', utilisateur: 'Utilisateur' });
+  }
+
+  const handlePrintDevis = async (devis) => {
+    const client = clients.find(c => c.id === devis.clientId);
+    const ctx = await createSikaPDF(`DEVIS ${devis.typeDevis || devis.type} - ${devis.numero}`);
+    const { doc, startY, MARGE_G, PAGE_W } = ctx;
+
+    let y = startY;
+
+    // En-tête avec informations clés
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(27, 42, 74);
+    doc.text('DEVIS', MARGE_G, y);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(230, 0, 0);
+    doc.text(devis.numero, MARGE_G + 25, y);
+    y += 10;
+
+    // Ligne de séparation
+    doc.setDrawColor(230, 0, 0);
+    doc.setLineWidth(1);
+    doc.line(MARGE_G, y, PAGE_W - MARGE_G, y);
+    y += 8;
+
+    // Bloc informations générales en deux colonnes
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(27, 42, 74);
+
+    const col1X = MARGE_G;
+    const col2X = PAGE_W / 2 + 10;
+    const startYInfo = y;
+
+    // Colonne 1
+    const infosCol1 = [
+      ['Client', client?.nom || 'N/A'],
+      ['Date', formatDatePDF(devis.date)],
+      ['Établi par', devis.etabliPar || 'Utilisateur'],
+    ];
+
+    infosCol1.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(label + ' :', col1X, y);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(value, 60);
+      doc.text(lines, col1X + 35, y);
+      y += lines.length * 5;
+    });
+
+    // Colonne 2
+    y = startYInfo;
+    const infosCol2 = [
+      ['Type', devis.typeDevis || devis.type || 'N/A'],
+      ['Statut', devis.statut || 'BROUILLON'],
+      ['Objet', devis.objet || 'N/A'],
+    ];
+
+    infosCol2.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(label + ' :', col2X, y);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(value, 70);
+      doc.text(lines, col2X + 30, y);
+      y += lines.length * 5;
+    });
+
+    y = Math.max(y, startYInfo + 20) + 8;
+
+    // Ligne de séparation
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(MARGE_G, y, PAGE_W - MARGE_G, y);
+    y += 8;
+
+    // Tableau des lignes
+    if (devis.lignes && devis.lignes.length > 0) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(27, 42, 74);
+      doc.text('DÉTAIL DU DEVIS', MARGE_G, y);
+      y += 6;
+
+      const colsLignes = ['Désignation', 'Qté', 'PU (FCFA)', 'Total (FCFA)'];
+      const rowsLignes = devis.lignes.map(l => [
+        l.designation || '—',
+        l.quantite || l.qte || l.longueur || 0,
+        formatMontant(l.prixUnitaire || l.pu || 0),
+        formatMontant((l.quantite || l.qte || l.longueur || 0) * (l.prixUnitaire || l.pu || 0))
+      ]);
+
+      y = sikaTable(doc, colsLignes, rowsLignes, y, ctx) + 8;
+    }
+
+    // Totaux
+    const totauxX = PAGE_W - 85;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(27, 42, 74);
+    doc.text('RÉCAPITULATIF', MARGE_G, y);
+    y += 8;
+
+    doc.setFontSize(9);
+    const rowsTotaux = [
+      ['Total HT', formatMontant(devis.montantHT || 0) + ' FCFA'],
+      ['TVA (18%)', formatMontant(devis.montantTVA || devis.tva || 0) + ' FCFA'],
+    ];
+
+    rowsTotaux.forEach(([label, val]) => {
+      doc.setTextColor(27, 42, 74);
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, totauxX, y);
+      doc.setFont('helvetica', 'normal');
+      doc.text(val, PAGE_W - MARGE_G, y, { align: 'right' });
+      y += 6;
+    });
+
+    // TTC en surbrillance
+    doc.setFillColor(27, 42, 74);
+    doc.rect(totauxX - 2, y - 4, PAGE_W - MARGE_G - totauxX + 2, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MONTANT TTC', totauxX, y + 2);
+    doc.text(formatMontant(devis.ttc || 0) + ' FCFA', PAGE_W - MARGE_G, y + 2, { align: 'right' });
+    y += 15;
+
+    // Pied de page avec date d'impression
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Document imprimé le ${formatDatePDF(new Date())} - SIKA INDUSTRIE`, MARGE_G, PAGE_W - 10);
+
+    await openPDFForPrint(ctx);
+    addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_DEVIS', utilisateur: 'Utilisateur', apres: { numero: devis.numero } });
   }
 
   return (
@@ -390,6 +741,12 @@ export default function ListeDevis() {
             className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition"
           >
             📄 Export PDF
+          </button>
+          <button
+            onClick={handlePrintListe}
+            className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-opacity-90 transition font-semibold"
+          >
+            🖨️ Imprimer
           </button>
           <div className="flex-1 min-w-[200px]">
             <input
@@ -644,7 +1001,52 @@ export default function ListeDevis() {
               </div>
 
               {/* Boutons d'action */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
+                {devisSelectionne.statut === 'BROUILLON' && (
+                  <button
+                    onClick={() => {
+                      handleChangerStatut(devisSelectionne, 'VALIDE')
+                      setShowModalVoir(false)
+                    }}
+                    className="px-4 py-2 rounded font-semibold text-white"
+                    style={{ backgroundColor: '#1A7A4A' }}
+                  >
+                    ✅ Valider
+                  </button>
+                )}
+                {devisSelectionne.statut === 'BROUILLON' && (
+                  <button
+                    onClick={() => {
+                      handleChangerStatut(devisSelectionne, 'ANNULE')
+                      setShowModalVoir(false)
+                    }}
+                    className="px-4 py-2 rounded font-semibold text-white"
+                    style={{ backgroundColor: '#DC2626' }}
+                  >
+                    ❌ Annuler
+                  </button>
+                )}
+                {devisSelectionne.statut !== 'FACTURE' && devisSelectionne.statut !== 'ANNULE' && (
+                  <button
+                    onClick={() => {
+                      setShowModalVoir(false)
+                      handleConvertirEnFacture(devisSelectionne)
+                    }}
+                    className="px-4 py-2 rounded font-semibold text-white"
+                    style={{ backgroundColor: '#E60000' }}
+                  >
+                    🔄 Convertir en Facture
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    handlePrintDevis(devisSelectionne)
+                  }}
+                  className="px-4 py-2 rounded font-semibold text-white"
+                  style={{ backgroundColor: '#1B2A4A' }}
+                >
+                  🖨️ Imprimer
+                </button>
                 <button
                   onClick={() => {
                     setShowModalVoir(false)

@@ -1,7 +1,6 @@
+import { formatFCFA } from '../utils/format'
+
 export default function SoldeDisplay({ solde, label = 'Solde' }) {
-  const formatFCFA = (amount) => {
-    return `${Number(amount).toLocaleString('fr-FR')} FCFA`
-  }
 
   const isPositive = solde >= 0
   const colorClass = isPositive ? 'text-vert' : 'text-rouge'

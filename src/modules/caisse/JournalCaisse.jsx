@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Printer, 
   Lock, 
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Breadcrumb from '../../components/Breadcrumb';
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils';
+import { formatFCFA } from '../../utils/format';
 import * as XLSX from 'xlsx';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -66,9 +67,6 @@ const CATEGORIE_COLORS = {
   AUTRE_SORTIE: '#E60000',
 };
 
-function formatFCFA(n) {
-  return Number(n || 0).toLocaleString('fr-FR') + ' FCFA';
-}
 /* ─────────────────────────────────────────────────────────────── */
 
 const JournalCaisse = () => {
@@ -85,7 +83,7 @@ const JournalCaisse = () => {
 
 
   /* ── Fetch Supabase ──────────────────────────────────────────── */
-  const fetchMouvements = async () => {
+  const fetchMouvements = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('mouvements_caisse')
@@ -98,9 +96,11 @@ const JournalCaisse = () => {
       if (noms.length > 0) setCaissesList(noms);
     }
     setLoading(false);
-  };
+  }, []);
 
-  useEffect(() => { fetchMouvements(); }, []);
+  useEffect(() => {
+    fetchMouvements();
+  }, [fetchMouvements]);
 
   /* ── Filtre par caisse + année ───────────────────────────────── */
   const mouvementsFiltres = useMemo(() => {

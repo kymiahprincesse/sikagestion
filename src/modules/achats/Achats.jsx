@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { createSikaPDF, sikaTable, finalizeSikaPDF, formatMontant, addDiagonalWatermark } from '../../utils/printUtils'
+import { formatFCFA } from '../../utils/format'
 
 const CATEGORIES = [
   { value: 'MATERIEL',        label: 'Matériel & Équipement',   icon: '🔧', journalCat: 'ACHAT_MATERIEL' },
@@ -30,7 +31,7 @@ const STATUTS = [
 const MODES_PAIEMENT = ['VIREMENT', 'CHEQUE', 'ESPECES', 'TRAITE', 'AUTRE']
 const TYPES_ACHAT   = ['FACTURE', 'BON_COMMANDE', 'AVOIR', 'PROFORMA']
 
-const fmt = (n) => Number(n || 0).toLocaleString('fr-FR') + ' FCFA'
+const fmt = (n) => formatFCFA(n || 0)
 
 function StatCard({ icon, label, value, color }) {
   return (

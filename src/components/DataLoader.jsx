@@ -9,11 +9,17 @@ import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useNotificationsStore } from '../store/useNotificationsStore'
+import { useSupabaseRealtime } from '../hooks/useSupabaseRealtime'
+import { offlineQueue } from '../services/offlineQueue'
 
 /**
  * Composant invisible qui charge toutes les données depuis Supabase au démarrage
+ * ET active la synchronisation temps réel
  */
 export default function DataLoader() {
+  // Activer la sync temps réel
+  useSupabaseRealtime()
+
   const setClients = useClientsStore(state => state.setClients)
   const setFactures = useFacturesStore(state => state.setFactures)
   const setDevis = useDevisStore(state => state.setDevis)
@@ -241,11 +247,18 @@ export default function DataLoader() {
         const fournisseurs = useFournisseursStore.getState().fournisseurs
         genererNotifications(factures, devis, ao, projets, fournisseurs)
 
+        // Traiter la file d'attente offline si des opérations sont en attente
+        const queueStats = offlineQueue.getStats()
+        if (queueStats.pending > 0 && navigator.onLine) {
+          console.log(`🔄 ${queueStats.pending} opération(s) en attente - Synchronisation...`)
+          offlineQueue.processQueue()
+        }
+
       } catch (err) {
         console.error('Erreur DataLoader:', err)
       }
     }
-    
+
     loadAllData()
   }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements])
 

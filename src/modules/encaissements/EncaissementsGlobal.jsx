@@ -28,12 +28,6 @@ export default function EncaissementsGlobal() {
     observation: ''
   })
 
-  useEffect(() => {
-    console.log('💰 EncaissementsGlobal - Composant monté')
-    return () => {
-      console.log('💰 EncaissementsGlobal - Composant démonté')
-    }
-  }, [])
 
   const stats = getStatistiques()
 
@@ -57,14 +51,14 @@ export default function EncaissementsGlobal() {
 
   const totauxFiltres = useMemo(() => {
     const totalFacture = facturesFiltrees.reduce((sum, f) => sum + (f.montantTTC || 0), 0)
-    const totalEncaisse = facturesFiltrees.reduce((sum, f) => sum + (f.montantEncaisse || 0), 0)
+    const totalEncaisse = facturesFiltrees.reduce((sum, f) => sum + (f.montantPaye || 0), 0)
     const totalRestant = totalFacture - totalEncaisse
 
     return { totalFacture, totalEncaisse, totalRestant }
   }, [facturesFiltrees])
 
   const handleAjouterEncaissement = (facture) => {
-    const restant = (facture.montantTTC || 0) - (facture.montantEncaisse || 0)
+    const restant = (facture.montantTTC || 0) - (facture.montantPaye || 0)
     setFactureSelectionnee(facture)
     setFormEncaissement({
       montant: restant.toString(),
@@ -101,11 +95,11 @@ export default function EncaissementsGlobal() {
     })
 
     // Mettre à jour la facture
-    const nouveauMontantEncaisse = (factureSelectionnee.montantEncaisse || 0) + montant
+    const nouveauMontantEncaisse = (factureSelectionnee.montantPaye || 0) + montant
     const nouveauStatut = nouveauMontantEncaisse >= factureSelectionnee.montantTTC ? 'PAYEE' : 'PARTIEL'
     
     updateFacture(factureSelectionnee.id, {
-      montantEncaisse: nouveauMontantEncaisse,
+      montantPaye: nouveauMontantEncaisse,
       statutPaiement: nouveauStatut,
       dateReglement: nouveauStatut === 'PAYEE' ? formEncaissement.date : factureSelectionnee.dateReglement,
       moyenReglement: nouveauStatut === 'PAYEE' ? formEncaissement.moyenPaiement : factureSelectionnee.moyenReglement
@@ -115,7 +109,7 @@ export default function EncaissementsGlobal() {
       module: 'ENCAISSEMENTS',
       action: 'AJOUT_REGLEMENT',
       utilisateur: 'Admin',
-      avant: { factureId: factureSelectionnee.id, montantEncaisse: factureSelectionnee.montantEncaisse },
+      avant: { factureId: factureSelectionnee.id, montantPaye: factureSelectionnee.montantPaye },
       apres: { montant: montant, nouveauTotal: nouveauMontantEncaisse }
     })
 
@@ -130,8 +124,8 @@ export default function EncaissementsGlobal() {
       'Date': facture.dateFacture,
       'Client': client?.nom || 'N/A',
       'Montant TTC': facture.montantTTC,
-      'Encaissé': facture.montantEncaisse || 0,
-      'Reste à payer': (facture.montantTTC || 0) - (facture.montantEncaisse || 0),
+      'Encaissé': facture.montantPaye || 0,
+      'Reste à payer': (facture.montantTTC || 0) - (facture.montantPaye || 0),
       'Statut': facture.statutPaiement
     }
   })
@@ -290,7 +284,7 @@ export default function EncaissementsGlobal() {
             <tbody className="divide-y" style={{ backgroundColor: 'white', borderColor: '#C8C8D0' }}>
               {facturesFiltrees.map((facture, index) => {
                 const client = getClientById(facture.clientId)
-                const restant = (facture.montantTTC || 0) - (facture.montantEncaisse || 0)
+                const restant = (facture.montantTTC || 0) - (facture.montantPaye || 0)
                 
                 return (
                   <tr
@@ -311,7 +305,7 @@ export default function EncaissementsGlobal() {
                       {formatFCFA(facture.montantTTC)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium" style={{ color: '#1A7A4A' }}>
-                      {formatFCFA(facture.montantEncaisse || 0)}
+                      {formatFCFA(facture.montantPaye || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium" style={{ color: restant > 0 ? '#E60000' : '#1A7A4A' }}>
                       {formatFCFA(restant)}
@@ -368,8 +362,8 @@ export default function EncaissementsGlobal() {
               <div className="bg-navyClair p-3 rounded-lg">
                 <p className="text-sm" style={{ color: '#06006E' }}>Client: <span className="font-bold">{getClientById(factureSelectionnee.clientId)?.nom}</span></p>
                 <p className="text-sm" style={{ color: '#06006E' }}>Montant TTC: <span className="font-bold">{formatFCFA(factureSelectionnee.montantTTC)}</span></p>
-                <p className="text-sm" style={{ color: '#1A7A4A' }}>Déjà encaissé: <span className="font-bold">{formatFCFA(factureSelectionnee.montantEncaisse || 0)}</span></p>
-                <p className="text-sm" style={{ color: '#E60000' }}>Reste à payer: <span className="font-bold">{formatFCFA((factureSelectionnee.montantTTC || 0) - (factureSelectionnee.montantEncaisse || 0))}</span></p>
+                <p className="text-sm" style={{ color: '#1A7A4A' }}>Déjà encaissé: <span className="font-bold">{formatFCFA(factureSelectionnee.montantPaye || 0)}</span></p>
+                <p className="text-sm" style={{ color: '#E60000' }}>Reste à payer: <span className="font-bold">{formatFCFA((factureSelectionnee.montantTTC || 0) - (factureSelectionnee.montantPaye || 0))}</span></p>
               </div>
 
               <div>

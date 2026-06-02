@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_TRAVAUX = ['Découpe', 'Pliage', 'Roulage', 'Assemblage', 'Soudure', 'Finition']
 const MATERIAUX = ['Acier carbone', 'Inox 304', 'Inox 316', 'Aluminium', 'Galvanisé']
@@ -22,31 +24,56 @@ const LIGNE_VIDE = {
 
 export default function DevisChaudronnerie() {
   const pdfRef = useRef(null)
-  const { addDevis, updateDevis, getNextNumero } = useDevisStore()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { addDevis, updateDevis, getNextNumero, getDevisById } = useDevisStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
+  const { ajouterNotification } = useNotificationsStore()
 
-  const [devisData, setDevisData] = useState({
-    numero: '',
+  const [devisData, setDevisData] = useState(() => ({
+    numero: getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'CHAUDRONNERIE',
     objet: '',
     lieuInstallation: '',
-    
+
     lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
     tauxRemise: 0,
     tvaActive: true,
     statut: 'BROUILLON'
-  })
+  }))
 
   const [devisId, setDevisId] = useState(null)
 
+  // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
-    if (!devisData.numero) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
+    const loadDevis = () => {
+      if (location.state?.devisId) {
+        const devisExist = getDevisById(location.state.devisId)
+        if (devisExist) {
+          setDevisData({
+            numero: devisExist.numero,
+            date: devisExist.date || new Date().toISOString().split('T')[0],
+            clientId: devisExist.clientId,
+            type: devisExist.type || 'CHAUDRONNERIE',
+            objet: devisExist.objet || '',
+            lieuInstallation: devisExist.lieuInstallation || '',
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            tauxRemise: devisExist.tauxRemise || 0,
+            tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
+            statut: devisExist.statut || 'BROUILLON'
+          })
+          setDevisId(devisExist.id)
+        } else {
+          console.error('Devis non trouvé avec ID:', location.state.devisId)
+          alert('Devis non trouvé. Il a peut-être été supprimé.')
+        }
+      }
     }
-  }, [])
+    loadDevis()
+  }, [location.state, location.state?.devisId, getDevisById])
 
   const calculerMontant = (ligne) => {
     const surface = parseFloat(ligne.surface) || 0
@@ -127,16 +154,6 @@ export default function DevisChaudronnerie() {
       addLog({ module: 'DEVIS_CHAUDRONNERIE', action: 'CREATION', utilisateur: 'Utilisateur', apres: { numero: nouveau.numero, montantTTC: totaux.ttc } })
       alert('Devis enregistré avec succès')
     }
-  }
-
-  const handleDupliquer = () => {
-    const nouveauNumero = getNextNumero()
-    const devisDuplique = { ...devisData, numero: nouveauNumero, date: new Date().toISOString().split('T')[0], statut: 'BROUILLON' }
-    const nouveau = addDevis(devisDuplique)
-    setDevisId(nouveau.id)
-    setDevisData(devisDuplique)
-    addLog({ module: 'DEVIS_CHAUDRONNERIE', action: 'DUPLICATION', utilisateur: 'Utilisateur', apres: { numero: nouveauNumero } })
-    alert(`Devis dupliqué : ${nouveauNumero}`)
   }
 
   const handleGenerePDF = async () => {
@@ -228,9 +245,6 @@ export default function DevisChaudronnerie() {
           </button>
           <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition">
             📄 PDF
-          </button>
-          <button onClick={handleDupliquer} className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-opacity-90 transition">
-            📋 Dupliquer
           </button>
           <button
             onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}

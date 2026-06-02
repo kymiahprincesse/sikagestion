@@ -1,7 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect, lazy, Suspense } from 'react'
-import { supabase } from './lib/supabaseClient'
-import { useClientsStore } from './store/useClientsStore'
+import { lazy, Suspense } from 'react'
 import { useAuthStore } from './store/useAuthStore'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -44,53 +42,13 @@ const PageChargement = () => (
 
 function AdminRoute({ children }) {
   const utilisateurConnecte = useAuthStore(state => state.utilisateurConnecte)
+  const isAdmin = useAuthStore(state => state.isAdmin)
   if (!utilisateurConnecte) return <Navigate to="/login" replace />
-  const role = utilisateurConnecte.role
-  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') return <Navigate to="/dashboard" replace />
+  if (!isAdmin()) return <Navigate to="/dashboard" replace />
   return children
 }
 
 function App() {
-  const setClients = useClientsStore(state => state.setClients)
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const { data: clientsData, error } = await supabase
-          .from('clients')
-          .select('*')
-          .order('id')
-        
-        if (error) throw error
-        
-        if (clientsData && clientsData.length > 0) {
-          const clients = clientsData.map(c => ({
-            id: c.id,
-            nom: c.nom,
-            raisonSociale: c.raison_sociale,
-            ncc: c.ncc,
-            secteur: c.secteur,
-            adresse: c.adresse,
-            ville: c.ville,
-            pays: c.pays,
-            contactNom: c.contact_nom,
-            contactTelephone: c.contact_telephone,
-            contactEmail: c.contact_email,
-            conditionsPaiement: c.conditions_paiement,
-            type: c.type,
-            isActif: c.is_actif,
-            notes: c.notes,
-            dateCreation: c.date_creation
-          }))
-          setClients(clients)
-        }
-      } catch (err) {
-        console.error('Erreur chargement Supabase:', err)
-      }
-    }
-    loadData()
-  }, [setClients])
-
   return (
     <ErrorBoundary>
     <NotificationProvider>

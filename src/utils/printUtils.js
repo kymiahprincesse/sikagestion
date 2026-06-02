@@ -76,8 +76,8 @@ export async function createSikaPDF(titre = '') {
       const enteteH = enteteW / enteteRatio;
       doc.addImage(entete.data, 'PNG', MARGE_G, 5, enteteW, enteteH);
 
-      // Ligne de séparation orange sous l'en-tête
-      doc.setDrawColor(230, 97, 10);
+      // Ligne de séparation bleue sous l'en-tête
+      doc.setDrawColor(27, 42, 74);
       doc.setLineWidth(0.8);
       doc.line(MARGE_G, 5 + enteteH + 1, PAGE_W - MARGE_D, 5 + enteteH + 1);
     } else {
@@ -105,11 +105,6 @@ export async function createSikaPDF(titre = '') {
       const piedW = CONTENT_W;
       const piedH = piedW / piedRatio;
       const piedY = PAGE_H - piedH - 5;
-
-      // Ligne de séparation bleue au-dessus du pied
-      doc.setDrawColor(27, 42, 74);
-      doc.setLineWidth(0.5);
-      doc.line(MARGE_G, piedY - 2, PAGE_W - MARGE_D, piedY - 2);
 
       doc.addImage(pied.data, 'PNG', MARGE_G, piedY, piedW, piedH);
     } else {
@@ -285,14 +280,16 @@ export async function openPDFForPrint(ctx, user = null) {
 }
 
 /**
- * Utilitaire pour formater les montants
+ * Utilitaire pour formater les montants avec points comme séparateurs
  */
 export function formatMontant(montant) {
   if (!montant && montant !== 0) return '0';
-  return new Intl.NumberFormat('fr-FR', {
+  const formatted = new Intl.NumberFormat('fr-FR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(montant);
+  // Remplacer les espaces par des points (format 1.100.000.000)
+  return formatted.replace(/\s/g, '.');
 }
 
 /**

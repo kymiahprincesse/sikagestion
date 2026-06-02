@@ -9,6 +9,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import SikaLogo from './SikaLogo'
 import DataLoader from './DataLoader'
 import SearchGlobal from './SearchGlobal'
+import SyncStatusIndicator from './SyncStatusIndicator'
 
 export default function Layout() {
   const location = useLocation()
@@ -571,6 +572,7 @@ export default function Layout() {
               <SearchGlobal />
             </div>
             <div className="flex items-center gap-6">
+              <SyncStatusIndicator />
               {utilisateurConnecte && (
                 <div className="flex items-center gap-3">
                   <ShortcutsHelp />

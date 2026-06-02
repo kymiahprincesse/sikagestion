@@ -1,10 +1,8 @@
+import { formatFCFA } from '../utils/format'
+
 export default function TVABlock({ ht, tvaActive = true }) {
   const tva = tvaActive ? ht * 0.18 : 0
   const ttc = ht + tva
-
-  const formatFCFA = (amount) => {
-    return `${Number(amount).toLocaleString('fr-FR')} FCFA`
-  }
 
   return (
     <div className="bg-navyClair border-l-4 border-orange p-4 rounded-r-lg">

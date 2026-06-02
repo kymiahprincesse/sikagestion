@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const FORMES_RESERVOIR = ['Cylindrique', 'Sphérique', 'Rectangulaire', 'Conique']
 const TYPES_ACIER = ['A36', 'A516 Grade 70', 'A283 Grade C', 'Inox 304', 'Inox 316']
@@ -39,16 +41,19 @@ const ETAPES_DESCRIPTIF = [
 
 export default function DevisReservoir() {
   const pdfRef = useRef(null)
-  const { addDevis, updateDevis, getNextNumero } = useDevisStore()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { addDevis, updateDevis, getNextNumero, getDevisById } = useDevisStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
+  const { ajouterNotification } = useNotificationsStore()
 
-  const [devisData, setDevisData] = useState({
-    numero: '',
+  const [devisData, setDevisData] = useState(() => ({
+    numero: getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'RESERVOIR',
-    
+
     // Paramètres réservoir
     volume: 0,
     volumeUnit: 'm³',
@@ -58,12 +63,12 @@ export default function DevisReservoir() {
     temperature: 20,
     revetement: 'Époxy',
     lieuMontage: '',
-    
+
     // Dimensions calculées
     diametre: 0,
     hauteur: 0,
     epaisseur: 0,
-    
+
     // Section A - Offre Technique
     etendueTravaux: '',
     etapesRealisees: ETAPES_DESCRIPTIF.reduce((acc, etape) => ({ ...acc, [etape]: false }), {}),
@@ -73,11 +78,11 @@ export default function DevisReservoir() {
     planning: '',
     limitesClient: '',
     limitesSika: '',
-    
+
     // Section B - Offre Commerciale
     lignesCommerciales: LIGNES_PREDEFINES.map((l, i) => ({ ...l, id: Date.now() + i })),
     tauxRemise: 10,
-    
+
     // Modalités de paiement
     modalitesPaiement: [
       { libelle: 'À la commande', pourcentage: 50 },
@@ -86,9 +91,48 @@ export default function DevisReservoir() {
     ],
     tvaActive: true,
     statut: 'BROUILLON'
-  })
+  }))
 
   const [devisId, setDevisId] = useState(null)
+
+  // Charger un devis existant si on vient de la liste avec location.state
+  useEffect(() => {
+    const loadDevis = () => {
+      if (location.state?.devisId) {
+        const devisExist = getDevisById(location.state.devisId)
+        if (devisExist) {
+          setDevisData({
+            numero: devisExist.numero,
+            date: devisExist.date || new Date().toISOString().split('T')[0],
+            clientId: devisExist.clientId,
+            type: devisExist.type || 'RESERVOIR',
+            volume: devisExist.volume || 0,
+            volumeUnit: devisExist.volumeUnit || 'm³',
+            forme: devisExist.forme || 'Cylindrique',
+            typeAcier: devisExist.typeAcier || 'A516 Grade 70',
+            pression: devisExist.pression || 0,
+            temperature: devisExist.temperature || 20,
+            revetement: devisExist.revetement || 'Époxy',
+            lieuMontage: devisExist.lieuMontage || '',
+            diametre: devisExist.diametre || 0,
+            hauteur: devisExist.hauteur || 0,
+            epaisseur: devisExist.epaisseur || 0,
+            objet: devisExist.objet || '',
+            lignesCommerciales: devisExist.lignesCommerciales?.length > 0 ? devisExist.lignesCommerciales : LIGNES_PREDEFINES.map((l, i) => ({ ...l, id: Date.now() + i })),
+            tauxRemise: devisExist.tauxRemise || 10,
+            tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
+            statut: devisExist.statut || 'BROUILLON'
+          })
+          setDevisId(devisExist.id)
+        } else {
+          console.error('Devis non trouvé avec ID:', location.state.devisId)
+          alert('Devis non trouvé. Il a peut-être été supprimé.')
+        }
+      }
+    }
+    loadDevis()
+  }, [location.state, location.state?.devisId, getDevisById])
+
   const [accordeonOuvert, setAccordeonOuvert] = useState({
     A1: true,
     A2: false,
@@ -97,12 +141,6 @@ export default function DevisReservoir() {
     A5: false,
     A6: false
   })
-
-  useEffect(() => {
-    if (!devisData.numero) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
-    }
-  }, [])
 
   // Calculs helper temps réel
   const calculerSurfaceCylindrique = () => {
@@ -249,49 +287,6 @@ export default function DevisReservoir() {
     }
   }
 
-  const handleDupliquer = () => {
-    const nouveauNumero = getNextNumero()
-    const devisDuplique = {
-      ...devisData,
-      numero: nouveauNumero,
-      date: new Date().toISOString().split('T')[0],
-      statut: 'BROUILLON'
-    }
-    
-    const nouveau = addDevis(devisDuplique)
-    setDevisId(nouveau.id)
-    setDevisData(devisDuplique)
-    
-    addLog({
-      module: 'DEVIS_RESERVOIR',
-      action: 'DUPLICATION',
-      utilisateur: 'Utilisateur',
-      apres: { numero: nouveauNumero }
-    })
-    
-    alert(`Devis dupliqué : ${nouveauNumero}`)
-  }
-
-  const handleSupprimer = () => {
-    if (!devisId) {
-      alert('Aucun devis à supprimer')
-      return
-    }
-    
-    if (confirm('Supprimer définitivement ce devis ?')) {
-      addLog({
-        module: 'DEVIS_RESERVOIR',
-        action: 'SUPPRESSION',
-        utilisateur: 'Utilisateur',
-        avant: { numero: devisData.numero }
-      })
-      
-      // Logique de suppression (à implémenter dans le store)
-      alert('Devis supprimé')
-      handleNouveau()
-    }
-  }
-
   const handleGenerePDF = async () => {
     if (!devisData.clientId) {
       alert('Veuillez sélectionner un client avant de générer le PDF')
@@ -401,18 +396,6 @@ export default function DevisReservoir() {
             className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition"
           >
             📄 PDF complet (A+B)
-          </button>
-          <button
-            onClick={handleDupliquer}
-            className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-opacity-90 transition"
-          >
-            📋 Dupliquer
-          </button>
-          <button
-            onClick={handleSupprimer}
-            className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition"
-          >
-            🗑 Supprimer
           </button>
           <button
             onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}

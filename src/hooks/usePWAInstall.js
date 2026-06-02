@@ -45,7 +45,6 @@ export function usePWAInstall() {
       setCanInstall(false);
       setDeferredPrompt(null);
       localStorage.setItem('sika_pwa_installed', 'true');
-      console.log('[PWA SIKA] Application installée avec succès !');
     };
 
     window.addEventListener('appinstalled', installedHandler);
@@ -77,7 +76,7 @@ export function usePWAInstall() {
         return true;
       }
     } catch (err) {
-      console.warn('[PWA SIKA] Erreur installation:', err);
+      // Erreur silencieuse - l'installation a échoué ou été annulée
     } finally {
       setIsInstalling(false);
       setDeferredPrompt(null);

@@ -74,12 +74,24 @@ export default function DashboardEnhanced() {
   // Évolution CA par mois (6 derniers mois)
   const evolutionCA = useMemo(() => {
     const mois = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin']
-    return mois.map((m, i) => ({
-      mois: m,
-      CA: Math.floor(Math.random() * 50000000) + 20000000,
-      Encaissé: Math.floor(Math.random() * 40000000) + 15000000
-    }))
-  }, [])
+    const anneeCourante = new Date().getFullYear()
+    
+    return mois.map((m, i) => {
+      const moisNum = String(i + 1).padStart(2, '0')
+      const prefixeMois = `${anneeCourante}-${moisNum}`
+      
+      // Calculer CA et encaissement réels pour ce mois
+      const facturesMois = factures.filter(f => f.date?.startsWith(prefixeMois) || f.dateDepot?.startsWith(prefixeMois))
+      const ca = facturesMois.reduce((sum, f) => sum + (f.montantTTC || 0), 0)
+      const encaisse = facturesMois.reduce((sum, f) => sum + (f.montantPaye || 0), 0)
+      
+      return {
+        mois: m,
+        CA: ca,
+        Encaissé: encaisse
+      }
+    })
+  }, [factures])
 
   // Répartition factures par statut
   const repartitionFactures = useMemo(() => {

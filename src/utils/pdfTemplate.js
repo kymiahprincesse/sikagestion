@@ -1,3 +1,5 @@
+import { jsPDF } from 'jspdf'
+import 'jspdf-autotable'
 import enteteImg from '../assets/ENTETE SIKApng1.png'
 import piedImg from '../assets/ENTETE SIKA pied 1.png'
 
@@ -88,22 +90,16 @@ export const addSikaHeaderFooterToAllPages = (doc, totalPages = null) => {
  * @returns {jsPDF} Instance jsPDF configurée
  */
 export const createSikaPDF = (orientation = 'portrait') => {
-  const { jsPDF } = window.jspdf || {}
-  
-  if (!jsPDF) {
-    throw new Error('jsPDF non disponible')
-  }
-  
   const doc = new jsPDF({
     orientation,
     unit: 'mm',
     format: 'a4'
   })
-  
+
   // Ajouter en-tête et pied de page à la première page
   addSikaHeader(doc, 1)
   addSikaFooter(doc, 1, 1)
-  
+
   return doc
 }
 

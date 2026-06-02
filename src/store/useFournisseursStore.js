@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { notifyError } from '../utils/notifications';
 
 function fournisseurToRow(f) {
   return {
@@ -101,6 +102,7 @@ export const useFournisseursStore = create(
         const { data, error } = await supabase.from('fournisseurs').insert(fournisseurToRow(nouveauFournisseur)).select().single();
         if (error) {
           console.error('Supabase addFournisseur:', error.message);
+          notifyError('Erreur de sauvegarde', `Impossible de créer le fournisseur: ${error.message}`);
         } else if (data) {
           set((state) => ({
             fournisseurs: state.fournisseurs.map((f) => f.id === nouveauFournisseur.id ? { ...f, id: data.id } : f)
@@ -119,7 +121,10 @@ export const useFournisseursStore = create(
         const fMaj = get().fournisseurs.find((f) => f.id === id);
         if (fMaj) {
           supabase.from('fournisseurs').update(fournisseurToRow({ ...fMaj, ...modifications })).eq('id', id).then(({ error }) => {
-            if (error) console.error('Supabase updateFournisseur:', error.message);
+            if (error) {
+              console.error('Supabase updateFournisseur:', error.message);
+              notifyError('Erreur de mise à jour', `Impossible de modifier le fournisseur: ${error.message}`);
+            }
           });
         }
       },
@@ -127,7 +132,10 @@ export const useFournisseursStore = create(
       deleteFournisseur: (id) => {
         set((state) => ({ fournisseurs: state.fournisseurs.filter((f) => f.id !== id) }));
         supabase.from('fournisseurs').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase deleteFournisseur:', error.message);
+          if (error) {
+            console.error('Supabase deleteFournisseur:', error.message);
+            notifyError('Erreur de suppression', `Impossible de supprimer le fournisseur: ${error.message}`);
+          }
         });
       },
 
@@ -200,6 +208,15 @@ export const useFournisseursStore = create(
 
       setFournisseurs: (fournisseurs) => {
         set({ fournisseurs, compteurId: Math.max(...fournisseurs.map(f => f.id), 0) + 1 });
+      },
+
+      // Fonctions pour Realtime (pas d'appel Supabase pour éviter boucle)
+      addFournisseurFromRealtime: (fournisseur) => {
+        const { fournisseurs } = get();
+        const existing = fournisseurs.find(f => f.id === fournisseur.id);
+        if (!existing) {
+          set({ fournisseurs: [...fournisseurs, fournisseur] });
+        }
       }
     }),
     {

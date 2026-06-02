@@ -2,10 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import TVABlock from '../../components/TVABlock'
-import { formatDateLong, formatFCFA } from '../../utils/format'
+import { formatDateLong, formatFCFA, safeParseFloat, getTodayISO } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const DESIGNATIONS_PREDEFINES = [
   'CONDUITE HUILE ROUGE',
@@ -31,12 +33,15 @@ const LIGNE_VIDE = {
 
 export default function DevisCalorifuge() {
   const pdfRef = useRef(null)
-  const { addDevis, updateDevis, getNextNumero } = useDevisStore()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { addDevis, updateDevis, getNextNumero, getDevisById } = useDevisStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
+  const { ajouterNotification } = useNotificationsStore()
 
-  const [devisData, setDevisData] = useState({
-    numero: '',
+  const [devisData, setDevisData] = useState(() => ({
+    numero: getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'CALORIFUGE',
@@ -45,28 +50,49 @@ export default function DevisCalorifuge() {
     lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
     tvaActive: true,
     statut: 'BROUILLON'
-  })
+  }))
 
   const [devisId, setDevisId] = useState(null)
   const [showDesignationSuggestions, setShowDesignationSuggestions] = useState({})
   const [designationSearch, setDesignationSearch] = useState({})
 
+  // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
-    if (!devisData.numero) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
+    const loadDevis = () => {
+      if (location.state?.devisId) {
+        const devisExist = getDevisById(location.state.devisId)
+        if (devisExist) {
+          setDevisData({
+            numero: devisExist.numero,
+            date: devisExist.date || new Date().toISOString().split('T')[0],
+            clientId: devisExist.clientId,
+            type: devisExist.type || 'CALORIFUGE',
+            demandePar: devisExist.demandePar || '',
+            objet: devisExist.objet || '',
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
+            statut: devisExist.statut || 'BROUILLON'
+          })
+          setDevisId(devisExist.id)
+        } else {
+          console.error('Devis non trouvé avec ID:', location.state.devisId)
+          alert('Devis non trouvé. Il a peut-être été supprimé.')
+        }
+      }
     }
-  }, [])
+    loadDevis()
+  }, [location.state, location.state?.devisId, getDevisById])
 
   // Calculs automatiques
   const calculerQte = (ligne) => {
-    const ml = parseFloat(ligne.ml) || 0
-    const pt = parseFloat(ligne.pt) || 0
+    const ml = safeParseFloat(ligne.ml, 0)
+    const pt = safeParseFloat(ligne.pt, 0)
     return ml + pt
   }
 
   const calculerMontant = (ligne) => {
     const qte = calculerQte(ligne)
-    const pu = parseFloat(ligne.pu) || 0
+    const pu = safeParseFloat(ligne.pu, 0)
     return qte * pu
   }
 
@@ -186,14 +212,13 @@ export default function DevisCalorifuge() {
     }
   }
 
-  const enregistrerBrouillon = () => {
+  const enregistrerDevis = () => {
     const totaux = calculerTotaux()
     const devisComplet = {
       ...devisData,
       montantHT: totaux.montantHT,
       montantTVA: totaux.tva,
-      montantTTC: totaux.ttc,
-      statut: 'BROUILLON'
+      montantTTC: totaux.ttc
     }
 
     if (devisId) {
@@ -204,7 +229,7 @@ export default function DevisCalorifuge() {
         apres: devisComplet,
         impactFinancier: totaux.ttc
       })
-      alert('Brouillon mis à jour avec succès')
+      alert('Devis mis à jour avec succès')
     } else {
       const nouveau = addDevis(devisComplet)
       setDevisId(nouveau.id)
@@ -214,7 +239,7 @@ export default function DevisCalorifuge() {
         apres: nouveau,
         impactFinancier: totaux.ttc
       })
-      alert('Brouillon enregistré avec succès')
+      alert('Devis enregistré avec succès')
     }
   }
 
@@ -327,18 +352,6 @@ export default function DevisCalorifuge() {
     alert('Fonctionnalité d\'envoi par email à implémenter')
   }
 
-  const dupliquerDevis = () => {
-    const nouveauNumero = getNextNumero()
-    setDevisData(prev => ({
-      ...prev,
-      numero: nouveauNumero,
-      date: new Date().toISOString().split('T')[0],
-      statut: 'BROUILLON'
-    }))
-    setDevisId(null)
-    alert('Devis dupliqué. Nouveau numéro: ' + nouveauNumero)
-  }
-
   const totaux = calculerTotaux()
   const clientSelectionne = clients.find(c => c.id === devisData.clientId)
 
@@ -354,10 +367,10 @@ export default function DevisCalorifuge() {
             ➕ Nouveau
           </button>
           <button
-            onClick={enregistrerBrouillon}
+            onClick={enregistrerDevis}
             className="px-4 py-2 bg-vert text-white rounded-lg hover:bg-vert/90 transition-colors font-medium"
           >
-            💾 Enregistrer brouillon
+            💾 Enregistrer
           </button>
           <button
             onClick={genererPDF}
@@ -370,12 +383,6 @@ export default function DevisCalorifuge() {
             className="px-4 py-2 bg-bleu text-white rounded-lg hover:bg-bleu/90 transition-colors font-medium"
           >
             📧 Email
-          </button>
-          <button
-            onClick={dupliquerDevis}
-            className="px-4 py-2 bg-argent text-navy rounded-lg hover:bg-argent/80 transition-colors font-medium"
-          >
-            📋 Dupliquer
           </button>
           <button
             onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}

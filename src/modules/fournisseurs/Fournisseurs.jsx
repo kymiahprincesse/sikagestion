@@ -12,6 +12,14 @@ import { formatDateLong } from '../../utils/format'
 import enteteImg from '../../assets/ENTETE SIKApng1.png'
 import piedImg from '../../assets/ENTETE SIKA pied 1.png'
 
+// Fonction d'échappement HTML pour prévenir les injections XSS
+const escapeHtml = (text) => {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+};
+
 export default function Fournisseurs() {
   const { fournisseurs, addFournisseur, updateFournisseur, deleteFournisseur, getFournisseurById, setFournisseurs } = useFournisseursStore()
   const { addLog } = useAuditStore()
@@ -292,37 +300,37 @@ export default function Fournisseurs() {
   <!-- CONTENU -->
   <div class="body">
     <div class="title-section">
-      <h3>${fournisseur.nom} <span class="badge ${fournisseur.isActif ? 'badge-actif' : 'badge-inactif'}">${fournisseur.isActif ? 'Actif' : 'Inactif'}</span></h3>
-      <small>${fournisseur.raisonSociale || '&nbsp;'}</small>
+      <h3>${escapeHtml(fournisseur.nom)} <span class="badge ${fournisseur.isActif ? 'badge-actif' : 'badge-inactif'}">${fournisseur.isActif ? 'Actif' : 'Inactif'}</span></h3>
+      <small>${escapeHtml(fournisseur.raisonSociale) || '&nbsp;'}</small>
     </div>
     <div class="meta-row">
-      <span>Réf. interne : <strong>#${fournisseur.id}</strong></span>
-      <span>Créé le : <strong>${fournisseur.dateCreation || '—'}</strong></span>
+      <span>Réf. interne : <strong>#${escapeHtml(String(fournisseur.id))}</strong></span>
+      <span>Créé le : <strong>${escapeHtml(fournisseur.dateCreation) || '—'}</strong></span>
     </div>
 
     <div class="section-title">Informations Générales</div>
     <div class="grid">
-      <div class="field"><label>Type</label><p>${typeInfo?.icon || ''} ${typeInfo?.label || fournisseur.type}</p></div>
-      <div class="field"><label>Secteur d'activité</label><p>${fournisseur.secteur || '—'}</p></div>
-      <div class="field"><label>Adresse</label><p>${fournisseur.adresse || '—'}</p></div>
-      <div class="field"><label>Ville / Pays</label><p>${fournisseur.ville || '—'} — ${fournisseur.pays || '—'}</p></div>
+      <div class="field"><label>Type</label><p>${typeInfo?.icon || ''} ${escapeHtml(typeInfo?.label) || escapeHtml(fournisseur.type)}</p></div>
+      <div class="field"><label>Secteur d'activité</label><p>${escapeHtml(fournisseur.secteur) || '—'}</p></div>
+      <div class="field"><label>Adresse</label><p>${escapeHtml(fournisseur.adresse) || '—'}</p></div>
+      <div class="field"><label>Ville / Pays</label><p>${escapeHtml(fournisseur.ville) || '—'} — ${escapeHtml(fournisseur.pays) || '—'}</p></div>
     </div>
 
     <div class="section-title">Contact Principal</div>
     <div class="grid">
-      <div class="field"><label>Nom du contact</label><p>${fournisseur.contactNom || '—'}</p></div>
-      <div class="field"><label>Téléphone</label><p>${fournisseur.contactTelephone || '—'}</p></div>
-      <div class="field" style="grid-column:1/-1"><label>Email</label><p>${fournisseur.contactEmail || '—'}</p></div>
+      <div class="field"><label>Nom du contact</label><p>${escapeHtml(fournisseur.contactNom) || '—'}</p></div>
+      <div class="field"><label>Téléphone</label><p>${escapeHtml(fournisseur.contactTelephone) || '—'}</p></div>
+      <div class="field" style="grid-column:1/-1"><label>Email</label><p>${escapeHtml(fournisseur.contactEmail) || '—'}</p></div>
     </div>
 
     <div class="section-title">Informations Bancaires & Paiement</div>
     <div class="grid">
-      <div class="field"><label>Banque</label><p>${fournisseur.banque || '—'}</p></div>
-      <div class="field"><label>Numéro de compte</label><p>${fournisseur.numeroCompte || '—'}</p></div>
-      <div class="field"><label>Conditions de paiement</label><p>${fournisseur.conditionsPaiement ? fournisseur.conditionsPaiement + ' jours' : '—'}</p></div>
+      <div class="field"><label>Banque</label><p>${escapeHtml(fournisseur.banque) || '—'}</p></div>
+      <div class="field"><label>Numéro de compte</label><p>${escapeHtml(fournisseur.numeroCompte) || '—'}</p></div>
+      <div class="field"><label>Conditions de paiement</label><p>${fournisseur.conditionsPaiement ? escapeHtml(String(fournisseur.conditionsPaiement)) + ' jours' : '—'}</p></div>
     </div>
 
-    ${fournisseur.notes ? `<div class="section-title">Notes</div><div class="notes-box">${fournisseur.notes}</div>` : ''}
+    ${fournisseur.notes ? `<div class="section-title">Notes</div><div class="notes-box">${escapeHtml(fournisseur.notes)}</div>` : ''}
   </div>
 
   <!-- PIED DE PAGE -->
@@ -345,20 +353,20 @@ export default function Fournisseurs() {
       const ti = typesFournisseur.find(t => t.value === f.type)
       return `<tr style="background:${i % 2 === 0 ? '#fff' : '#E8ECF4'}">
         <td>${i + 1}</td>
-        <td><strong>${f.nom}</strong>${f.raisonSociale ? '<br><small>' + f.raisonSociale + '</small>' : ''}</td>
-        <td>${ti?.icon || ''} ${ti?.label || f.type}</td>
-        <td>${f.contactNom || '—'}</td>
-        <td>${f.contactTelephone || '—'}</td>
-        <td>${f.contactEmail || '—'}</td>
-        <td>${f.ville || '—'}</td>
-        <td>${f.conditionsPaiement ? f.conditionsPaiement + 'j' : '—'}</td>
+        <td><strong>${escapeHtml(f.nom)}</strong>${f.raisonSociale ? '<br><small>' + escapeHtml(f.raisonSociale) + '</small>' : ''}</td>
+        <td>${ti?.icon || ''} ${escapeHtml(ti?.label) || escapeHtml(f.type)}</td>
+        <td>${escapeHtml(f.contactNom) || '—'}</td>
+        <td>${escapeHtml(f.contactTelephone) || '—'}</td>
+        <td>${escapeHtml(f.contactEmail) || '—'}</td>
+        <td>${escapeHtml(f.ville) || '—'}</td>
+        <td>${f.conditionsPaiement ? escapeHtml(String(f.conditionsPaiement)) + 'j' : '—'}</td>
         <td><span style="padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700;background:${f.isActif ? '#1A7A4A' : '#E60000'};color:#fff">${f.isActif ? 'Actif' : 'Inactif'}</span></td>
       </tr>`
     }).join('')
     const filtresTexte = [
-      filtreType ? 'Type : ' + (typesFournisseur.find(t => t.value === filtreType)?.label || filtreType) : '',
-      filtreActif !== 'tous' ? 'Statut : ' + filtreActif : '',
-      recherche ? 'Recherche : « ' + recherche + ' »' : ''
+      filtreType ? 'Type : ' + escapeHtml(typesFournisseur.find(t => t.value === filtreType)?.label || filtreType) : '',
+      filtreActif !== 'tous' ? 'Statut : ' + escapeHtml(filtreActif) : '',
+      recherche ? 'Recherche : « ' + escapeHtml(recherche) + ' »' : ''
     ].filter(Boolean).join(' | ')
     const win = window.open('', '_blank', 'width=1050,height=900')
     win.document.write(`

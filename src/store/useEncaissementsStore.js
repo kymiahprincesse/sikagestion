@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { notifyError } from '../utils/notifications';
 
 function toSupabaseRow(e) {
   return {
@@ -34,6 +35,7 @@ export const useEncaissementsStore = create(
         const { data, error } = await supabase.from('encaissements').insert(toSupabaseRow(nouvelEncaissement)).select().single();
         if (error) {
           console.error('Supabase addEncaissement:', error.message);
+          notifyError('Erreur de sauvegarde', `Impossible de créer l'encaissement: ${error.message}`);
         } else if (data) {
           set((state) => ({
             encaissements: state.encaissements.map((e) => e.id === nouvelEncaissement.id ? { ...e, id: data.id } : e)
@@ -52,7 +54,10 @@ export const useEncaissementsStore = create(
         const encMaj = get().encaissements.find((e) => e.id === id);
         if (encMaj) {
           supabase.from('encaissements').update(toSupabaseRow({ ...encMaj, ...modifications })).eq('id', id).then(({ error }) => {
-            if (error) console.error('Supabase updateEncaissement:', error.message);
+            if (error) {
+              console.error('Supabase updateEncaissement:', error.message);
+              notifyError('Erreur de mise à jour', `Impossible de modifier l'encaissement: ${error.message}`);
+            }
           });
         }
       },
@@ -60,7 +65,10 @@ export const useEncaissementsStore = create(
       deleteEncaissement: (id) => {
         set((state) => ({ encaissements: state.encaissements.filter((e) => e.id !== id) }));
         supabase.from('encaissements').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase deleteEncaissement:', error.message);
+          if (error) {
+            console.error('Supabase deleteEncaissement:', error.message);
+            notifyError('Erreur de suppression', `Impossible de supprimer l'encaissement: ${error.message}`);
+          }
         });
       },
 
@@ -107,7 +115,16 @@ export const useEncaissementsStore = create(
         set({ soldeInitial: montant });
       },
 
-      setEncaissements: (encaissements) => { set({ encaissements }); }
+      setEncaissements: (encaissements) => { set({ encaissements }); },
+
+      // Fonctions pour Realtime (pas d'appel Supabase pour éviter boucle)
+      addEncaissementFromRealtime: (encaissement) => {
+        const { encaissements } = get();
+        const existing = encaissements.find(e => e.id === encaissement.id);
+        if (!existing) {
+          set({ encaissements: [...encaissements, encaissement] });
+        }
+      }
     }),
     {
       name: 'sika_encaissements'

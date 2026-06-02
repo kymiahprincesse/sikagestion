@@ -146,6 +146,15 @@ export const useAOStore = create(
 
       setAppelsOffres: (appelsDoffres) => {
         set({ appelsDoffres });
+      },
+
+      // Fonctions pour Realtime (pas d'appel Supabase pour éviter boucle)
+      addAOFromRealtime: (ao) => {
+        const { appelsDoffres } = get();
+        const existing = appelsDoffres.find(a => a.id === ao.id);
+        if (!existing) {
+          set({ appelsDoffres: [...appelsDoffres, ao] });
+        }
       }
     }),
     {

@@ -9,6 +9,7 @@ import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useUtilisateursStore } from '../store/useUtilisateursStore'
 import { useJournalStore } from '../store/useJournalStore'
+import { checkSupabaseResponse, IS_DEV } from '../utils/supabaseErrors'
 
 export function useLoadSupabaseData() {
   const [loading, setLoading] = useState(true)
@@ -30,7 +31,7 @@ export function useLoadSupabaseData() {
   useEffect(() => {
     async function loadAllData() {
       try {
-        console.log('🔄 Chargement des données depuis Supabase...')
+        if (IS_DEV) console.log('🔄 Chargement des données depuis Supabase...')
 
         const [
           clientsRes, facturesRes, devisRes, aoRes, fournisseursRes,
@@ -49,17 +50,26 @@ export function useLoadSupabaseData() {
           supabase.from('ecritures_journal').select('*').order('id'),
         ])
 
-        if (clientsRes.error) throw clientsRes.error
-        if (facturesRes.error) throw facturesRes.error
-        if (devisRes.error) throw devisRes.error
-        if (aoRes.error) throw aoRes.error
-        if (fournisseursRes.error) throw fournisseursRes.error
-        if (projetsRes.error) throw projetsRes.error
-        if (tachesRes.error) console.warn('taches:', tachesRes.error.message)
-        if (ressourcesRes.error) console.warn('ressources_hebdo:', ressourcesRes.error.message)
-        if (encaissementsRes.error) console.warn('encaissements:', encaissementsRes.error.message)
-        if (utilisateursRes.error) console.warn('utilisateurs:', utilisateursRes.error.message)
-        if (ecrituresRes.error) console.warn('ecritures_journal:', ecrituresRes.error.message)
+        // Vérification standardisée des erreurs
+        const clientsCheck = checkSupabaseResponse(clientsRes, 'clients')
+        const facturesCheck = checkSupabaseResponse(facturesRes, 'factures')
+        const devisCheck = checkSupabaseResponse(devisRes, 'devis')
+        const aoCheck = checkSupabaseResponse(aoRes, 'appels_offres')
+        const fournisseursCheck = checkSupabaseResponse(fournisseursRes, 'fournisseurs')
+        const projetsCheck = checkSupabaseResponse(projetsRes, 'projets')
+        checkSupabaseResponse(tachesRes, 'taches', { silent: true })
+        checkSupabaseResponse(ressourcesRes, 'ressources_hebdo', { silent: true })
+        checkSupabaseResponse(encaissementsRes, 'encaissements', { silent: true })
+        checkSupabaseResponse(utilisateursRes, 'utilisateurs', { silent: true })
+        checkSupabaseResponse(ecrituresRes, 'ecritures_journal', { silent: true })
+
+        // Lancer les erreurs critiques
+        if (!clientsCheck.success) throw new Error(clientsCheck.message)
+        if (!facturesCheck.success) throw new Error(facturesCheck.message)
+        if (!devisCheck.success) throw new Error(devisCheck.message)
+        if (!aoCheck.success) throw new Error(aoCheck.message)
+        if (!fournisseursCheck.success) throw new Error(fournisseursCheck.message)
+        if (!projetsCheck.success) throw new Error(projetsCheck.message)
 
         const clients = (clientsRes.data || []).map(c => ({
           id: c.id, nom: c.nom, raisonSociale: c.raison_sociale, ncc: c.ncc,
@@ -169,10 +179,10 @@ export function useLoadSupabaseData() {
 
         setStats(loadedStats)
         setLoading(false)
-        console.log('✅ Données chargées depuis Supabase:', loadedStats)
+        if (IS_DEV) console.log('✅ Données chargées depuis Supabase:', loadedStats)
       } catch (err) {
-        console.error('❌ Erreur chargement Supabase:', err)
-        setError(err.message)
+        if (IS_DEV) console.error('❌ Erreur chargement Supabase:', err)
+        setError(err.message || 'Erreur lors du chargement des données')
         setLoading(false)
       }
     }

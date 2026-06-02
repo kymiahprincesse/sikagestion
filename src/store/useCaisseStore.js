@@ -147,6 +147,21 @@ export const useCaisseStore = create(
         const totalEntrees = mouvements.filter(m => m.type === 'ENTREE').reduce((sum, m) => sum + (m.montant || 0), 0);
         const totalSorties = mouvements.filter(m => m.type === 'SORTIE').reduce((sum, m) => sum + (m.montant || 0), 0);
         set({ soldeCaisse: totalEntrees - totalSorties });
+      },
+
+      // Fonctions pour Realtime (pas d'appel Supabase pour éviter boucle)
+      addMouvementFromRealtime: (mouvement) => {
+        const { mouvements, soldeCaisse } = get();
+        const existing = mouvements.find(m => m.id === mouvement.id);
+        if (!existing) {
+          const nouveauSolde = mouvement.type === 'ENTREE'
+            ? soldeCaisse + mouvement.montant
+            : soldeCaisse - mouvement.montant;
+          set({
+            mouvements: [...mouvements, mouvement],
+            soldeCaisse: nouveauSolde
+          });
+        }
       }
     }),
     {

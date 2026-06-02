@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { logger } from '../utils/logger'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
@@ -21,7 +22,7 @@ export const checkConnection = async () => {
     if (error) throw error
     return { connected: true, timestamp: new Date().toISOString() }
   } catch (error) {
-    console.error('Erreur connexion Supabase:', error)
+    logger.error('Erreur connexion Supabase:', error)
     return { connected: false, error: error.message, timestamp: new Date().toISOString() }
   }
 }

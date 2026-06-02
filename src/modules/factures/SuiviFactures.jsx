@@ -11,9 +11,10 @@ const MOYENS_REGLEMENT = ['ESPECES', 'CHEQUE', 'VIREMENT', 'CARTE', 'TRAITE', 'A
 const TAUX_TVA = 18
 
 export default function SuiviFactures() {
-  const { factures, addFacture, updateFacture, deleteFacture } = useFacturesStore()
+  const { factures, addFacture, updateFacture, deleteFacture, addPaiement, deletePaiement } = useFacturesStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
+  const [showPaiementsHistory, setShowPaiementsHistory] = useState(false)
 
   const [recherche, setRecherche] = useState('')
   const [filtreClient, setFiltreClient] = useState('')
@@ -43,12 +44,23 @@ export default function SuiviFactures() {
   })
 
   const calculerStatut = (facture) => {
-    if (facture.dateReglement) {
-      return { label: 'Payée', color: 'bg-vert text-white', icon: '✅' }
+    const montantPaye = facture.montantPaye || 0
+    const montantTTC = facture.montantTTC || 0
+
+    // Payée en totalité
+    if (montantPaye >= montantTTC && montantTTC > 0) {
+      return { label: 'Payée', color: 'bg-vert text-white', icon: '✅', montantPaye, reste: 0 }
     }
-    
+
+    // Payée partiellement
+    if (montantPaye > 0 && montantPaye < montantTTC) {
+      const reste = montantTTC - montantPaye
+      return { label: 'Partielle', color: 'bg-bleu text-white', icon: '💰', montantPaye, reste }
+    }
+
+    // Non payée - vérifier retard
     if (!facture.dateDepot) {
-      return { label: 'Brouillon', color: 'bg-argent text-navy', icon: '📝' }
+      return { label: 'Brouillon', color: 'bg-argent text-navy', icon: '📝', montantPaye: 0, reste: montantTTC }
     }
 
     const dateEcheance = new Date(facture.dateDepot)
@@ -56,10 +68,10 @@ export default function SuiviFactures() {
     const aujourdhui = new Date()
 
     if (aujourdhui > dateEcheance) {
-      return { label: 'En retard', color: 'bg-rouge text-white', icon: '🔴' }
+      return { label: 'En retard', color: 'bg-rouge text-white', icon: '🔴', montantPaye: 0, reste: montantTTC }
     }
 
-    return { label: 'En attente', color: 'bg-orange text-white', icon: '🟠' }
+    return { label: 'En attente', color: 'bg-orange text-white', icon: '🟠', montantPaye: 0, reste: montantTTC }
   }
 
   const facturesAvecClients = useMemo(() => {
@@ -131,10 +143,10 @@ export default function SuiviFactures() {
 
     if (currentFacture) {
       updateFacture(currentFacture.id, factureData)
-      addLog('UPDATE', 'FACTURE', currentFacture.id, `Facture ${formData.reference} modifiée`)
+      addLog({ module: 'FACTURE', action: 'UPDATE', utilisateur: 'Utilisateur', avant: currentFacture, apres: factureData })
     } else {
       const newFacture = addFacture(factureData)
-      addLog('CREATE', 'FACTURE', newFacture.id, `Facture ${formData.reference} créée`)
+      addLog({ module: 'FACTURE', action: 'CREATE', utilisateur: 'Utilisateur', apres: newFacture })
     }
 
     resetForm()
@@ -142,28 +154,71 @@ export default function SuiviFactures() {
 
   const handleAddReglement = (facture) => {
     setCurrentFacture(facture)
+    const montantRestant = (facture.montantTTC || 0) - (facture.montantPaye || 0)
     setFormData({
       ...facture,
+      montantPaiement: montantRestant > 0 ? montantRestant.toString() : '',
       dateReglement: new Date().toISOString().split('T')[0],
-      moyenReglement: ''
+      moyenReglement: '',
+      referencePaiement: ''
     })
     setShowReglementModal(true)
   }
 
   const handleSaveReglement = () => {
-    updateFacture(currentFacture.id, {
-      dateReglement: formData.dateReglement,
-      moyenReglement: formData.moyenReglement
+    const montantPaiement = parseFloat(formData.montantPaiement) || 0
+
+    if (montantPaiement <= 0) {
+      alert('Veuillez saisir un montant valide pour le paiement')
+      return
+    }
+
+    // Ajouter le paiement via le store
+    addPaiement(currentFacture.id, {
+      montant: montantPaiement,
+      date: formData.dateReglement,
+      mode: formData.moyenReglement,
+      reference: formData.referencePaiement,
+      notes: 'Paiement ajouté depuis SuiviFactures'
     })
-    addLog('UPDATE', 'FACTURE', currentFacture.id, `Règlement ajouté pour facture ${currentFacture.reference}`)
+
+    addLog({
+      module: 'FACTURE',
+      action: 'ADD_PAIEMENT',
+      utilisateur: 'Utilisateur',
+      apres: {
+        factureId: currentFacture.id,
+        montant: montantPaiement,
+        date: formData.dateReglement,
+        mode: formData.moyenReglement
+      }
+    })
+
     setShowReglementModal(false)
     resetForm()
+  }
+
+  const handleDeletePaiement = (facture, paiementId) => {
+    if (confirm('Supprimer ce paiement ?')) {
+      deletePaiement(facture.id, paiementId)
+      addLog({
+        module: 'FACTURE',
+        action: 'DELETE_PAIEMENT',
+        utilisateur: 'Utilisateur',
+        apres: { factureId: facture.id, paiementId }
+      })
+    }
+  }
+
+  const handleViewPaiements = (facture) => {
+    setCurrentFacture(facture)
+    setShowPaiementsHistory(true)
   }
 
   const handleDelete = (facture) => {
     if (confirm(`Supprimer la facture ${facture.reference} ?`)) {
       deleteFacture(facture.id)
-      addLog('DELETE', 'FACTURE', facture.id, `Facture ${facture.reference} supprimée`)
+      addLog({ module: 'FACTURE', action: 'DELETE', utilisateur: 'Utilisateur', avant: facture })
     }
   }
 
@@ -221,15 +276,17 @@ export default function SuiviFactures() {
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(27, 42, 74)
-    
+
     const infos = [
       ['Délai de règlement', `${facture.delaiReglement} jours`],
       ['Statut', facture.statut.label],
+      ...(facture.montantPaye > 0 ? [['Montant payé', formatFCFA(facture.montantPaye)]] : []),
+      ...(facture.montantPaye > 0 ? [['Reste à payer', formatFCFA(facture.montantTTC - facture.montantPaye)]] : []),
       ...(facture.dateReglement ? [['Date de règlement', formatDate(facture.dateReglement)]] : []),
       ...(facture.moyenReglement ? [['Moyen de règlement', facture.moyenReglement]] : []),
       ...(facture.observation ? [['Observation', facture.observation]] : [])
     ]
-    
+
     infos.forEach(([label, value]) => {
       doc.setFont('helvetica', 'bold')
       doc.text(label + ' :', MARGE_G, y)
@@ -237,9 +294,28 @@ export default function SuiviFactures() {
       doc.text(value, MARGE_G + 50, y)
       y += 6
     })
-    
+
+    // Historique des paiements
+    if (facture.paiements && facture.paiements.length > 0) {
+      y += 4
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.text('HISTORIQUE DES PAIEMENTS :', MARGE_G, y)
+      y += 8
+
+      const colsPaiements = ['Date', 'Mode', 'Référence', 'Montant (FCFA)']
+      const rowsPaiements = facture.paiements.map(p => [
+        formatDate(p.date),
+        p.mode,
+        p.reference || '-',
+        formatMontant(p.montant)
+      ])
+
+      y = sikaTable(doc, colsPaiements, rowsPaiements, y, ctx)
+    }
+
     await finalizeSikaPDF(ctx, `SIKA_Facture_${facture.reference.replace(/\//g, '_')}.pdf`)
-    addLog('PRINT', 'FACTURE', facture.id, `Facture ${facture.reference} imprimée`)
+    addLog({ module: 'FACTURE', action: 'PRINT', utilisateur: 'Utilisateur', apres: { factureId: facture.id, reference: facture.reference } })
   }
 
   const resetForm = () => {
@@ -263,27 +339,31 @@ export default function SuiviFactures() {
   const exportExcel = () => {
     const data = facturesFiltrees.map(f => ({
       'NOM DU CLIENT': f.clientNom,
+      'REFERENCE': f.reference,
       'MONTANT HT': f.montantHT,
       'TVA': f.tva,
       'MONTANT TTC': f.montantTTC,
+      'MONTANT PAYÉ': f.montantPaye || 0,
+      'RESTE À PAYER': (f.montantTTC || 0) - (f.montantPaye || 0),
+      'STATUT': f.statut.label,
       'DATE DE DEPOT': formatDate(f.dateDepot),
       'DELAI DE REGLEMENT': f.delaiReglement,
-      'DATE DE REGLEMENT': f.dateReglement ? formatDate(f.dateReglement) : '',
-      'MOYEN DE REGLEMENT': f.moyenReglement || '',
-      'REFERENCE': f.reference,
+      'NB PAIEMENTS': f.paiements?.length || 0,
       'OBSERVATION': f.observation || ''
     }))
 
     data.push({
       'NOM DU CLIENT': 'TOTAUX',
+      'REFERENCE': '',
       'MONTANT HT': totaux.totalHT,
       'TVA': totaux.totalTVA,
       'MONTANT TTC': totaux.totalTTC,
+      'MONTANT PAYÉ': totaux.totalRegle,
+      'RESTE À PAYER': totaux.resteARecouvrer,
+      'STATUT': '',
       'DATE DE DEPOT': '',
       'DELAI DE REGLEMENT': '',
-      'DATE DE REGLEMENT': '',
-      'MOYEN DE REGLEMENT': '',
-      'REFERENCE': '',
+      'NB PAIEMENTS': '',
       'OBSERVATION': `Total réglé: ${totaux.totalRegle} | Reste: ${totaux.resteARecouvrer}`
     })
 
@@ -291,7 +371,7 @@ export default function SuiviFactures() {
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Factures')
     XLSX.writeFile(wb, `factures_${new Date().toISOString().split('T')[0]}.xlsx`)
-    addLog('EXPORT', 'FACTURE', null, 'Export Excel des factures')
+    addLog({ module: 'FACTURE', action: 'EXPORT_EXCEL', utilisateur: 'Utilisateur' })
   }
 
   const exportPDF = async () => {
@@ -307,13 +387,13 @@ export default function SuiviFactures() {
     doc.text(periode, MARGE_G, y)
     y += 8
     
-    // Tableau factures
-    const columns = ['Client', 'HT (FCFA)', 'TVA (FCFA)', 'TTC (FCFA)', 'Référence', 'Statut']
+    // Tableau factures avec colonnes payé et reste
+    const columns = ['Client', 'TTC (FCFA)', 'Payé (FCFA)', 'Reste (FCFA)', 'Référence', 'Statut']
     const rows = facturesFiltrees.map(f => [
       f.clientNom,
-      formatMontant(f.montantHT),
-      formatMontant(f.tva),
       formatMontant(f.montantTTC),
+      formatMontant(f.montantPaye || 0),
+      formatMontant((f.montantTTC || 0) - (f.montantPaye || 0)),
       f.reference,
       f.statut.label
     ])
@@ -350,7 +430,7 @@ export default function SuiviFactures() {
     })
     
     await finalizeSikaPDF(ctx, `SIKA_Factures_${new Date().toISOString().split('T')[0]}.pdf`)
-    addLog('EXPORT', 'FACTURE', null, 'Export PDF des factures')
+    addLog({ module: 'FACTURE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur' })
   }
 
   const columns = useMemo(() => [
@@ -375,24 +455,30 @@ export default function SuiviFactures() {
       cell: info => <span className="font-bold text-orange">{formatFCFA(info.getValue())}</span>
     },
     {
+      accessorKey: 'montantPaye',
+      header: 'PAYÉ',
+      cell: info => {
+        const montant = info.getValue() || 0
+        return <span className={`font-semibold ${montant > 0 ? 'text-vert' : 'text-gray-400'}`}>{formatFCFA(montant)}</span>
+      }
+    },
+    {
+      accessorKey: 'reste',
+      header: 'RESTE',
+      cell: ({ row }) => {
+        const reste = (row.original.montantTTC || 0) - (row.original.montantPaye || 0)
+        return <span className={`font-semibold ${reste > 0 ? 'text-rouge' : 'text-gray-400'}`}>{formatFCFA(reste)}</span>
+      }
+    },
+    {
       accessorKey: 'dateDepot',
       header: 'DATE DE DEPOT',
       cell: info => <span className="text-navy">{formatDate(info.getValue())}</span>
     },
     {
       accessorKey: 'delaiReglement',
-      header: 'DELAI DE REGLEMENT',
-      cell: info => <span className="text-navy">{info.getValue()} jours</span>
-    },
-    {
-      accessorKey: 'dateReglement',
-      header: 'DATE DE REGLEMENT',
-      cell: info => <span className="text-vert">{info.getValue() ? formatDate(info.getValue()) : '-'}</span>
-    },
-    {
-      accessorKey: 'moyenReglement',
-      header: 'MOYEN DE REGLEMENT',
-      cell: info => <span className="text-navy">{info.getValue() || '-'}</span>
+      header: 'DELAI',
+      cell: info => <span className="text-navy">{info.getValue()}j</span>
     },
     {
       accessorKey: 'reference',
@@ -430,9 +516,14 @@ export default function SuiviFactures() {
           <button onClick={() => handlePrint(row.original)} className="p-1 hover:bg-navyClair rounded" title="Imprimer">
             🖨
           </button>
-          {!row.original.dateReglement && (
-            <button onClick={() => handleAddReglement(row.original)} className="p-1 hover:bg-vert rounded text-white bg-vert" title="Ajouter règlement">
+          {(row.original.montantTTC || 0) > (row.original.montantPaye || 0) && (
+            <button onClick={() => handleAddReglement(row.original)} className="p-1 hover:bg-vert rounded text-white bg-vert" title="Ajouter un paiement">
               💳
+            </button>
+          )}
+          {row.original.paiements && row.original.paiements.length > 0 && (
+            <button onClick={() => handleViewPaiements(row.original)} className="p-1 hover:bg-bleu rounded text-white bg-bleu" title="Voir les paiements">
+              �
             </button>
           )}
           <button onClick={() => handleDelete(row.original)} className="p-1 hover:bg-rouge rounded text-white" title="Supprimer">
@@ -510,6 +601,7 @@ export default function SuiviFactures() {
           >
             <option value="">Tous les statuts</option>
             <option value="Payée">✅ Payée</option>
+            <option value="Partielle">💰 Partielle</option>
             <option value="En attente">🟠 En attente</option>
             <option value="En retard">🔴 En retard</option>
             <option value="Brouillon">📝 Brouillon</option>
@@ -769,7 +861,38 @@ export default function SuiviFactures() {
               <div className="bg-navyClair p-3 rounded-lg">
                 <div className="text-sm text-bleu">Facture</div>
                 <div className="font-bold text-navy">{currentFacture?.reference}</div>
-                <div className="text-sm text-navy">Montant: {formatFCFA(currentFacture?.montantTTC)}</div>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <div>
+                    <div className="text-xs text-gray-500">Montant TTC</div>
+                    <div className="font-semibold text-navy">{formatFCFA(currentFacture?.montantTTC)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Déjà payé</div>
+                    <div className="font-semibold text-vert">{formatFCFA(currentFacture?.montantPaye || 0)}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500">Reste</div>
+                    <div className="font-semibold text-rouge">{formatFCFA((currentFacture?.montantTTC || 0) - (currentFacture?.montantPaye || 0))}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-navy mb-1">Montant du paiement *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={(currentFacture?.montantTTC || 0) - (currentFacture?.montantPaye || 0)}
+                  value={formData.montantPaiement}
+                  onChange={(e) => setFormData({ ...formData, montantPaiement: e.target.value })}
+                  className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                  required
+                  placeholder="Montant à payer"
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  Max: {formatFCFA((currentFacture?.montantTTC || 0) - (currentFacture?.montantPaye || 0))}
+                </div>
               </div>
 
               <div>
@@ -796,6 +919,17 @@ export default function SuiviFactures() {
                     <option key={m} value={m}>{m}</option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-navy mb-1">Référence (optionnel)</label>
+                <input
+                  type="text"
+                  value={formData.referencePaiement}
+                  onChange={(e) => setFormData({ ...formData, referencePaiement: e.target.value })}
+                  className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                  placeholder="N° chèque, virement, etc."
+                />
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -852,6 +986,11 @@ export default function SuiviFactures() {
                   <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${currentFacture.statut.color}`}>
                     {currentFacture.statut.icon} {currentFacture.statut.label}
                   </span>
+                  {currentFacture.statut.reste > 0 && (
+                    <div className="text-xs text-rouge mt-1">
+                      Reste: {formatFCFA(currentFacture.statut.reste)}
+                    </div>
+                  )}
                 </div>
                 <div className="bg-navyClair p-3 rounded-lg">
                   <div className="text-xs text-bleu font-semibold">Date de dépôt</div>
@@ -880,6 +1019,43 @@ export default function SuiviFactures() {
                   </div>
                 )}
               </div>
+
+              {/* Historique des paiements */}
+              {currentFacture.paiements && currentFacture.paiements.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-bold text-navy mb-2">📋 Historique des paiements</h3>
+                  <div className="bg-navyClair rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+                    {currentFacture.paiements.map((p, idx) => (
+                      <div key={p.id || idx} className="flex justify-between items-center bg-white p-2 rounded border border-argent">
+                        <div>
+                          <div className="text-xs font-semibold text-navy">{formatDate(p.date)}</div>
+                          <div className="text-xs text-gray-500">{p.mode} {p.reference && `- ${p.reference}`}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-vert">{formatFCFA(p.montant)}</span>
+                          <button
+                            onClick={() => handleDeletePaiement(currentFacture, p.id)}
+                            className="text-rouge hover:text-rouge/80 text-xs"
+                            title="Supprimer ce paiement"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex justify-between items-center bg-bleu text-white p-2 rounded mt-2">
+                      <span className="font-semibold">Total payé</span>
+                      <span className="font-bold">{formatFCFA(currentFacture.montantPaye || 0)}</span>
+                    </div>
+                    {(currentFacture.montantTTC - (currentFacture.montantPaye || 0)) > 0 && (
+                      <div className="flex justify-between items-center bg-rouge text-white p-2 rounded">
+                        <span className="font-semibold">Reste à payer</span>
+                        <span className="font-bold">{formatFCFA(currentFacture.montantTTC - (currentFacture.montantPaye || 0))}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button

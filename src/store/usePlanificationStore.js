@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { notifyError } from '../utils/notifications';
+import { logger } from '../utils/logger';
 import { useCaisseStore } from './useCaisseStore';
 import { useDevisStore } from './useDevisStore';
 
@@ -96,6 +98,7 @@ export const usePlanificationStore = create(
         const { data, error } = await supabase.from('projets').insert(projetToRow(nouveauProjet)).select().single();
         if (error) {
           console.error('Supabase addProjet:', error.message);
+          notifyError('Erreur de sauvegarde', `Impossible de créer le projet: ${error.message}`);
         } else if (data) {
           set((state) => ({
             projets: state.projets.map((p) => p.id === nouveauProjet.id ? { ...p, id: data.id } : p)
@@ -119,7 +122,10 @@ export const usePlanificationStore = create(
         const projetApres = get().getProjetById(id);
 
         supabase.from('projets').update(projetToRow({ ...projet, ...modifications })).eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase updateProjet:', error.message);
+          if (error) {
+            console.error('Supabase updateProjet:', error.message);
+            notifyError('Erreur de mise à jour', `Impossible de modifier le projet: ${error.message}`);
+          }
         });
 
         if (typeof window !== 'undefined' && projet) {
@@ -154,7 +160,10 @@ export const usePlanificationStore = create(
           ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.projetId !== id)
         }));
         supabase.from('projets').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase deleteProjet:', error.message);
+          if (error) {
+            console.error('Supabase deleteProjet:', error.message);
+            notifyError('Erreur de suppression', `Impossible de supprimer le projet: ${error.message}`);
+          }
         });
       },
 
@@ -187,6 +196,7 @@ export const usePlanificationStore = create(
         const { data, error } = await supabase.from('taches').insert(tacheToRow(nouvelleTache)).select().single();
         if (error) {
           console.error('Supabase addTache:', error.message);
+          notifyError('Erreur de sauvegarde', `Impossible de créer la tâche: ${error.message}`);
         } else if (data) {
           set((state) => ({
             taches: state.taches.map((t) => t.id === nouvelleTache.id ? { ...t, id: data.id } : t)
@@ -205,7 +215,10 @@ export const usePlanificationStore = create(
         const tacheMaj = get().taches.find((t) => t.id === id);
         if (tacheMaj) {
           supabase.from('taches').update(tacheToRow({ ...tacheMaj, ...modifications })).eq('id', id).then(({ error }) => {
-            if (error) console.error('Supabase updateTache:', error.message);
+            if (error) {
+              console.error('Supabase updateTache:', error.message);
+              notifyError('Erreur de mise à jour', `Impossible de modifier la tâche: ${error.message}`);
+            }
           });
         }
       },
@@ -216,7 +229,10 @@ export const usePlanificationStore = create(
           ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.tacheId !== id)
         }));
         supabase.from('taches').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase deleteTache:', error.message);
+          if (error) {
+            console.error('Supabase deleteTache:', error.message);
+            notifyError('Erreur de suppression', `Impossible de supprimer la tâche: ${error.message}`);
+          }
         });
       },
 
@@ -244,6 +260,7 @@ export const usePlanificationStore = create(
         const { data, error } = await supabase.from('ressources_hebdo').insert(ressourceToRow(nouvelleRessource)).select().single();
         if (error) {
           console.error('Supabase addRessource:', error.message);
+          notifyError('Erreur de sauvegarde', `Impossible de créer la ressource: ${error.message}`);
         } else if (data) {
           set((state) => ({
             ressourcesHebdo: state.ressourcesHebdo.map((r) => r.id === nouvelleRessource.id ? { ...r, id: data.id } : r)
@@ -262,7 +279,10 @@ export const usePlanificationStore = create(
         const rMaj = get().ressourcesHebdo.find((r) => r.id === id);
         if (rMaj) {
           supabase.from('ressources_hebdo').update(ressourceToRow({ ...rMaj, ...modifications })).eq('id', id).then(({ error }) => {
-            if (error) console.error('Supabase updateRessource:', error.message);
+            if (error) {
+              console.error('Supabase updateRessource:', error.message);
+              notifyError('Erreur de mise à jour', `Impossible de modifier la ressource: ${error.message}`);
+            }
           });
         }
       },
@@ -270,7 +290,10 @@ export const usePlanificationStore = create(
       deleteRessource: (id) => {
         set((state) => ({ ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.id !== id) }));
         supabase.from('ressources_hebdo').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase deleteRessource:', error.message);
+          if (error) {
+            console.error('Supabase deleteRessource:', error.message);
+            notifyError('Erreur de suppression', `Impossible de supprimer la ressource: ${error.message}`);
+          }
         });
       },
 
@@ -376,7 +399,8 @@ export const usePlanificationStore = create(
           return mouvements
             .filter(m => m.type === 'SORTIE' && m.referenceProjet === referenceProjet)
             .reduce((total, m) => total + (m.montant || 0), 0);
-        } catch {
+        } catch (err) {
+          logger.warn('[Planification] Erreur calcul coût réel projet:', err?.message);
           return 0;
         }
       },
@@ -387,7 +411,8 @@ export const usePlanificationStore = create(
         try {
           const devis = useDevisStore.getState().getDevisById(devisId);
           return devis?.montantTotal || 0;
-        } catch {
+        } catch (err) {
+          logger.warn('[Planification] Erreur récupération budget devis:', err?.message);
           return 0;
         }
       },
@@ -528,7 +553,32 @@ export const usePlanificationStore = create(
 
       setProjets: (projets) => { set({ projets }); },
       setTaches: (taches) => { set({ taches }); },
-      setRessourcesHebdo: (ressourcesHebdo) => { set({ ressourcesHebdo }); }
+      setRessourcesHebdo: (ressourcesHebdo) => { set({ ressourcesHebdo }); },
+
+      // Fonctions pour Realtime (pas d'appel Supabase pour éviter boucle)
+      addProjetFromRealtime: (projet) => {
+        const { projets } = get();
+        const existing = projets.find(p => p.id === projet.id);
+        if (!existing) {
+          set({ projets: [...projets, projet] });
+        }
+      },
+
+      addTacheFromRealtime: (tache) => {
+        const { taches } = get();
+        const existing = taches.find(t => t.id === tache.id);
+        if (!existing) {
+          set({ taches: [...taches, tache] });
+        }
+      },
+
+      addRessourceFromRealtime: (ressource) => {
+        const { ressourcesHebdo } = get();
+        const existing = ressourcesHebdo.find(r => r.id === ressource.id);
+        if (!existing) {
+          set({ ressourcesHebdo: [...ressourcesHebdo, ressource] });
+        }
+      }
     }),
     {
       name: 'sika_planification'

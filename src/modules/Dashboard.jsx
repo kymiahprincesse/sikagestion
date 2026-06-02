@@ -9,6 +9,7 @@ import {
   DatePickerFR,
   ClientSelect
 } from '../components'
+import { formatFCFA } from '../utils/format'
 
 export default function Dashboard() {
   const [montant, setMontant] = useState(1250000)
@@ -108,7 +109,7 @@ export default function Dashboard() {
                   <td className="py-3 px-4 font-medium text-navy">{facture.numero}</td>
                   <td className="py-3 px-4 text-bleu">{facture.client}</td>
                   <td className="py-3 px-4 font-bold text-navy">
-                    {facture.montant.toLocaleString('fr-FR')} FCFA
+                    {formatFCFA(facture.montant)}
                   </td>
                   <td className="py-3 px-4">
                     <StatusBadge status={facture.status} />

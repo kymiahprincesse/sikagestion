@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_TUYAU = ['Acier noir', 'Acier galvanisé', 'Inox 304', 'Inox 316', 'PVC', 'PEHD']
 const DIAMETRES_NOMINAUX = ['DN15', 'DN20', 'DN25', 'DN32', 'DN40', 'DN50', 'DN65', 'DN80', 'DN100', 'DN125', 'DN150', 'DN200', 'DN250', 'DN300']
@@ -23,32 +25,58 @@ const LIGNE_VIDE = {
 
 export default function DevisTuyauterie() {
   const pdfRef = useRef(null)
-  const { addDevis, updateDevis, getNextNumero } = useDevisStore()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { addDevis, updateDevis, getNextNumero, getDevisById } = useDevisStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
+  const { ajouterNotification } = useNotificationsStore()
 
-  const [devisData, setDevisData] = useState({
-    numero: '',
+  const [devisData, setDevisData] = useState(() => ({
+    numero: getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'TUYAUTERIE',
     objet: '',
     fluideTransporte: '',
     temperatureService: 20,
-    
+
     lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
     tauxRemise: 0,
     tvaActive: true,
     statut: 'BROUILLON'
-  })
+  }))
 
   const [devisId, setDevisId] = useState(null)
 
+  // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
-    if (!devisData.numero) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
+    const loadDevis = () => {
+      if (location.state?.devisId) {
+        const devisExist = getDevisById(location.state.devisId)
+        if (devisExist) {
+          setDevisData({
+            numero: devisExist.numero,
+            date: devisExist.date || new Date().toISOString().split('T')[0],
+            clientId: devisExist.clientId,
+            type: devisExist.type || 'TUYAUTERIE',
+            objet: devisExist.objet || '',
+            fluideTransporte: devisExist.fluideTransporte || '',
+            temperatureService: devisExist.temperatureService || 20,
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            tauxRemise: devisExist.tauxRemise || 0,
+            tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
+            statut: devisExist.statut || 'BROUILLON'
+          })
+          setDevisId(devisExist.id)
+        } else {
+          console.error('Devis non trouvé avec ID:', location.state.devisId)
+          alert('Devis non trouvé. Il a peut-être été supprimé.')
+        }
+      }
     }
-  }, [])
+    loadDevis()
+  }, [location.state, location.state?.devisId, getDevisById])
 
   const calculerMontant = (ligne) => {
     const longueur = parseFloat(ligne.longueur) || 0
@@ -111,40 +139,62 @@ export default function DevisTuyauterie() {
     }
   }
 
-  const handleEnregistrer = () => {
+  const handleEnregistrer = async () => {
     if (!devisData.clientId) {
-      alert('Veuillez sélectionner un client')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'ATTENTION',
+        message: 'Veuillez sélectionner un client avant d\'enregistrer le devis'
+      })
       return
     }
 
     const totaux = calculerTotaux()
     const devisComplet = { ...devisData, ...totaux, dateModification: new Date().toISOString().split('T')[0] }
 
-    if (devisId) {
-      updateDevis(devisId, devisComplet)
-      addLog({ module: 'DEVIS_TUYAUTERIE', action: 'MODIFICATION', utilisateur: 'Utilisateur', apres: { numero: devisData.numero, montantTTC: totaux.ttc } })
-      alert('Devis modifié avec succès')
-    } else {
-      const nouveau = addDevis(devisComplet)
-      setDevisId(nouveau.id)
-      addLog({ module: 'DEVIS_TUYAUTERIE', action: 'CREATION', utilisateur: 'Utilisateur', apres: { numero: nouveau.numero, montantTTC: totaux.ttc } })
-      alert('Devis enregistré avec succès')
+    try {
+      if (devisId) {
+        await updateDevis(devisId, devisComplet)
+        addLog({ module: 'DEVIS_TUYAUTERIE', action: 'MODIFICATION', utilisateur: 'Utilisateur', apres: { numero: devisData.numero, montantTTC: totaux.ttc } })
+        ajouterNotification({
+          type: 'INFO',
+          icone: '✅',
+          titre: 'SUCCÈS',
+          message: `Devis ${devisData.numero} modifié avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
+          lien: '/devis/liste'
+        })
+      } else {
+        const nouveau = await addDevis(devisComplet)
+        setDevisId(nouveau.id)
+        addLog({ module: 'DEVIS_TUYAUTERIE', action: 'CREATION', utilisateur: 'Utilisateur', apres: { numero: nouveau.numero, montantTTC: totaux.ttc } })
+        ajouterNotification({
+          type: 'INFO',
+          icone: '✅',
+          titre: 'SUCCÈS',
+          message: `Devis ${nouveau.numero} enregistré avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
+          lien: '/devis/liste'
+        })
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement:', error)
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: 'Erreur lors de l\'enregistrement du devis. Veuillez réessayer.'
+      })
     }
-  }
-
-  const handleDupliquer = () => {
-    const nouveauNumero = getNextNumero()
-    const devisDuplique = { ...devisData, numero: nouveauNumero, date: new Date().toISOString().split('T')[0], statut: 'BROUILLON' }
-    const nouveau = addDevis(devisDuplique)
-    setDevisId(nouveau.id)
-    setDevisData(devisDuplique)
-    addLog({ module: 'DEVIS_TUYAUTERIE', action: 'DUPLICATION', utilisateur: 'Utilisateur', apres: { numero: nouveauNumero } })
-    alert(`Devis dupliqué : ${nouveauNumero}`)
   }
 
   const handleGenerePDF = async () => {
     if (!devisData.clientId) {
-      alert('Veuillez sélectionner un client avant de générer le PDF')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'ATTENTION',
+        message: 'Veuillez sélectionner un client avant de générer le PDF'
+      })
       return
     }
     
@@ -231,9 +281,6 @@ export default function DevisTuyauterie() {
           </button>
           <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition">
             📄 PDF
-          </button>
-          <button onClick={handleDupliquer} className="flex items-center gap-2 px-4 py-2 bg-navy text-white rounded-lg hover:bg-opacity-90 transition">
-            📋 Dupliquer
           </button>
           <button
             onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}

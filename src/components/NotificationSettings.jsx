@@ -24,7 +24,7 @@ export default function NotificationSettings() {
       setPermission(Notification.permission)
     }
 
-    const interval = setInterval(checkPermission, 1000)
+    const interval = setInterval(checkPermission, 10000)
 
     return () => clearInterval(interval)
   }, [])

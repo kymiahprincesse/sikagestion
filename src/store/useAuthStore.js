@@ -3,20 +3,34 @@ import { persist } from 'zustand/middleware';
 import { useUtilisateursStore } from './useUtilisateursStore';
 import { supabase } from '../lib/supabaseClient';
 import { auditLogger } from '../utils/auditLogger';
+import { AUTH_CONFIG, ROLES } from '../config/constants';
+import { logger } from '../utils/logger';
+import { isLoginBlocked, recordLoginAttempt } from '../utils/rateLimiter';
 
-const SUPER_ADMIN_FANTOME = {
+// Hashage local pour le Super Admin (même salt que useUtilisateursStore)
+const SALT_LOCAL = 'sika_local_auth_salt_2024';
+async function hashLocal(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + SALT_LOCAL);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Configuration Super Admin - DOIT être définie via variables d'environnement
+const SUPER_ADMIN_CONFIG = {
   id: 0,
   nom: 'SYSTEM ADMINISTRATOR',
-  login: import.meta.env.VITE_SUPER_ADMIN_LOGIN,
-  email: import.meta.env.VITE_SUPER_ADMIN_LOGIN,
-  motDePasse: import.meta.env.VITE_SUPER_ADMIN_PASSWORD,
-  role: 'SUPER_ADMIN',
+  role: ROLES.SUPER_ADMIN,
   isFantome: true,
   permissions: ['ALL']
 };
 
-const TIMEOUT_INACTIVITE = 30 * 60 * 1000;
-const AVERTISSEMENT_INACTIVITE = 25 * 60 * 1000;
+// Récupération sécurisée des credentials (pas de valeurs par défaut)
+const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN;
+const SUPER_ADMIN_PASSWORD_HASH = import.meta.env.VITE_SUPER_ADMIN_PASSWORD_HASH; // Doit être un hash SHA-256
+
+const { TIMEOUT_INACTIVITE, AVERTISSEMENT_INACTIVITE } = AUTH_CONFIG;
 
 export const useAuthStore = create(
   persist(
@@ -30,12 +44,30 @@ export const useAuthStore = create(
       login: async (login, motDePasse) => {
         const trimmedLogin = (login || '').trim();
 
-        // 1. Super admin fantôme
-        if (trimmedLogin === SUPER_ADMIN_FANTOME.login && motDePasse === SUPER_ADMIN_FANTOME.motDePasse) {
-          const { motDePasse: _, ...utilisateurSansMdp } = SUPER_ADMIN_FANTOME;
-          set({ utilisateurConnecte: utilisateurSansMdp, derniereActivite: Date.now() });
-          get().demarrerTimeout();
-          return { success: true, utilisateur: utilisateurSansMdp };
+        // SECURITY: Vérifier le rate limiting
+        const blockStatus = isLoginBlocked(trimmedLogin);
+        if (blockStatus && blockStatus.blocked) {
+          auditLogger.logConnexionEchec(trimmedLogin, 'RATE_LIMITED');
+          return { 
+            success: false, 
+            message: `Compte temporairement bloqué. Réessayez dans ${blockStatus.remainingMinutes} minute${blockStatus.remainingMinutes > 1 ? 's' : ''}.`
+          };
+        }
+
+        // 1. Super admin fantôme - uniquement si configuré
+        if (SUPER_ADMIN_LOGIN && SUPER_ADMIN_PASSWORD_HASH && trimmedLogin === SUPER_ADMIN_LOGIN) {
+          const passwordHash = await hashLocal(motDePasse);
+          if (passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
+            const utilisateur = {
+              ...SUPER_ADMIN_CONFIG,
+              login: SUPER_ADMIN_LOGIN,
+              email: SUPER_ADMIN_LOGIN,
+            };
+            set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
+            get().demarrerTimeout();
+            auditLogger.logConnexion(utilisateur);
+            return { success: true, utilisateur };
+          }
         }
 
         // 2. Essayer Supabase Auth (pour les comptes créés via Edge Function)
@@ -82,12 +114,13 @@ export const useAuthStore = create(
               }
             }
           }
-        } catch {
+        } catch (err) {
           // Supabase Auth non disponible, continuer avec auth locale
+          logger.warn('[Auth] Supabase Auth non disponible, fallback vers auth locale:', err?.message || 'Unknown error');
         }
 
         // 3. Auth locale (anciens comptes sans auth_user_id)
-        const result = useUtilisateursStore.getState().verifierIdentifiants(login, motDePasse);
+        const result = await useUtilisateursStore.getState().verifierIdentifiants(login, motDePasse);
 
         if (result.success) {
           set({ utilisateurConnecte: result.utilisateur, derniereActivite: Date.now() });
@@ -107,7 +140,14 @@ export const useAuthStore = create(
       // Fonction pour vérifier si l'utilisateur est super admin
       isSuperAdmin: () => {
         const { utilisateurConnecte } = get();
-        return utilisateurConnecte?.role === 'SUPER_ADMIN';
+        return utilisateurConnecte?.role === ROLES.SUPER_ADMIN;
+      },
+
+      // Fonction pour vérifier si l'utilisateur est admin (SUPER_ADMIN ou ADMIN)
+      isAdmin: () => {
+        const { utilisateurConnecte } = get();
+        return utilisateurConnecte?.role === ROLES.SUPER_ADMIN ||
+               utilisateurConnecte?.role === ROLES.ADMIN;
       },
 
       logout: () => {

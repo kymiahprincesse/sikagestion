@@ -5,7 +5,7 @@ export default function MoneyInput({ value, onChange, label, placeholder = '0' }
 
   useEffect(() => {
     if (value !== null && value !== undefined && value !== '') {
-      const formatted = Number(value).toLocaleString('fr-FR')
+      const formatted = Number(value).toLocaleString('fr-FR').replace(/\s/g, '.')
       setDisplayValue(formatted)
     } else {
       setDisplayValue('')

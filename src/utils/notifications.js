@@ -92,3 +92,48 @@ export const notifyTacheEnRetard = (tacheNom, projetNom) => {
     requireInteraction: true
   })
 }
+
+// Notification d'erreur système (erreurs Supabase, etc.)
+export const notifyError = (titre, message) => {
+  // Notification navigateur
+  sendBrowserNotification(`❌ ${titre}`, {
+    body: message,
+    tag: 'erreur-systeme',
+    requireInteraction: true
+  })
+
+  // Toast notification via le DOM (fallback si permissions navigateur refusées)
+  // SECURITY: Utilise textContent au lieu de innerHTML pour éviter XSS
+  if (typeof window !== 'undefined') {
+    const toast = document.createElement('div')
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #E60000;
+      color: white;
+      padding: 16px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 9999;
+      max-width: 400px;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    `
+    
+    // Créer les éléments de manière sécurisée (pas d'innerHTML)
+    const titleDiv = document.createElement('div')
+    titleDiv.style.fontWeight = 'bold'
+    titleDiv.style.marginBottom = '4px'
+    titleDiv.textContent = '❌ ' + titre  // textContent = safe contre XSS
+    
+    const messageDiv = document.createElement('div')
+    messageDiv.textContent = message  // textContent = safe contre XSS
+    
+    toast.appendChild(titleDiv)
+    toast.appendChild(messageDiv)
+    document.body.appendChild(toast)
+    setTimeout(() => toast.remove(), 5000)
+  }
+}

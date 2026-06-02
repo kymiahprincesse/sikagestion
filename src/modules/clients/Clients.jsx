@@ -684,7 +684,7 @@ export default function Clients() {
                         {stats.nbDevis}
                       </td>
                       <td className="py-3 px-4 font-bold text-navy">
-                        {stats.caTotal.toLocaleString('fr-FR')} FCFA
+                        {formatFCFA(stats.caTotal)}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -968,13 +968,13 @@ export default function Clients() {
                       <div className="bg-orangeClair p-4 rounded-lg border border-orange">
                         <div className="text-sm text-bleu mb-1">CA Total</div>
                         <div className="text-2xl font-bold text-navy">
-                          {stats.caTotal.toLocaleString('fr-FR')} FCFA
+                          {formatFCFA(stats.caTotal)}
                         </div>
                       </div>
                       <div className="bg-rouge/10 p-4 rounded-lg border border-rouge">
                         <div className="text-sm text-bleu mb-1">Reste à recouvrer</div>
                         <div className="text-2xl font-bold text-rouge">
-                          {stats.resteARecouvrer.toLocaleString('fr-FR')} FCFA
+                          {formatFCFA(stats.resteARecouvrer)}
                         </div>
                       </div>
                     </div>
@@ -994,7 +994,7 @@ export default function Clients() {
                                 <div className="text-sm text-bleu">{d.date}</div>
                               </div>
                               <div className="text-right">
-                                <div className="font-bold text-navy">{d.montantTTC?.toLocaleString('fr-FR')} FCFA</div>
+                                <div className="font-bold text-navy">{formatFCFA(d.montantTTC)}</div>
                                 <div className="text-sm">
                                   <span className={`px-2 py-1 rounded-full text-xs ${
                                     d.statut === 'Accepté' ? 'bg-vert/10 text-vert' :
@@ -1026,7 +1026,7 @@ export default function Clients() {
                                 <div className="text-sm text-bleu">{f.date}</div>
                               </div>
                               <div className="text-right">
-                                <div className="font-bold text-navy">{f.montantTTC?.toLocaleString('fr-FR')} FCFA</div>
+                                <div className="font-bold text-navy">{formatFCFA(f.montantTTC)}</div>
                                 <div className="text-sm">
                                   <span className={`px-2 py-1 rounded-full text-xs ${
                                     f.statut === 'Payé' ? 'bg-vert/10 text-vert' :

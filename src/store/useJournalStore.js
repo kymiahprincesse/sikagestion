@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { notifyError } from '../utils/notifications';
 
 function ecritureToRow(e) {
   return {
@@ -34,6 +35,7 @@ export const useJournalStore = create(
         const { data, error } = await supabase.from('ecritures_journal').insert(ecritureToRow(nouvelleEcriture)).select().single();
         if (error) {
           console.error('Supabase addEcriture:', error.message);
+          notifyError('Erreur de sauvegarde', `Impossible de créer l'écriture: ${error.message}`);
         } else if (data) {
           set((state) => ({
             ecritures: state.ecritures.map((e) => e.id === nouvelleEcriture.id ? { ...e, id: data.id } : e)
@@ -52,7 +54,10 @@ export const useJournalStore = create(
         const eMaj = get().ecritures.find((e) => e.id === id);
         if (eMaj) {
           supabase.from('ecritures_journal').update(ecritureToRow({ ...eMaj, ...modifications })).eq('id', id).then(({ error }) => {
-            if (error) console.error('Supabase updateEcriture:', error.message);
+            if (error) {
+              console.error('Supabase updateEcriture:', error.message);
+              notifyError('Erreur de mise à jour', `Impossible de modifier l'écriture: ${error.message}`);
+            }
           });
         }
       },
@@ -60,7 +65,10 @@ export const useJournalStore = create(
       deleteEcriture: (id) => {
         set((state) => ({ ecritures: state.ecritures.filter((e) => e.id !== id) }));
         supabase.from('ecritures_journal').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase deleteEcriture:', error.message);
+          if (error) {
+            console.error('Supabase deleteEcriture:', error.message);
+            notifyError('Erreur de suppression', `Impossible de supprimer l'écriture: ${error.message}`);
+          }
         });
       },
 

@@ -23,7 +23,7 @@ export default function PrintWrapper({ children, titre = '' }) {
             {titre}
           </h2>
         )}
-        <hr style={{ border: '0.8px solid #E8610A', margin: '2mm 0 4mm' }} />
+        <hr style={{ border: '0.8px solid #1B2A4A', margin: '2mm 0 4mm' }} />
       </div>
 
       {/* CONTENU */}
@@ -33,7 +33,6 @@ export default function PrintWrapper({ children, titre = '' }) {
 
       {/* PIED DE PAGE OFFICIEL */}
       <div className="print-footer">
-        <hr style={{ border: '0.5px solid #1B2A4A', margin: '4mm 0 2mm' }} />
         <img src={piedImg} alt="Pied de page SIKA INDUSTRIE" />
       </div>
     </div>

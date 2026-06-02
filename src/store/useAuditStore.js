@@ -111,9 +111,10 @@ export const useAuditStore = create((set, get) => ({
         set(state => ({ logs: [data, ...state.logs] }));
       }
     } catch (e) {
-      const local = JSON.parse(localStorage.getItem('sika_audit') || '[]');
-      local.unshift({ ...entry, id: Date.now() });
-      localStorage.setItem('sika_audit', JSON.stringify(local.slice(0, 500)));
+      // SECURITY: Les logs d'audit ne sont plus stockés en local pour éviter
+      // la fuite de données sensibles. Seul Supabase stocke les logs.
+      console.warn('[Audit] Échec stockage Supabase:', e.message);
+      // Fallback: stockage en mémoire uniquement (perdu au refresh)
       set(state => ({ logs: [{ ...entry, id: Date.now() }, ...state.logs] }));
     }
   },
@@ -136,15 +137,16 @@ export const useAuditStore = create((set, get) => ({
       const { data, error } = await query;
       if (error) throw error;
       set({ logs: maskSuperAdmin(data || []), loading: false });
-    } catch {
-      const local = JSON.parse(localStorage.getItem('sika_audit') || '[]');
-      set({ logs: maskSuperAdmin(local), loading: false });
+    } catch (err) {
+      // SECURITY: Pas de fallback vers localStorage pour les logs d'audit
+      console.warn('[Audit] Erreur fetch Supabase:', err?.message);
+      set({ logs: [], loading: false });
     }
   },
 
   clearLogs: async () => {
     await supabase.from('audit_logs').delete().neq('id', 0);
-    localStorage.removeItem('sika_audit');
+    // SECURITY: Plus de localStorage pour les logs
     set({ logs: [] });
   },
 

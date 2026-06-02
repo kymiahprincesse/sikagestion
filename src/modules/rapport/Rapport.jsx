@@ -10,7 +10,7 @@ import { useAOStore } from '../../store/useAOStore'
 import { usePlanificationStore } from '../../store/usePlanificationStore'
 import { useCaisseStore } from '../../store/useCaisseStore'
 import { useClientsStore } from '../../store/useClientsStore'
-import { formatFCFA } from '../../utils/format'
+import { formatFCFA, formatNumberPoints } from '../../utils/format'
 
 const COULEURS = ['#1B2A4A', '#E60000', '#1F5C99', '#1A7A4A', '#C8C8D0', '#E8ECF4']
 
@@ -202,7 +202,7 @@ export default function Rapport() {
               <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
               <XAxis dataKey="mois" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => `${v.toLocaleString('fr-FR')} K FCFA`} />
+              <Tooltip formatter={(v) => `${formatNumberPoints(v)} K FCFA`} />
               <Legend />
               <Line type="monotone" dataKey="CA" stroke="#1B2A4A" strokeWidth={2} dot={{ r: 4 }} />
               <Line type="monotone" dataKey="Encaissé" stroke="#1A7A4A" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} />
@@ -252,7 +252,7 @@ export default function Rapport() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
                 <XAxis dataKey="nom" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => `${v.toLocaleString('fr-FR')} K FCFA`} />
+                <Tooltip formatter={(v) => `${formatNumberPoints(v)} K FCFA`} />
                 <Legend />
                 <Bar dataKey="Prévu" fill="#1B2A4A" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Réel" fill="#E60000" radius={[4, 4, 0, 0]} />

@@ -27,22 +27,6 @@ export default function NotificationsPanel() {
   const fournisseurs = useFournisseursStore((state) => state.fournisseurs);
   const achats = useFournisseursStore((state) => state.achats);
 
-  // DÉSACTIVÉ TEMPORAIREMENT - Cause boucle infinie
-  // useEffect(() => {
-  //   const fournisseursAvecAchats = fournisseurs.map(f => ({
-  //     ...f,
-  //     achats: achats.filter(a => a.fournisseurId === f.id)
-  //   }));
-
-  //   genererNotifications(factures, devis, appelsDoffres, projets, fournisseursAvecAchats);
-
-  //   const interval = setInterval(() => {
-  //     genererNotifications(factures, devis, appelsDoffres, projets, fournisseursAvecAchats);
-  //   }, 60000);
-
-  //   return () => clearInterval(interval);
-  // }, [factures, devis, appelsDoffres, fournisseurs, achats]);
-
   const compteurNonLues = getCompteurNonLues();
 
   const handleNotificationClick = (notification) => {

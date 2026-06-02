@@ -11,13 +11,6 @@ export function useKeyboardShortcuts() {
         return
       }
 
-      // Ctrl/Cmd + K : Recherche globale
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
-        // TODO: Ouvrir modal de recherche globale
-        console.log('Recherche globale')
-      }
-
       // Alt + D : Dashboard
       if (e.altKey && e.key === 'd') {
         e.preventDefault()

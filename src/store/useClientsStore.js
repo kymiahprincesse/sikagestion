@@ -156,6 +156,18 @@ export const useClientsStore = create(
       setClients: (clients) => {
         const maxId = clients.length > 0 ? Math.max(...clients.map(c => c.id)) : 0;
         set({ clients, compteurId: maxId + 1 });
+      },
+
+      // Fonctions pour Realtime (ne pas appeler Supabase pour éviter boucle)
+      addClientFromRealtime: (client) => {
+        const { clients, compteurId } = get();
+        const existing = clients.find(c => c.id === client.id);
+        if (!existing) {
+          set({
+            clients: [...clients, client],
+            compteurId: Math.max(compteurId, client.id + 1)
+          });
+        }
       }
     }),
     {

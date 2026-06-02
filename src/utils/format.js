@@ -3,17 +3,20 @@
  * Format ivoirien (FCFA, dates JJ/MM/AAAA)
  */
 
-// Formatage des montants en FCFA
+// Formatage des montants en FCFA avec points comme séparateurs
 export const formatFCFA = (montant) => {
   if (montant === null || montant === undefined) return '0 FCFA';
-  
+
   const formatter = new Intl.NumberFormat('fr-CI', {
     style: 'decimal',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   });
-  
-  return `${formatter.format(montant)} FCFA`;
+
+  // Remplacer les espaces par des points (format 1.100.000.000)
+  const formatted = formatter.format(montant).replace(/\s/g, '.');
+
+  return `${formatted} FCFA`;
 };
 
 // Formatage des dates au format JJ/MM/AAAA
@@ -91,12 +94,31 @@ export const calcBudgetRepas = (nbTechniciens, nbJours, params) => {
 // Formatage des nombres sans devise
 export const formatNumber = (nombre) => {
   if (nombre === null || nombre === undefined) return '0';
-  
-  return new Intl.NumberFormat('fr-CI', {
+
+  const formatted = new Intl.NumberFormat('fr-CI', {
     style: 'decimal',
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
   }).format(nombre);
+
+  // Remplacer les espaces par des points (format 1.100.000.000)
+  return formatted.replace(/\s/g, '.');
+};
+
+// Formatage des montants avec points sans devise (pour tableaux PDF, etc.)
+export const formatNumberPoints = (nombre) => {
+  if (nombre === null || nombre === undefined || nombre === '') return '0';
+  const num = typeof nombre === 'string' ? parseFloat(nombre) : nombre;
+  if (isNaN(num)) return '0';
+
+  const formatted = new Intl.NumberFormat('fr-CI', {
+    style: 'decimal',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(num);
+
+  // Remplacer les espaces par des points (format 1.100.000.000)
+  return formatted.replace(/\s/g, '.');
 };
 
 // Formatage des pourcentages
@@ -136,4 +158,20 @@ export const formatHeures = (heures) => {
   
   if (m === 0) return `${h}h`;
   return `${h}h${String(m).padStart(2, '0')}`;
+};
+
+// Date du jour au format ISO (YYYY-MM-DD)
+export const getTodayISO = () => new Date().toISOString().split('T')[0];
+
+// Parsing numérique sécurisé
+export const safeParseFloat = (valeur, defaut = 0) => {
+  if (valeur === null || valeur === undefined || valeur === '') return defaut;
+  const parsed = parseFloat(valeur);
+  return isNaN(parsed) ? defaut : parsed;
+};
+
+export const safeParseInt = (valeur, defaut = 0) => {
+  if (valeur === null || valeur === undefined || valeur === '') return defaut;
+  const parsed = parseInt(valeur, 10);
+  return isNaN(parsed) ? defaut : parsed;
 };

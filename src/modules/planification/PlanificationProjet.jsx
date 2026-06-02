@@ -6,9 +6,8 @@ import { useDevisStore } from '../../store/useDevisStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line } from 'recharts';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import { createSikaPDF, addSikaHeaderFooterToAllPages, getSikaContentMargins } from '../../utils/pdfTemplate';
+import { formatFCFA, formatNumberPoints } from '../../utils/format';
 import Breadcrumb from '../../components/Breadcrumb';
 import ActionButtons from '../../components/ActionButtons';
 import SmartPlanningUpload from './SmartPlanningUpload';
@@ -296,50 +295,329 @@ export default function PlanificationProjet() {
   };
 
   const exporterPDF = () => {
-    const doc = createSikaPDF();
-    const margins = getSikaContentMargins();
-    
-    doc.setFontSize(14);
-    doc.setTextColor(27, 42, 74);
-    doc.text('Planification Projets', 105, margins.top + 5, { align: 'center' });
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 14, margins.top + 15);
-    
-    if (projetSelectionne) {
-      const stats = getStatistiquesProjet(projetSelectionne.id);
-      const client = getClientById(projetSelectionne.clientId);
-      doc.setFontSize(12);
+    try {
+      const doc = createSikaPDF();
+      const margins = getSikaContentMargins();
+
+      doc.setFontSize(14);
       doc.setTextColor(27, 42, 74);
-      doc.text(`Projet: ${projetSelectionne.nom}`, 14, margins.top + 25);
-      doc.text(`Client: ${client?.nom || ''}`, 14, margins.top + 32);
-      doc.text(`Budget prévu: ${(stats?.budgetPrevu || 0).toLocaleString('fr-FR')} FCFA`, 14, margins.top + 39);
-      doc.text(`Coût réel: ${(stats?.coutReel || 0).toLocaleString('fr-FR')} FCFA`, 14, margins.top + 46);
-      doc.text(`Écart: ${(stats?.ecart || 0).toLocaleString('fr-FR')} FCFA`, 14, margins.top + 53);
-      
-      const tachesProjet = getTachesByProjet(projetSelectionne.id);
-      const tableData = tachesProjet.map(t => [
-        t.nom, t.dateDebut, t.dateFin, t.dureeJours, t.nbTechniciens,
-        (t.coutTotal || 0).toLocaleString('fr-FR'), t.statut
-      ]);
-      doc.autoTable({
-        startY: margins.top + 60,
-        head: [['Tâche', 'Début', 'Fin', 'Durée', 'Tech.', 'Coût', 'Statut']],
-        body: tableData,
-        theme: 'grid',
-        headStyles: { fillColor: [27, 42, 74], textColor: 255 },
-        alternateRowStyles: { fillColor: [232, 236, 244] },
-        margin: { bottom: margins.bottom }
-      });
+      doc.text('Planification Projets', 105, margins.top + 5, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 14, margins.top + 15);
+
+      if (clientSelectionne) {
+        const client = getClientById(clientSelectionne);
+        doc.text(`Client: ${client?.nom || 'Tous les clients'}`, 14, margins.top + 22);
+      }
+
+      if (projetSelectionne) {
+        const stats = getStatistiquesProjet(projetSelectionne.id);
+        const client = getClientById(projetSelectionne.clientId);
+        doc.setFontSize(12);
+        doc.setTextColor(27, 42, 74);
+        doc.text(`Projet: ${projetSelectionne.nom}`, 14, margins.top + 32);
+        doc.text(`Client: ${client?.nom || ''}`, 14, margins.top + 39);
+        doc.text(`Budget prévu: ${formatFCFA(stats?.budgetPrevu || 0)}`, 14, margins.top + 46);
+        doc.text(`Coût réel: ${formatFCFA(stats?.coutReel || 0)}`, 14, margins.top + 53);
+        doc.text(`Écart: ${formatFCFA(stats?.ecart || 0)}`, 14, margins.top + 60);
+
+        const tachesProjet = getTachesByProjet(projetSelectionne.id);
+        const tableData = tachesProjet.map(t => [
+          t.nom, t.dateDebut, t.dateFin, t.dureeJours, t.nbTechniciens,
+          formatNumberPoints(t.coutTotal || 0), t.statut
+        ]);
+        
+        if (typeof doc.autoTable === 'function') {
+          doc.autoTable({
+            startY: margins.top + 68,
+            head: [['Tâche', 'Début', 'Fin', 'Durée', 'Tech.', 'Coût', 'Statut']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [27, 42, 74], textColor: 255 },
+            alternateRowStyles: { fillColor: [232, 236, 244] },
+            margin: { bottom: margins.bottom }
+          });
+        } else {
+          console.error('autoTable non disponible');
+          // Fallback: afficher le texte manuellement
+          let y = margins.top + 75;
+          tableData.forEach((row, i) => {
+            doc.setFontSize(8);
+            doc.text(row.join(' | '), 14, y);
+            y += 5;
+          });
+        }
+      } else {
+        const dataProjets = projetsFiltres.map(p => {
+          const stats = getStatistiquesProjet(p.id);
+          const client = getClientById(p.clientId);
+          return [
+            p.nom,
+            client?.nom || '',
+            p.dateDebut || '-',
+            p.dateFin || '-',
+            formatNumberPoints(stats?.budgetPrevu || 0),
+            formatNumberPoints(stats?.coutReel || 0),
+            formatNumberPoints(stats?.ecart || 0),
+            `${Math.round(stats?.pourcentageConsomme || 0)}%`,
+            p.statut
+          ];
+        });
+        
+        if (typeof doc.autoTable === 'function') {
+          doc.autoTable({
+            startY: margins.top + 30,
+            head: [['Projet', 'Client', 'Début', 'Fin', 'Budget', 'Coût', 'Écart', '%', 'Statut']],
+            body: dataProjets,
+            theme: 'grid',
+            headStyles: { fillColor: [27, 42, 74], textColor: 255 },
+            alternateRowStyles: { fillColor: [232, 236, 244] },
+            margin: { bottom: margins.bottom },
+            styles: { fontSize: 8 }
+          });
+        } else {
+          let y = margins.top + 35;
+          dataProjets.forEach((row) => {
+            doc.setFontSize(7);
+            doc.text(row.slice(0, 5).join(' | '), 14, y);
+            y += 4;
+          });
+        }
+      }
+
+      addSikaHeaderFooterToAllPages(doc);
+      doc.save(`Planification_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erreur lors de l\'export PDF:', error);
+      alert('Erreur lors de l\'export PDF: ' + (error.message || 'Erreur inconnue'));
     }
-    
-    // Ajouter en-tête et pied de page à toutes les pages
-    addSikaHeaderFooterToAllPages(doc);
-    
-    doc.save(`Planification_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const imprimer = () => window.print();
+  const visualiser = () => {
+    try {
+      const doc = createSikaPDF();
+      const margins = getSikaContentMargins();
+
+      doc.setFontSize(14);
+      doc.setTextColor(27, 42, 74);
+      doc.text('Planification Projets - Aperçu', 105, margins.top + 5, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 14, margins.top + 15);
+
+      if (clientSelectionne) {
+        const client = getClientById(clientSelectionne);
+        doc.text(`Client: ${client?.nom || 'Tous les clients'}`, 14, margins.top + 22);
+      }
+
+      if (projetSelectionne) {
+        const stats = getStatistiquesProjet(projetSelectionne.id);
+        const client = getClientById(projetSelectionne.clientId);
+        doc.setFontSize(12);
+        doc.setTextColor(27, 42, 74);
+        doc.text(`Projet: ${projetSelectionne.nom}`, 14, margins.top + 32);
+        doc.text(`Client: ${client?.nom || ''}`, 14, margins.top + 39);
+        doc.text(`Budget prévu: ${formatFCFA(stats?.budgetPrevu || 0)}`, 14, margins.top + 46);
+        doc.text(`Coût réel: ${formatFCFA(stats?.coutReel || 0)}`, 14, margins.top + 53);
+        doc.text(`Écart: ${formatFCFA(stats?.ecart || 0)}`, 14, margins.top + 60);
+
+        const tachesProjet = getTachesByProjet(projetSelectionne.id);
+        const tableData = tachesProjet.map(t => [
+          t.nom, t.dateDebut, t.dateFin, t.dureeJours, t.nbTechniciens,
+          formatNumberPoints(t.coutTotal || 0), t.statut
+        ]);
+        
+        if (typeof doc.autoTable === 'function') {
+          doc.autoTable({
+            startY: margins.top + 68,
+            head: [['Tâche', 'Début', 'Fin', 'Durée', 'Tech.', 'Coût', 'Statut']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [27, 42, 74], textColor: 255 },
+            alternateRowStyles: { fillColor: [232, 236, 244] },
+            margin: { bottom: margins.bottom }
+          });
+        } else {
+          let y = margins.top + 75;
+          tableData.forEach((row) => {
+            doc.setFontSize(8);
+            doc.text(row.join(' | '), 14, y);
+            y += 5;
+          });
+        }
+      } else {
+        const dataProjets = projetsFiltres.map(p => {
+          const stats = getStatistiquesProjet(p.id);
+          const client = getClientById(p.clientId);
+          return [
+            p.nom,
+            client?.nom || '',
+            p.dateDebut || '-',
+            p.dateFin || '-',
+            formatNumberPoints(stats?.budgetPrevu || 0),
+            formatNumberPoints(stats?.coutReel || 0),
+            formatNumberPoints(stats?.ecart || 0),
+            `${Math.round(stats?.pourcentageConsomme || 0)}%`,
+            p.statut
+          ];
+        });
+        
+        if (typeof doc.autoTable === 'function') {
+          doc.autoTable({
+            startY: margins.top + 30,
+            head: [['Projet', 'Client', 'Début', 'Fin', 'Budget', 'Coût', 'Écart', '%', 'Statut']],
+            body: dataProjets,
+            theme: 'grid',
+            headStyles: { fillColor: [27, 42, 74], textColor: 255 },
+            alternateRowStyles: { fillColor: [232, 236, 244] },
+            margin: { bottom: margins.bottom },
+            styles: { fontSize: 8 }
+          });
+        } else {
+          let y = margins.top + 35;
+          dataProjets.forEach((row) => {
+            doc.setFontSize(7);
+            doc.text(row.slice(0, 5).join(' | '), 14, y);
+            y += 4;
+          });
+        }
+      }
+
+      addSikaHeaderFooterToAllPages(doc);
+
+      const pdfOutput = doc.output('dataurlstring');
+      
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head><title>Aperçu - Planification Projets</title></head>
+            <body style="margin:0;padding:0;overflow:hidden;">
+              <iframe src="${pdfOutput}" width="100%" height="100%" style="border:none;"></iframe>
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+      } else {
+        const link = document.createElement('a');
+        link.href = pdfOutput;
+        link.target = '_blank';
+        link.click();
+      }
+    } catch (error) {
+      console.error('Erreur lors de la visualisation:', error);
+      alert('Erreur lors de la visualisation: ' + (error.message || 'Erreur inconnue'));
+    }
+  };
+
+  const imprimer = () => {
+    try {
+      const doc = createSikaPDF();
+      const margins = getSikaContentMargins();
+
+      doc.setFontSize(14);
+      doc.setTextColor(27, 42, 74);
+      doc.text('Planification Projets', 105, margins.top + 5, { align: 'center' });
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 14, margins.top + 15);
+
+      if (clientSelectionne) {
+        const client = getClientById(clientSelectionne);
+        doc.text(`Client: ${client?.nom || 'Tous les clients'}`, 14, margins.top + 22);
+      }
+
+      if (projetSelectionne) {
+        const stats = getStatistiquesProjet(projetSelectionne.id);
+        const client = getClientById(projetSelectionne.clientId);
+        doc.setFontSize(12);
+        doc.setTextColor(27, 42, 74);
+        doc.text(`Projet: ${projetSelectionne.nom}`, 14, margins.top + 32);
+        doc.text(`Client: ${client?.nom || ''}`, 14, margins.top + 39);
+        doc.text(`Budget prévu: ${formatFCFA(stats?.budgetPrevu || 0)}`, 14, margins.top + 46);
+        doc.text(`Coût réel: ${formatFCFA(stats?.coutReel || 0)}`, 14, margins.top + 53);
+        doc.text(`Écart: ${formatFCFA(stats?.ecart || 0)}`, 14, margins.top + 60);
+
+        const tachesProjet = getTachesByProjet(projetSelectionne.id);
+        const tableData = tachesProjet.map(t => [
+          t.nom, t.dateDebut, t.dateFin, t.dureeJours, t.nbTechniciens,
+          formatNumberPoints(t.coutTotal || 0), t.statut
+        ]);
+        
+        if (typeof doc.autoTable === 'function') {
+          doc.autoTable({
+            startY: margins.top + 68,
+            head: [['Tâche', 'Début', 'Fin', 'Durée', 'Tech.', 'Coût', 'Statut']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [27, 42, 74], textColor: 255 },
+            alternateRowStyles: { fillColor: [232, 236, 244] },
+            margin: { bottom: margins.bottom }
+          });
+        } else {
+          let y = margins.top + 75;
+          tableData.forEach((row) => {
+            doc.setFontSize(8);
+            doc.text(row.join(' | '), 14, y);
+            y += 5;
+          });
+        }
+      } else {
+        const dataProjets = projetsFiltres.map(p => {
+          const stats = getStatistiquesProjet(p.id);
+          const client = getClientById(p.clientId);
+          return [
+            p.nom,
+            client?.nom || '',
+            p.dateDebut || '-',
+            p.dateFin || '-',
+            formatNumberPoints(stats?.budgetPrevu || 0),
+            formatNumberPoints(stats?.coutReel || 0),
+            formatNumberPoints(stats?.ecart || 0),
+            `${Math.round(stats?.pourcentageConsomme || 0)}%`,
+            p.statut
+          ];
+        });
+        
+        if (typeof doc.autoTable === 'function') {
+          doc.autoTable({
+            startY: margins.top + 30,
+            head: [['Projet', 'Client', 'Début', 'Fin', 'Budget', 'Coût', 'Écart', '%', 'Statut']],
+            body: dataProjets,
+            theme: 'grid',
+            headStyles: { fillColor: [27, 42, 74], textColor: 255 },
+            alternateRowStyles: { fillColor: [232, 236, 244] },
+            margin: { bottom: margins.bottom },
+            styles: { fontSize: 8 }
+          });
+        } else {
+          let y = margins.top + 35;
+          dataProjets.forEach((row) => {
+            doc.setFontSize(7);
+            doc.text(row.slice(0, 5).join(' | '), 14, y);
+            y += 4;
+          });
+        }
+      }
+
+      addSikaHeaderFooterToAllPages(doc);
+
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+
+      // Ouvrir directement dans un nouvel onglet pour impression
+      const printWindow = window.open(pdfUrl, '_blank');
+      if (printWindow) {
+      } else {
+        doc.save(`Planification_${new Date().toISOString().split('T')[0]}.pdf`);
+      }
+
+    } catch (error) {
+      console.error('Erreur lors de l\'impression:', error);
+      alert('Erreur lors de l\'impression: ' + (error.message || 'Erreur inconnue'));
+    }
+  };
 
   const breadcrumbItems = [
     { label: 'Accueil', path: '/dashboard' },
@@ -390,13 +668,13 @@ export default function PlanificationProjet() {
           <ActionButtons
             onAdd={handleNouveauProjet}
             onEdit={projetSelectionne ? handleModifierProjet : null}
-            onView={null}
+            onView={visualiser}
             onPrint={imprimer}
             onDelete={projetSelectionne ? handleSupprimerProjet : null}
             permissions={{
               add: true,
               edit: !!projetSelectionne,
-              view: false,
+              view: true,
               print: true,
               delete: !!projetSelectionne
             }}
@@ -528,15 +806,15 @@ function ListeProjets({ projets, getStatistiquesProjet, getClientById, onVoirPro
                     <td className="px-4 py-3 text-bleu">{projet.dateDebut || '-'}</td>
                     <td className="px-4 py-3 text-bleu">{projet.dateFin || '-'}</td>
                     <td className="px-4 py-3 text-right font-medium">
-                      {(stats?.budgetPrevu || 0).toLocaleString('fr-FR')} FCFA
+                      {formatFCFA(stats?.budgetPrevu || 0)}
                     </td>
                     <td className="px-4 py-3 text-right font-medium">
-                      {(stats?.coutReel || 0).toLocaleString('fr-FR')} FCFA
+                      {formatFCFA(stats?.coutReel || 0)}
                     </td>
                     <td className={`px-4 py-3 text-right font-bold ${
                       (stats?.ecart || 0) >= 0 ? 'text-rouge' : 'text-vert'
                     }`}>
-                      {(stats?.ecart || 0).toLocaleString('fr-FR')} FCFA
+                      {formatFCFA(stats?.ecart || 0)}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`font-bold ${indicateur.color}`}>
@@ -592,7 +870,7 @@ function DetailProjet({ projet, stats, client, taches, onglet, setOnglet, onNouv
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-bleu mb-1">{label}</p>
-              <p className={`text-xl font-bold ${color}`}>{value.toLocaleString('fr-FR')} FCFA</p>
+              <p className={`text-xl font-bold ${color}`}>{formatFCFA(value)}</p>
             </div>
           ))}
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -688,10 +966,10 @@ function OngletTaches({ taches, onNouvelleTache, onModifierTache, onSupprimerTac
                   <td className="px-4 py-3 text-bleu">{tache.dateFin || '-'}</td>
                   <td className="px-4 py-3 text-center">{tache.dureeJours || 0}</td>
                   <td className="px-4 py-3 text-center">{tache.nbTechniciens || 0}</td>
-                  <td className="px-4 py-3 text-right">{(tache.budgetCarburant || 0).toLocaleString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-right">{(tache.budgetNourriture || 0).toLocaleString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-right">{(tache.budgetLogistique || 0).toLocaleString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-right font-bold text-navy">{(tache.coutTotal || 0).toLocaleString('fr-FR')}</td>
+                  <td className="px-4 py-3 text-right">{formatNumberPoints(tache.budgetCarburant || 0)}</td>
+                  <td className="px-4 py-3 text-right">{formatNumberPoints(tache.budgetNourriture || 0)}</td>
+                  <td className="px-4 py-3 text-right">{formatNumberPoints(tache.budgetLogistique || 0)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-navy">{formatNumberPoints(tache.coutTotal || 0)}</td>
                   <td className="px-4 py-3 text-center">{getStatutBadge(tache.statut)}</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => onModifierTache(tache)} className="text-bleu hover:text-orange mr-2">📝</button>
@@ -717,7 +995,7 @@ function OngletSuivi({ taches, graphiqueData }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="nom" angle={-45} textAnchor="end" height={100} />
             <YAxis />
-            <Tooltip formatter={(value) => `${value.toLocaleString('fr-FR')} FCFA`} />
+            <Tooltip formatter={(value) => `${formatFCFA(value)}`} />
             <Legend />
             <Bar dataKey="Budget Prévu" fill="#1B2A4A" />
             <Bar dataKey="Coût Réel" fill="#E60000" />
@@ -903,23 +1181,23 @@ function FormTache({ form, setForm, dateDebut, setDateDebut, dateFin, setDateFin
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-bleu">Budget Carburant estimé:</p>
-                  <p className="font-bold text-navy">{budgetCalcule.budgetCarburant.toLocaleString('fr-FR')} FCFA</p>
+                  <p className="font-bold text-navy">{formatFCFA(budgetCalcule.budgetCarburant)}</p>
                 </div>
                 <div>
                   <p className="text-bleu">Budget Nourriture estimé:</p>
-                  <p className="font-bold text-navy">{budgetCalcule.budgetNourriture.toLocaleString('fr-FR')} FCFA</p>
+                  <p className="font-bold text-navy">{formatFCFA(budgetCalcule.budgetNourriture)}</p>
                 </div>
                 <div>
                   <p className="text-bleu">Budget Logistique:</p>
-                  <p className="font-bold text-navy">{budgetCalcule.budgetLogistique.toLocaleString('fr-FR')} FCFA</p>
+                  <p className="font-bold text-navy">{formatFCFA(budgetCalcule.budgetLogistique)}</p>
                 </div>
                 <div>
                   <p className="text-bleu">Coût Hebdo estimé:</p>
-                  <p className="font-bold text-navy">{budgetCalcule.coutHebdo.toLocaleString('fr-FR')} FCFA</p>
+                  <p className="font-bold text-navy">{formatFCFA(budgetCalcule.coutHebdo)}</p>
                 </div>
                 <div className="col-span-2 border-t border-orange pt-2 mt-2">
                   <p className="text-bleu">Coût Total Estimé:</p>
-                  <p className="text-2xl font-bold text-orange">{budgetCalcule.coutTotal.toLocaleString('fr-FR')} FCFA</p>
+                  <p className="text-2xl font-bold text-orange">{formatFCFA(budgetCalcule.coutTotal)}</p>
                 </div>
               </div>
             </div>

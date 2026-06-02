@@ -46,11 +46,12 @@ const Login = () => {
   const [modeEmail, setModeEmail] = useState(false);
 
   useEffect(() => {
+    // Nettoyage sécurité: supprimer ancien mot de passe stocké si présent
+    localStorage.removeItem('sika_saved_password');
+    
     const savedLogin = localStorage.getItem('sika_saved_login');
-    const savedPassword = localStorage.getItem('sika_saved_password');
-    if (localStorage.getItem('sika_remember_me') === 'true' && savedLogin && savedPassword) {
+    if (localStorage.getItem('sika_remember_me') === 'true' && savedLogin) {
       setIdentifiant(savedLogin);
-      setMotDePasse(savedPassword);
       setRememberMe(true);
     }
   }, []);
@@ -86,11 +87,9 @@ const Login = () => {
       if (res && res.success) {
         if (rememberMe) {
           localStorage.setItem('sika_saved_login', identifiant);
-          localStorage.setItem('sika_saved_password', motDePasse);
           localStorage.setItem('sika_remember_me', 'true');
         } else {
           localStorage.removeItem('sika_saved_login');
-          localStorage.removeItem('sika_saved_password');
           localStorage.removeItem('sika_remember_me');
         }
         setTimeout(() => navigate('/dashboard'), 100);
