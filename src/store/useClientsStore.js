@@ -1,5 +1,25 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '../lib/supabaseClient';
+
+function toSupabaseRow(c) {
+  return {
+    nom: c.nom,
+    raison_sociale: c.raisonSociale || null,
+    ncc: c.ncc || null,
+    secteur: c.secteur || null,
+    adresse: c.adresse || null,
+    ville: c.ville || null,
+    pays: c.pays || 'Côte d\'Ivoire',
+    contact_nom: c.contactNom || null,
+    contact_telephone: c.contactTelephone || null,
+    contact_email: c.contactEmail || null,
+    conditions_paiement: c.conditionsPaiement || 30,
+    type: c.type || 'CLIENT',
+    is_actif: c.isActif !== undefined ? c.isActif : true,
+    notes: c.notes || null,
+  };
+}
 
 const CLIENTS_INITIAUX = [
   {
@@ -64,7 +84,7 @@ export const useClientsStore = create(
       clients: CLIENTS_INITIAUX,
       compteurId: 4,
 
-      addClient: (client) => {
+      addClient: async (client) => {
         const { compteurId } = get();
         const nouveauClient = {
           ...client,
@@ -73,26 +93,39 @@ export const useClientsStore = create(
           isActif: client.isActif !== undefined ? client.isActif : true
         };
 
-        set((state) => ({
-          clients: [...state.clients, nouveauClient],
-          compteurId: compteurId + 1
-        }));
+        set((state) => ({ clients: [...state.clients, nouveauClient], compteurId: compteurId + 1 }));
+
+        const { data, error } = await supabase.from('clients').insert(toSupabaseRow(nouveauClient)).select().single();
+        if (error) {
+          console.error('Supabase addClient:', error.message);
+        } else if (data) {
+          set((state) => ({
+            clients: state.clients.map((c) => c.id === nouveauClient.id ? { ...c, id: data.id } : c)
+          }));
+          return { ...nouveauClient, id: data.id };
+        }
 
         return nouveauClient;
       },
 
       updateClient: (id, modifications) => {
         set((state) => ({
-          clients: state.clients.map((client) =>
-            client.id === id ? { ...client, ...modifications } : client
-          )
+          clients: state.clients.map((client) => client.id === id ? { ...client, ...modifications } : client)
         }));
+
+        const clientMaj = get().clients.find((c) => c.id === id);
+        if (clientMaj) {
+          supabase.from('clients').update(toSupabaseRow({ ...clientMaj, ...modifications })).eq('id', id).then(({ error }) => {
+            if (error) console.error('Supabase updateClient:', error.message);
+          });
+        }
       },
 
       deleteClient: (id) => {
-        set((state) => ({
-          clients: state.clients.filter((client) => client.id !== id)
-        }));
+        set((state) => ({ clients: state.clients.filter((client) => client.id !== id) }));
+        supabase.from('clients').delete().eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase deleteClient:', error.message);
+        });
       },
 
       getClientByNom: (nom) => {

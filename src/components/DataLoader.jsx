@@ -7,6 +7,7 @@ import { useAOStore } from '../store/useAOStore'
 import { useFournisseursStore } from '../store/useFournisseursStore'
 import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
+import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useNotificationsStore } from '../store/useNotificationsStore'
 
 /**
@@ -19,6 +20,9 @@ export default function DataLoader() {
   const setAppelsOffres = useAOStore(state => state.setAppelsOffres)
   const setFournisseurs = useFournisseursStore(state => state.setFournisseurs)
   const setProjets = usePlanificationStore(state => state.setProjets)
+  const setTaches = usePlanificationStore(state => state.setTaches)
+  const setRessourcesHebdo = usePlanificationStore(state => state.setRessourcesHebdo)
+  const setEncaissements = useEncaissementsStore(state => state.setEncaissements)
   const setMouvements = useCaisseStore(state => state.setMouvements)
   const genererNotifications = useNotificationsStore(state => state.genererNotifications)
 
@@ -27,14 +31,17 @@ export default function DataLoader() {
       try {
         
         // Charger toutes les données en parallèle
-        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes] = await Promise.all([
+        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes] = await Promise.all([
           supabase.from('clients').select('*').order('id'),
           supabase.from('factures').select('*').order('id'),
           supabase.from('devis').select('*').order('id'),
           supabase.from('appels_offres').select('*').order('id'),
           supabase.from('fournisseurs').select('*').order('id'),
           supabase.from('projets').select('*').order('id'),
-          supabase.from('mouvements_caisse').select('*').order('date', { ascending: false })
+          supabase.from('mouvements_caisse').select('*').order('date', { ascending: false }),
+          supabase.from('taches').select('*').order('id'),
+          supabase.from('ressources_hebdo').select('*').order('id'),
+          supabase.from('encaissements').select('*').order('id'),
         ])
         
         // CLIENTS
@@ -168,6 +175,45 @@ export default function DataLoader() {
           setProjets(projets)
         }
         
+        // TACHES
+        if (!tachesRes.error && tachesRes.data?.length > 0) {
+          const taches = tachesRes.data.map(t => ({
+            id: t.id, projetId: t.projet_id, nom: t.nom, description: t.description,
+            statut: t.statut, dateDebut: t.date_debut, dateFinPrevue: t.date_fin_prevue,
+            dateFinReelle: t.date_fin_reelle, responsable: t.responsable,
+            budgetPrevu: parseFloat(t.budget_prevu || 0), budgetReel: parseFloat(t.budget_reel || 0),
+            nbTechniciens: t.nb_techniciens, kmSite: t.km_site, nbDeplacements: t.nb_deplacements,
+            budgetMateriel: parseFloat(t.budget_materiel || 0),
+            budgetSousTraitance: parseFloat(t.budget_sous_traitance || 0),
+            budgetCarburant: parseFloat(t.budget_carburant || 0),
+            budgetNourriture: parseFloat(t.budget_nourriture || 0),
+            budgetLogistique: parseFloat(t.budget_logistique || 0),
+            coutTotal: parseFloat(t.cout_total || 0), notes: t.notes, dateCreation: t.date_creation
+          }))
+          setTaches(taches)
+        }
+
+        // RESSOURCES HEBDO
+        if (!ressourcesRes.error && ressourcesRes.data?.length > 0) {
+          const ressourcesHebdo = ressourcesRes.data.map(r => ({
+            id: r.id, projetId: r.projet_id, tacheId: r.tache_id, semaine: r.semaine,
+            technicien: r.technicien, heuresPrevu: parseFloat(r.heures_prevu || 0),
+            heuresReel: parseFloat(r.heures_reel || 0), notes: r.notes
+          }))
+          setRessourcesHebdo(ressourcesHebdo)
+        }
+
+        // ENCAISSEMENTS
+        if (!encaissementsRes.error && encaissementsRes.data?.length > 0) {
+          const encaissements = encaissementsRes.data.map(e => ({
+            id: e.id, factureId: e.facture_id, clientId: e.client_id, clientNom: e.client_nom,
+            montant: parseFloat(e.montant || 0), dateEncaissement: e.date_encaissement,
+            modePaiement: e.mode_paiement, reference: e.reference,
+            notes: e.notes, statut: e.statut, dateCreation: e.date_creation
+          }))
+          setEncaissements(encaissements)
+        }
+
         // MOUVEMENTS CAISSE
         if (!caisseRes.error && caisseRes.data?.length > 0) {
           const mouvements = caisseRes.data.map(m => ({
@@ -201,7 +247,7 @@ export default function DataLoader() {
     }
     
     loadAllData()
-  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setMouvements])
+  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements])
 
   return null // Composant invisible
 }

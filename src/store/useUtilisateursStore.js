@@ -1,5 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '../lib/supabaseClient';
+
+function utilisateurToRow(u) {
+  return {
+    nom: u.nom,
+    login: u.login,
+    email: u.email || null,
+    role: u.role || 'TECHNICIEN',
+    is_actif: u.actif !== undefined ? u.actif : true,
+    permissions: u.permissions || null,
+  };
+}
 
 const PERSONNEL_INITIAL = [
   { id: 1,  nom: 'KOMLAN AMEMATCHRON', login: 'komlan', email: 'komlan.amematchron@sikaindustrie.ci', motDePasse: 'admin123',  role: 'ADMIN',      actif: true },
@@ -71,7 +83,7 @@ export const useUtilisateursStore = create(
         return result;
       },
 
-      ajouterUtilisateur: (utilisateur) => {
+      ajouterUtilisateur: async (utilisateur) => {
         const { utilisateurs } = get();
         if (utilisateurs.find(u => u.login === utilisateur.login)) {
           return { success: false, message: 'Ce login existe déjà' };
@@ -82,6 +94,17 @@ export const useUtilisateursStore = create(
         const nouvelId = Math.max(...utilisateurs.map(u => u.id), 0) + 1;
         const nouvelUtilisateur = { ...utilisateur, id: nouvelId, actif: true };
         set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
+
+        const { data, error } = await supabase.from('utilisateurs').insert(utilisateurToRow(nouvelUtilisateur)).select().single();
+        if (error) {
+          console.error('Supabase ajouterUtilisateur:', error.message);
+        } else if (data) {
+          set((state) => ({
+            utilisateurs: state.utilisateurs.map((u) => u.id === nouvelUtilisateur.id ? { ...u, id: data.id } : u)
+          }));
+          return { success: true, utilisateur: { ...nouvelUtilisateur, id: data.id } };
+        }
+
         return { success: true, utilisateur: nouvelUtilisateur };
       },
 
@@ -102,6 +125,11 @@ export const useUtilisateursStore = create(
         const utilisateursModifies = [...utilisateurs];
         utilisateursModifies[index] = { ...utilisateursModifies[index], ...modifications };
         set({ utilisateurs: utilisateursModifies });
+
+        supabase.from('utilisateurs').update(utilisateurToRow(utilisateursModifies[index])).eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase modifierUtilisateur:', error.message);
+        });
+
         return { success: true, utilisateur: utilisateursModifies[index] };
       },
 
@@ -135,6 +163,11 @@ export const useUtilisateursStore = create(
         const utilisateursModifies = [...utilisateurs];
         utilisateursModifies[index] = { ...utilisateursModifies[index], actif: !utilisateursModifies[index].actif };
         set({ utilisateurs: utilisateursModifies });
+
+        supabase.from('utilisateurs').update({ is_actif: utilisateursModifies[index].actif }).eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase toggleActif:', error.message);
+        });
+
         return { success: true, utilisateur: utilisateursModifies[index] };
       },
 
@@ -147,7 +180,22 @@ export const useUtilisateursStore = create(
           }
         }
         set({ utilisateurs: utilisateurs.filter(u => u.id !== id) });
+        supabase.from('utilisateurs').delete().eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase supprimerUtilisateur:', error.message);
+        });
         return { success: true, message: 'Utilisateur supprimé avec succès' };
+      },
+
+      setUtilisateurs: (utilisateursSupabase) => {
+        const { utilisateurs } = get();
+        const utilisateursLocaux = utilisateurs;
+        utilisateursSupabase.forEach(su => {
+          const idx = utilisateursLocaux.findIndex(u => u.login === su.login);
+          if (idx >= 0) {
+            utilisateursLocaux[idx] = { ...utilisateursLocaux[idx], id: su.id, email: su.email, role: su.role, actif: su.is_actif };
+          }
+        });
+        set({ utilisateurs: [...utilisateursLocaux] });
       }
     }),
     {

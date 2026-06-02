@@ -1,5 +1,59 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '../lib/supabaseClient';
+
+function projetToRow(p) {
+  return {
+    nom: p.nom,
+    client_id: p.clientId || null,
+    reference_projet: p.referenceProjet || null,
+    date_debut: p.dateDebut || null,
+    date_fin_prevue: p.dateFinPrevue || null,
+    date_fin_reelle: p.dateFinReelle || null,
+    budget_prevu: p.budgetPrevu || 0,
+    cout_reel: p.coutReel || 0,
+    statut: p.statut || 'EN_PREPARATION',
+    description: p.description || null,
+  };
+}
+
+function tacheToRow(t) {
+  return {
+    projet_id: t.projetId || null,
+    nom: t.nom,
+    description: t.description || null,
+    statut: t.statut || 'A_FAIRE',
+    date_debut: t.dateDebut || null,
+    date_fin_prevue: t.dateFinPrevue || null,
+    date_fin_reelle: t.dateFinReelle || null,
+    responsable: t.responsable || null,
+    budget_prevu: t.budgetPrevu || 0,
+    budget_reel: t.budgetReel || 0,
+    nb_techniciens: t.nbTechniciens || 1,
+    km_site: t.kmSite || 0,
+    nb_deplacements: t.nbDeplacements || 0,
+    budget_materiel: t.budgetMateriel || 0,
+    budget_sous_traitance: t.budgetSousTraitance || 0,
+    budget_carburant: t.budgetCarburant || 0,
+    budget_nourriture: t.budgetNourriture || 0,
+    budget_logistique: t.budgetLogistique || 0,
+    cout_total: t.coutTotal || 0,
+    priorite: t.priorite || null,
+    notes: t.notes || null,
+  };
+}
+
+function ressourceToRow(r) {
+  return {
+    projet_id: r.projetId || null,
+    tache_id: r.tacheId || null,
+    semaine: r.semaine || null,
+    technicien: r.technicien || null,
+    heures_prevu: r.heuresPrevu || 0,
+    heures_reel: r.heuresReel || 0,
+    notes: r.notes || null,
+  };
+}
 
 export const STATUTS_PROJET = {
   EN_PREPARATION: 'EN_PREPARATION',
@@ -27,7 +81,7 @@ export const usePlanificationStore = create(
       seuilAlerteBudget: 0.8,
 
       // Gestion des projets
-      addProjet: (projet) => {
+      addProjet: async (projet) => {
         const nouveauProjet = {
           ...projet,
           id: Date.now(),
@@ -35,9 +89,17 @@ export const usePlanificationStore = create(
           statut: projet.statut || STATUTS_PROJET.EN_PREPARATION
         };
 
-        set((state) => ({
-          projets: [...state.projets, nouveauProjet]
-        }));
+        set((state) => ({ projets: [...state.projets, nouveauProjet] }));
+
+        const { data, error } = await supabase.from('projets').insert(projetToRow(nouveauProjet)).select().single();
+        if (error) {
+          console.error('Supabase addProjet:', error.message);
+        } else if (data) {
+          set((state) => ({
+            projets: state.projets.map((p) => p.id === nouveauProjet.id ? { ...p, id: data.id } : p)
+          }));
+          return { ...nouveauProjet, id: data.id };
+        }
 
         return nouveauProjet;
       },
@@ -53,7 +115,11 @@ export const usePlanificationStore = create(
         }));
         
         const projetApres = get().getProjetById(id);
-        
+
+        supabase.from('projets').update(projetToRow({ ...projet, ...modifications })).eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase updateProjet:', error.message);
+        });
+
         if (typeof window !== 'undefined' && projet) {
           // Notification
           import('./useNotificationsStore').then(({ useNotificationsStore }) => {
@@ -80,12 +146,14 @@ export const usePlanificationStore = create(
       },
 
       deleteProjet: (id) => {
-        // Supprimer aussi les tâches associées
         set((state) => ({
           projets: state.projets.filter((p) => p.id !== id),
           taches: state.taches.filter((t) => t.projetId !== id),
           ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.projetId !== id)
         }));
+        supabase.from('projets').delete().eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase deleteProjet:', error.message);
+        });
       },
 
       getProjetById: (id) => {
@@ -104,7 +172,7 @@ export const usePlanificationStore = create(
       },
 
       // Gestion des tâches
-      addTache: (tache) => {
+      addTache: async (tache) => {
         const nouvelleTache = {
           ...tache,
           id: Date.now(),
@@ -112,19 +180,32 @@ export const usePlanificationStore = create(
           statut: tache.statut || 'A_FAIRE'
         };
 
-        set((state) => ({
-          taches: [...state.taches, nouvelleTache]
-        }));
+        set((state) => ({ taches: [...state.taches, nouvelleTache] }));
+
+        const { data, error } = await supabase.from('taches').insert(tacheToRow(nouvelleTache)).select().single();
+        if (error) {
+          console.error('Supabase addTache:', error.message);
+        } else if (data) {
+          set((state) => ({
+            taches: state.taches.map((t) => t.id === nouvelleTache.id ? { ...t, id: data.id } : t)
+          }));
+          return { ...nouvelleTache, id: data.id };
+        }
 
         return nouvelleTache;
       },
 
       updateTache: (id, modifications) => {
         set((state) => ({
-          taches: state.taches.map((t) =>
-            t.id === id ? { ...t, ...modifications } : t
-          )
+          taches: state.taches.map((t) => t.id === id ? { ...t, ...modifications } : t)
         }));
+
+        const tacheMaj = get().taches.find((t) => t.id === id);
+        if (tacheMaj) {
+          supabase.from('taches').update(tacheToRow({ ...tacheMaj, ...modifications })).eq('id', id).then(({ error }) => {
+            if (error) console.error('Supabase updateTache:', error.message);
+          });
+        }
       },
 
       deleteTache: (id) => {
@@ -132,6 +213,9 @@ export const usePlanificationStore = create(
           taches: state.taches.filter((t) => t.id !== id),
           ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.tacheId !== id)
         }));
+        supabase.from('taches').delete().eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase deleteTache:', error.message);
+        });
       },
 
       getTacheById: (id) => {
@@ -150,31 +234,42 @@ export const usePlanificationStore = create(
       },
 
       // Gestion des ressources hebdomadaires
-      addRessource: (ressource) => {
-        const nouvelleRessource = {
-          ...ressource,
-          id: Date.now()
-        };
+      addRessource: async (ressource) => {
+        const nouvelleRessource = { ...ressource, id: Date.now() };
 
-        set((state) => ({
-          ressourcesHebdo: [...state.ressourcesHebdo, nouvelleRessource]
-        }));
+        set((state) => ({ ressourcesHebdo: [...state.ressourcesHebdo, nouvelleRessource] }));
+
+        const { data, error } = await supabase.from('ressources_hebdo').insert(ressourceToRow(nouvelleRessource)).select().single();
+        if (error) {
+          console.error('Supabase addRessource:', error.message);
+        } else if (data) {
+          set((state) => ({
+            ressourcesHebdo: state.ressourcesHebdo.map((r) => r.id === nouvelleRessource.id ? { ...r, id: data.id } : r)
+          }));
+          return { ...nouvelleRessource, id: data.id };
+        }
 
         return nouvelleRessource;
       },
 
       updateRessource: (id, modifications) => {
         set((state) => ({
-          ressourcesHebdo: state.ressourcesHebdo.map((r) =>
-            r.id === id ? { ...r, ...modifications } : r
-          )
+          ressourcesHebdo: state.ressourcesHebdo.map((r) => r.id === id ? { ...r, ...modifications } : r)
         }));
+
+        const rMaj = get().ressourcesHebdo.find((r) => r.id === id);
+        if (rMaj) {
+          supabase.from('ressources_hebdo').update(ressourceToRow({ ...rMaj, ...modifications })).eq('id', id).then(({ error }) => {
+            if (error) console.error('Supabase updateRessource:', error.message);
+          });
+        }
       },
 
       deleteRessource: (id) => {
-        set((state) => ({
-          ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.id !== id)
-        }));
+        set((state) => ({ ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.id !== id) }));
+        supabase.from('ressources_hebdo').delete().eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase deleteRessource:', error.message);
+        });
       },
 
       getRessourcesByTache: (tacheId) => {
@@ -439,9 +534,9 @@ export const usePlanificationStore = create(
       }
 ,
 
-      setProjets: (projets) => {
-        set({ projets });
-      }
+      setProjets: (projets) => { set({ projets }); },
+      setTaches: (taches) => { set({ taches }); },
+      setRessourcesHebdo: (ressourcesHebdo) => { set({ ressourcesHebdo }); }
     }),
     {
       name: 'sika_planification'

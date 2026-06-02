@@ -1,5 +1,25 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '../lib/supabaseClient';
+
+function toSupabaseRow(ao) {
+  return {
+    numero_devis: ao.numeroDevis,
+    client: ao.client || null,
+    client_id: ao.clientId || null,
+    objet: ao.objet || null,
+    date_devis: ao.dateDevis || new Date().toISOString().split('T')[0],
+    date_reception_ao: ao.dateReceptionAO || null,
+    date_reponse_ao: ao.dateReponseAO || null,
+    date_limite: ao.dateLimite || null,
+    date_soumission: ao.dateSoumission || null,
+    date_decision: ao.dateDecision || null,
+    montant_estime: ao.montantEstime || null,
+    priorite: ao.priorite || null,
+    statut: ao.statut || 'A_CHIFFRER',
+    notes: ao.notes || null,
+  };
+}
 
 export const STATUTS_AO = {
   A_CHIFFRER: 'A_CHIFFRER',
@@ -16,7 +36,7 @@ export const useAOStore = create(
       appelsDoffres: [],
       compteurNumero: 1,
 
-      addAO: (ao) => {
+      addAO: async (ao) => {
         const { compteurNumero } = get();
         const nouvelAO = {
           ...ao,
@@ -32,21 +52,37 @@ export const useAOStore = create(
           compteurNumero: compteurNumero + 1
         }));
 
+        const { data, error } = await supabase.from('appels_offres').insert(toSupabaseRow(nouvelAO)).select().single();
+        if (error) {
+          console.error('Supabase addAO:', error.message);
+        } else if (data) {
+          set((state) => ({
+            appelsDoffres: state.appelsDoffres.map((a) => a.id === nouvelAO.id ? { ...a, id: data.id } : a)
+          }));
+          return { ...nouvelAO, id: data.id };
+        }
+
         return nouvelAO;
       },
 
       updateAO: (id, modifications) => {
         set((state) => ({
-          appelsDoffres: state.appelsDoffres.map((ao) =>
-            ao.id === id ? { ...ao, ...modifications } : ao
-          )
+          appelsDoffres: state.appelsDoffres.map((ao) => ao.id === id ? { ...ao, ...modifications } : ao)
         }));
+
+        const aoMaj = get().appelsDoffres.find((ao) => ao.id === id);
+        if (aoMaj) {
+          supabase.from('appels_offres').update(toSupabaseRow({ ...aoMaj, ...modifications })).eq('id', id).then(({ error }) => {
+            if (error) console.error('Supabase updateAO:', error.message);
+          });
+        }
       },
 
       deleteAO: (id) => {
-        set((state) => ({
-          appelsDoffres: state.appelsDoffres.filter((ao) => ao.id !== id)
-        }));
+        set((state) => ({ appelsDoffres: state.appelsDoffres.filter((ao) => ao.id !== id) }));
+        supabase.from('appels_offres').delete().eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase deleteAO:', error.message);
+        });
       },
 
       getAOById: (id) => {

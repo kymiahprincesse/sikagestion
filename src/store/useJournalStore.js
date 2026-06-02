@@ -1,12 +1,27 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '../lib/supabaseClient';
+
+function ecritureToRow(e) {
+  return {
+    date: e.date || new Date().toISOString().split('T')[0],
+    piece_comptable: e.pieceComptable || null,
+    type: e.type || null,
+    compte_debit: e.compteDebit || null,
+    compte_credit: e.compteCredit || null,
+    montant_debit: e.montantDebit || 0,
+    montant_credit: e.montantCredit || 0,
+    libelle: e.libelle || null,
+    notes: e.notes || null,
+  };
+}
 
 export const useJournalStore = create(
   persist(
     (set, get) => ({
       ecritures: [],
 
-      addEcriture: (ecriture) => {
+      addEcriture: async (ecriture) => {
         const nouvelleEcriture = {
           ...ecriture,
           id: Date.now(),
@@ -14,25 +29,39 @@ export const useJournalStore = create(
           pieceComptable: ecriture.pieceComptable || `PC-${Date.now()}`
         };
 
-        set((state) => ({
-          ecritures: [...state.ecritures, nouvelleEcriture]
-        }));
+        set((state) => ({ ecritures: [...state.ecritures, nouvelleEcriture] }));
+
+        const { data, error } = await supabase.from('ecritures_journal').insert(ecritureToRow(nouvelleEcriture)).select().single();
+        if (error) {
+          console.error('Supabase addEcriture:', error.message);
+        } else if (data) {
+          set((state) => ({
+            ecritures: state.ecritures.map((e) => e.id === nouvelleEcriture.id ? { ...e, id: data.id } : e)
+          }));
+          return { ...nouvelleEcriture, id: data.id };
+        }
 
         return nouvelleEcriture;
       },
 
       updateEcriture: (id, modifications) => {
         set((state) => ({
-          ecritures: state.ecritures.map((e) =>
-            e.id === id ? { ...e, ...modifications } : e
-          )
+          ecritures: state.ecritures.map((e) => e.id === id ? { ...e, ...modifications } : e)
         }));
+
+        const eMaj = get().ecritures.find((e) => e.id === id);
+        if (eMaj) {
+          supabase.from('ecritures_journal').update(ecritureToRow({ ...eMaj, ...modifications })).eq('id', id).then(({ error }) => {
+            if (error) console.error('Supabase updateEcriture:', error.message);
+          });
+        }
       },
 
       deleteEcriture: (id) => {
-        set((state) => ({
-          ecritures: state.ecritures.filter((e) => e.id !== id)
-        }));
+        set((state) => ({ ecritures: state.ecritures.filter((e) => e.id !== id) }));
+        supabase.from('ecritures_journal').delete().eq('id', id).then(({ error }) => {
+          if (error) console.error('Supabase deleteEcriture:', error.message);
+        });
       },
 
       getEcritureById: (id) => {
@@ -85,6 +114,10 @@ export const useJournalStore = create(
         const totalDebit = get().getTotalDebit();
         const totalCredit = get().getTotalCredit();
         return Math.abs(totalDebit - totalCredit) < 0.01; // Tolérance pour erreurs d'arrondi
+      },
+
+      setEcritures: (ecritures) => {
+        set({ ecritures });
       }
     }),
     {
