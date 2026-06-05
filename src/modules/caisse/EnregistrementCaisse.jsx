@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useCaisseStore } from '../../store/useCaisseStore'
 import { useAuditStore } from '../../store/useAuditStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
@@ -10,6 +11,7 @@ import { supabase } from '../../lib/supabaseClient'
 export default function EnregistrementCaisse() {
   const { mouvements, soldeCaisse, addMouvement, updateMouvement, deleteMouvement, setMouvements } = useCaisseStore()
   const { addLog } = useAuditStore()
+  const { ajouterNotification } = useNotificationsStore()
 
   // Fonction pour vider toutes les données de caisse
   const viderDonneesCaisse = () => {
@@ -105,12 +107,22 @@ export default function EnregistrementCaisse() {
     const sortir = parseFloat(formData.sortir) || 0
 
     if (entree > 0 && sortir > 0) {
-      alert('❌ ERREUR : ENTREE et SORTIR ne peuvent pas être simultanés sur la même ligne !')
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: 'ENTREE et SORTIR ne peuvent pas être simultanés sur la même ligne !'
+      })
       return false
     }
 
     if (entree === 0 && sortir === 0) {
-      alert('❌ ERREUR : Vous devez saisir soit une ENTREE soit une SORTIE !')
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: 'Vous devez saisir soit une ENTREE soit une SORTIE !'
+      })
       return false
     }
 
@@ -124,12 +136,22 @@ export default function EnregistrementCaisse() {
         const soldeAvantModif = mouvementActuel ? mouvementActuel.solde - mouvementActuel.entree + mouvementActuel.sortir : dernierSolde
         
         if (soldeAvantModif - sortir < 0) {
-          alert('🔴 ALERTE BLOQUANTE : Le SOLDE ne peut pas être négatif !\nSolde disponible : ' + formatFCFA(soldeAvantModif))
+          ajouterNotification({
+            type: 'URGENT',
+            icone: '🔴',
+            titre: 'ALERTE BLOQUANTE',
+            message: 'Le SOLDE ne peut pas être négatif ! Solde disponible : ' + formatFCFA(soldeAvantModif)
+          })
           return false
         }
       } else {
         if (dernierSolde - sortir < 0) {
-          alert('🔴 ALERTE BLOQUANTE : Le SOLDE ne peut pas être négatif !\nSolde disponible : ' + formatFCFA(dernierSolde))
+          ajouterNotification({
+            type: 'URGENT',
+            icone: '🔴',
+            titre: 'ALERTE BLOQUANTE',
+            message: 'Le SOLDE ne peut pas être négatif ! Solde disponible : ' + formatFCFA(dernierSolde)
+          })
           return false
         }
       }

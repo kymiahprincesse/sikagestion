@@ -2,11 +2,13 @@ import React, { useState } from 'react'
 import { injecterToutesDonnees } from '../scripts/injectDonneesReelles'
 import { injecterDevis, injecterFactures, injecterAppelsOffres } from '../scripts/injectDevisFacturesV2'
 import { supabase } from '../lib/supabaseClient'
+import { useNotificationsStore } from '../store/useNotificationsStore'
 
 export default function InjectionDonnees() {
   const [loading, setLoading] = useState(false)
   const [rapport, setRapport] = useState(null)
   const [error, setError] = useState(null)
+  const { ajouterNotification } = useNotificationsStore()
 
   const executerInjectionComplete = async () => {
     setLoading(true)
@@ -82,7 +84,12 @@ export default function InjectionDonnees() {
       await supabase.from('clients').delete().in('nom', ['GESTOCI SA', 'SUCRIVOIRE SA', 'CIE', 'PALM CI', 'SODEMI'])
       
       setRapport(null)
-      alert('✅ Toutes les données injectées ont été supprimées')
+      ajouterNotification({
+        type: 'INFO',
+        icone: '✅',
+        titre: 'NETTOYAGE',
+        message: 'Toutes les données injectées ont été supprimées'
+      })
     } catch (err) {
       console.error('❌ Erreur nettoyage:', err)
       setError(err.message)

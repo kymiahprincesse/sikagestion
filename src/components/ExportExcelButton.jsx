@@ -1,12 +1,19 @@
 import { exportToExcel } from '../utils/excel'
 import { useAudit } from '../hooks/useAudit'
+import { useNotificationsStore } from '../store/useNotificationsStore'
 
 export default function ExportExcelButton({ data, filename = 'export', sheetName = 'Données', module = 'Export' }) {
   const { logExportExcel } = useAudit();
-  
+  const { ajouterNotification } = useNotificationsStore();
+
   const handleExport = () => {
     if (!data || data.length === 0) {
-      alert('Aucune donnée à exporter')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'EXPORT',
+        message: 'Aucune donnée à exporter'
+      })
       return
     }
     

@@ -8,7 +8,7 @@ import { usePlanificationStore } from '../../store/usePlanificationStore'
 import { Breadcrumb, ActionButtons } from '../../components'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ConditionsPaiementSelector from '../../components/ConditionsPaiementSelector'
-import { useNotifications } from '../../components/NotificationProvider'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import * as XLSX from 'xlsx'
 import { formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate, openPDFForPrint } from '../../utils/printUtils'
@@ -19,7 +19,7 @@ export default function Clients() {
   const { devis } = useDevisStore()
   const { factures } = useFacturesStore()
   const { projets } = usePlanificationStore()
-  const { success, error, confirmDelete, confirmExit } = useNotifications()
+  const { ajouterNotification } = useNotificationsStore()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSecteur, setFilterSecteur] = useState('')
@@ -396,7 +396,12 @@ export default function Clients() {
       })
     } catch (error) {
       console.error('Erreur lors de l\'impression:', error)
-      alert(`Erreur lors de l'impression: ${error.message || 'Erreur inconnue'}`)
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: `Erreur lors de l'impression: ${error.message || 'Erreur inconnue'}`
+      })
     }
   }
 
@@ -499,7 +504,12 @@ export default function Clients() {
       })
     } catch (error) {
       console.error('Erreur lors de la génération de la fiche:', error)
-      alert(`Erreur lors de l'impression de la fiche: ${error.message || 'Erreur inconnue'}`)
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: `Erreur lors de l'impression de la fiche: ${error.message || 'Erreur inconnue'}`
+      })
     }
   }
 

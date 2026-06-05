@@ -10,6 +10,7 @@ import SikaLogo from './SikaLogo'
 import DataLoader from './DataLoader'
 import SearchGlobal from './SearchGlobal'
 import SyncStatusIndicator from './SyncStatusIndicator'
+import ToastContainer from './ToastContainer'
 
 export default function Layout() {
   const location = useLocation()
@@ -106,7 +107,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#FFFFFF' }}>
+    <div className="min-h-screen flex bg-gray-50">
       {/* Charger les données Supabase */}
       <DataLoader />
 
@@ -121,27 +122,32 @@ export default function Layout() {
 
       {/* SIDEBAR */}
       <aside
-        className={`fixed lg:relative z-30 flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ width: '280px', maxWidth: '85vw', backgroundColor: '#1B2A4A', minHeight: '100vh', height: '100vh' }}
+        className={`fixed lg:sticky lg:top-0 z-30 flex flex-col h-screen transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ width: '280px', maxWidth: '85vw', backgroundColor: '#1B2A4A' }}
       >
-        {/* Logo SIKA INDUSTRIE */}
-        <div className="p-6">
-          <div className="flex flex-col items-center">
-            <SikaLogo size="sm" />
+        {/* HEADER SIDEBAR - Logo + Utilisateur */}
+        <div className="flex-shrink-0">
+          {/* Logo SIKA INDUSTRIE */}
+          <div className="p-5 pb-4">
+            <div className="flex flex-col items-center">
+              <SikaLogo size="sm" />
+            </div>
+            <div className="h-0.5 mt-4" style={{ backgroundColor: '#E60000' }}></div>
           </div>
-          <div className="h-0.5 mt-4" style={{ backgroundColor: '#E60000' }}></div>
+
+          {/* Utilisateur connecté */}
+          {utilisateurConnecte && (
+            <div className="px-4 pb-3">
+              <div className="px-4 py-3 rounded-lg" style={{ backgroundColor: 'rgba(31, 92, 153, 0.25)' }}>
+                <p className="text-white font-semibold text-sm truncate">{utilisateurConnecte.nom}</p>
+                <p className="text-xs mt-0.5" style={{ color: '#8BA3C7' }}>{utilisateurConnecte.role}</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Utilisateur connecté */}
-        {utilisateurConnecte && (
-          <div className="px-4 py-3 mx-4 mb-4 rounded-lg" style={{ backgroundColor: 'rgba(31, 92, 153, 0.2)' }}>
-            <p className="text-white font-semibold text-sm">{utilisateurConnecte.nom}</p>
-            <p className="text-xs" style={{ color: '#C8C8D0' }}>{utilisateurConnecte.role}</p>
-          </div>
-        )}
-
-        {/* Navigation */}
-        <nav className="flex-1 px-3 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-800 scrollbar-track-transparent">
+        {/* Navigation - Scrollable */}
+        <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent">
           {/* TABLEAU DE BORD */}
           <Link
             to="/dashboard"
@@ -221,9 +227,12 @@ export default function Layout() {
           )}
 
           {/* SÉPARATEUR DEVIS */}
-          <div className="my-3 px-4">
-            <div className="h-px" style={{ backgroundColor: '#1F5C99' }}></div>
-            <p className="text-xs font-semibold mt-2 mb-2" style={{ color: '#1F5C99' }}>DEVIS</p>
+          <div className="mt-4 mb-2 px-4">
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5A7CA8' }}>Devis</p>
+              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+            </div>
           </div>
 
           {/* DEVIS - Avec sous-menu */}
@@ -242,84 +251,32 @@ export default function Layout() {
               </button>
 
               {devisExpanded && (
-                <div className="ml-6 mb-2">
-                  <Link
-                    to="/devis/calorifuge"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 text-sm transition-all ${
-                      isActive('/devis/calorifuge')
-                        ? 'text-white font-semibold'
-                        : 'hover:bg-opacity-10 hover:bg-white'
-                    }`}
-                    style={isActive('/devis/calorifuge') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
-                  >
-                    Devis Calorifuge
-                  </Link>
-                  <Link
-                    to="/devis/pliage"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 text-sm transition-all ${
-                      isActive('/devis/pliage')
-                        ? 'text-white font-semibold'
-                        : 'hover:bg-opacity-10 hover:bg-white'
-                    }`}
-                    style={isActive('/devis/pliage') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
-                  >
-                    Devis Pliage
-                  </Link>
-                  <Link
-                    to="/devis/reservoir"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 text-sm transition-all ${
-                      isActive('/devis/reservoir')
-                        ? 'text-white font-semibold'
-                        : 'hover:bg-opacity-10 hover:bg-white'
-                    }`}
-                    style={isActive('/devis/reservoir') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
-                  >
-                    Devis Réservoir
-                  </Link>
-                  <Link
-                    to="/devis/soudure"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 text-sm transition-all ${
-                      isActive('/devis/soudure')
-                        ? 'text-white font-semibold'
-                        : 'hover:bg-opacity-10 hover:bg-white'
-                    }`}
-                    style={isActive('/devis/soudure') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
-                  >
-                    Devis Soudure
-                  </Link>
-                  <Link
-                    to="/devis/charpente"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 text-sm transition-all ${
-                      isActive('/devis/charpente')
-                        ? 'text-white font-semibold'
-                        : 'hover:bg-opacity-10 hover:bg-white'
-                    }`}
-                    style={isActive('/devis/charpente') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
-                  >
-                    Devis Charpente
-                  </Link>
-                  <Link
-                    to="/devis/tuyauterie"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 text-sm transition-all ${
-                      isActive('/devis/tuyauterie')
-                        ? 'text-white font-semibold'
-                        : 'hover:bg-opacity-10 hover:bg-white'
-                    }`}
-                    style={isActive('/devis/tuyauterie') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
-                  >
-                    Devis Tuyauterie
-                  </Link>
-                  <Link
-                    to="/devis/chaudronnerie"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg mb-1 text-sm transition-all ${
-                      isActive('/devis/chaudronnerie')
-                        ? 'text-white font-semibold'
-                        : 'hover:bg-opacity-10 hover:bg-white'
-                    }`}
-                    style={isActive('/devis/chaudronnerie') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
-                  >
-                    Devis Chaudronnerie
-                  </Link>
+                <div className="ml-4 mr-2 mb-2 py-2 pl-3 pr-2 rounded-lg" style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}>
+                  <div className="space-y-1">
+                    {[
+                      { path: '/devis/calorifuge', label: 'Calorifuge', icon: '🔥' },
+                      { path: '/devis/pliage', label: 'Pliage', icon: '🔧' },
+                      { path: '/devis/reservoir', label: 'Réservoir', icon: '🛢️' },
+                      { path: '/devis/soudure', label: 'Soudure', icon: '⚡' },
+                      { path: '/devis/charpente', label: 'Charpente', icon: '🏗️' },
+                      { path: '/devis/tuyauterie', label: 'Tuyauterie', icon: '🔩' },
+                      { path: '/devis/chaudronnerie', label: 'Chaudronnerie', icon: '⚙️' },
+                    ].map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-all ${
+                          isActive(item.path)
+                            ? 'text-white font-medium bg-red-600'
+                            : 'text-gray-400 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="text-xs">{item.icon}</span>
+                        <span>{item.label}</span>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -339,9 +296,12 @@ export default function Layout() {
           )}
 
           {/* SÉPARATEUR FINANCE */}
-          <div className="my-3 px-4">
-            <div className="h-px" style={{ backgroundColor: '#1F5C99' }}></div>
-            <p className="text-xs font-semibold mt-2 mb-2" style={{ color: '#1F5C99' }}>FINANCE</p>
+          <div className="mt-4 mb-2 px-4">
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5A7CA8' }}>Finance</p>
+              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+            </div>
           </div>
 
           {/* FACTURES CLIENTS */}
@@ -459,9 +419,12 @@ export default function Layout() {
           )}
 
           {/* SÉPARATEUR OUTILS */}
-          <div className="my-3 px-4">
-            <div className="h-px" style={{ backgroundColor: '#1F5C99' }}></div>
-            <p className="text-xs font-semibold mt-2 mb-2" style={{ color: '#1F5C99' }}>OUTILS</p>
+          <div className="mt-4 mb-2 px-4">
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5A7CA8' }}>Outils</p>
+              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+            </div>
           </div>
 
           {/* IMPORT / EXPORT */}
@@ -481,9 +444,12 @@ export default function Layout() {
           )}
 
           {/* SÉPARATEUR PILOTAGE */}
-          <div className="my-3 px-4">
-            <div className="h-px" style={{ backgroundColor: '#1F5C99' }}></div>
-            <p className="text-xs font-semibold mt-2 mb-2" style={{ color: '#1F5C99' }}>PILOTAGE</p>
+          <div className="mt-4 mb-2 px-4">
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5A7CA8' }}>Pilotage</p>
+              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+            </div>
           </div>
 
           {/* UTILISATEURS (ADMIN ONLY) */}
@@ -535,11 +501,11 @@ export default function Layout() {
           )}
         </nav>
 
-        {/* DÉCONNEXION */}
-        <div className="p-4 border-t" style={{ borderColor: '#1F5C99' }}>
+        {/* FOOTER SIDEBAR - Déconnexion */}
+        <div className="flex-shrink-0 p-4 border-t" style={{ borderColor: 'rgba(31, 92, 153, 0.5)' }}>
           <button
             onClick={handleDeconnexion}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-white transition-all hover:opacity-90"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-white transition-all hover:opacity-90 hover:shadow-lg"
             style={{ backgroundColor: '#E60000' }}
           >
             <LogOut size={18} />
@@ -549,14 +515,14 @@ export default function Layout() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* HEADER */}
-        <header className="bg-white border-b px-4 sm:px-8 py-3 sm:py-4" style={{ borderColor: '#C8C8D0' }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 sm:gap-4">
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 shadow-sm sticky top-0 z-20">
+          <div className="flex items-center justify-between gap-4">
+            {/* Partie gauche - Menu mobile + Titre */}
+            <div className="flex items-center gap-3">
               <button
-                className="lg:hidden p-2 rounded-lg transition-colors hover:bg-gray-100"
-                style={{ color: '#1B2A4A' }}
+                className="lg:hidden p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-700"
                 onClick={() => setSidebarOpen(o => !o)}
                 aria-label="Menu"
               >
@@ -566,32 +532,37 @@ export default function Layout() {
                   <line x1="3" y1="18" x2="19" y2="18" />
                 </svg>
               </button>
-              <h2 className="text-lg sm:text-2xl font-bold truncate" style={{ color: '#1B2A4A' }}>SIKA GESTION</h2>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-800 truncate">
+                SIKA <span className="text-red-600">GESTION</span>
+              </h1>
             </div>
-            <div className="hidden sm:block flex-1 mx-4 sm:mx-8 max-w-md">
+
+            {/* Partie centrale - Recherche */}
+            <div className="hidden sm:block flex-1 max-w-md mx-4">
               <SearchGlobal />
             </div>
-            <div className="flex items-center gap-2 sm:gap-6">
+
+            {/* Partie droite - Actions utilisateur */}
+            <div className="flex items-center gap-3 sm:gap-4">
               <SyncStatusIndicator />
               {utilisateurConnecte && (
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="hidden sm:block">
+                  <div className="hidden sm:flex items-center gap-2">
                     <ShortcutsHelp />
-                  </div>
-                  <div className="hidden sm:block">
                     <NotificationSettings />
                   </div>
-                  <div className="hidden md:block text-right">
-                    <p className="text-sm font-medium" style={{ color: '#1B2A4A' }}>{utilisateurConnecte.nom}</p>
-                    <p className="text-xs" style={{ color: '#1F5C99' }}>{utilisateurConnecte.role}</p>
+                  <div className="hidden lg:block text-right">
+                    <p className="text-sm font-medium text-gray-800">{utilisateurConnecte.nom}</p>
+                    <p className="text-xs text-blue-600">{utilisateurConnecte.role}</p>
                   </div>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base" style={{ backgroundColor: '#E60000' }}>
+                  <div className="w-9 h-9 rounded-full bg-red-600 text-white font-bold text-sm flex items-center justify-center shadow-md">
                     {utilisateurConnecte.nom.charAt(0).toUpperCase()}
                   </div>
                 </div>
               )}
             </div>
           </div>
+
           {/* Barre de recherche mobile */}
           <div className="sm:hidden mt-3">
             <SearchGlobal />
@@ -600,10 +571,15 @@ export default function Layout() {
 
         {/* BREADCRUMB + CONTENT */}
         <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
-          <Breadcrumb items={getBreadcrumbItems()} />
-          <Outlet />
+          <div className="max-w-7xl mx-auto">
+            <Breadcrumb items={getBreadcrumbItems()} />
+            <Outlet />
+          </div>
         </div>
       </main>
+
+      {/* TOASTS ÉPHÉMÈRES */}
+      <ToastContainer />
 
       {/* BANNIÈRE AVERTISSEMENT SESSION */}
       {sessionExpirant && (

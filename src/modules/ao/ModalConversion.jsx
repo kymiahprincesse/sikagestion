@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuditStore } from '../../store/useAuditStore';
+import { useNotificationsStore } from '../../store/useNotificationsStore';
 
 export default function ModalConversion({ ao, onClose }) {
   const navigate = useNavigate();
   const { addLog } = useAuditStore();
+  const { ajouterNotification } = useNotificationsStore();
   const [typeDevis, setTypeDevis] = useState('');
 
   const typesDevis = [
@@ -15,7 +17,12 @@ export default function ModalConversion({ ao, onClose }) {
 
   const handleConvertir = () => {
     if (!typeDevis) {
-      alert('Veuillez sélectionner un type de devis');
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Veuillez sélectionner un type de devis'
+      });
       return;
     }
 

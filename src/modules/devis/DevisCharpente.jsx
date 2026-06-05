@@ -79,7 +79,12 @@ export default function DevisCharpente() {
           setDevisId(devisExist.id)
         } else {
           console.error('Devis non trouvé avec ID:', location.state.devisId)
-          alert('Devis non trouvé. Il a peut-être été supprimé.')
+          ajouterNotification({
+            type: 'ATTENTION',
+            icone: '⚠️',
+            titre: 'ERREUR',
+            message: 'Devis non trouvé. Il a peut-être été supprimé.'
+          })
         }
       }
     }
@@ -115,7 +120,12 @@ export default function DevisCharpente() {
 
   const supprimerLigne = (id) => {
     if (devisData.lignes.length <= 1) {
-      alert('Le devis doit contenir au moins une ligne')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Le devis doit contenir au moins une ligne'
+      })
       return
     }
     setDevisData(prev => ({
@@ -159,7 +169,12 @@ export default function DevisCharpente() {
 
   const handleEnregistrer = () => {
     if (!devisData.clientId) {
-      alert('Veuillez sélectionner un client')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'ATTENTION',
+        message: 'Veuillez sélectionner un client avant d\'enregistrer le devis'
+      })
       return
     }
 
@@ -169,18 +184,35 @@ export default function DevisCharpente() {
     if (devisId) {
       updateDevis(devisId, devisComplet)
       addLog({ module: 'DEVIS_CHARPENTE', action: 'MODIFICATION', utilisateur: 'Utilisateur', apres: { numero: devisData.numero, montantTTC: totaux.ttc } })
-      alert('Devis modifié avec succès')
+      ajouterNotification({
+        type: 'INFO',
+        icone: '✅',
+        titre: 'SUCCÈS',
+        message: `Devis ${devisData.numero} modifié avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
+        lien: '/devis/liste'
+      })
     } else {
       const nouveau = addDevis(devisComplet)
       setDevisId(nouveau.id)
       addLog({ module: 'DEVIS_CHARPENTE', action: 'CREATION', utilisateur: 'Utilisateur', apres: { numero: nouveau.numero, montantTTC: totaux.ttc } })
-      alert('Devis enregistré avec succès')
+      ajouterNotification({
+        type: 'INFO',
+        icone: '✅',
+        titre: 'SUCCÈS',
+        message: `Devis ${nouveau.numero} enregistré avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
+        lien: '/devis/liste'
+      })
     }
   }
 
   const handleGenerePDF = async () => {
     if (!devisData.clientId) {
-      alert('Veuillez sélectionner un client avant de générer le PDF')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Veuillez sélectionner un client avant de générer le PDF'
+      })
       return
     }
     
@@ -233,7 +265,12 @@ export default function DevisCharpente() {
     };
     
     addLog({ module: 'DEVIS_CHARPENTE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devisData.numero } });
-    alert('Devis ouvert dans une nouvelle fenêtre pour impression');
+    ajouterNotification({
+      type: 'INFO',
+      icone: '📄',
+      titre: 'PDF GÉNÉRÉ',
+      message: 'Devis ouvert dans une nouvelle fenêtre pour impression'
+    });
   }
 
   const clientSelectionne = clients.find(c => c.id === devisData.clientId)

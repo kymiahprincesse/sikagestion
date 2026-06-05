@@ -79,7 +79,12 @@ export default function DevisTuyauterie() {
           setDevisId(devisExist.id)
         } else {
           console.error('Devis non trouvé avec ID:', location.state.devisId)
-          alert('Devis non trouvé. Il a peut-être été supprimé.')
+          ajouterNotification({
+            type: 'ATTENTION',
+            icone: '⚠️',
+            titre: 'ERREUR',
+            message: 'Devis non trouvé. Il a peut-être été supprimé.'
+          })
         }
       }
     }
@@ -111,7 +116,12 @@ export default function DevisTuyauterie() {
 
   const supprimerLigne = (id) => {
     if (devisData.lignes.length <= 1) {
-      alert('Le devis doit contenir au moins une ligne')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Le devis doit contenir au moins une ligne'
+      })
       return
     }
     setDevisData(prev => ({
@@ -255,7 +265,12 @@ export default function DevisTuyauterie() {
     };
     
     addLog({ module: 'DEVIS_TUYAUTERIE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devisData.numero } });
-    alert('Devis ouvert dans une nouvelle fenêtre pour impression');
+    ajouterNotification({
+      type: 'INFO',
+      icone: '📄',
+      titre: 'PDF GÉNÉRÉ',
+      message: 'Devis ouvert dans une nouvelle fenêtre pour impression'
+    });
   }
 
   const clientSelectionne = clients.find(c => c.id === devisData.clientId)

@@ -3,6 +3,7 @@ import { useFacturesStore } from '../../store/useFacturesStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useEncaissementsStore } from '../../store/useEncaissementsStore'
 import { useAuditStore } from '../../store/useAuditStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import SikaHeader from '../../components/SikaHeader'
 import SikaFooter from '../../components/SikaFooter'
 import ExportExcelButton from '../../components/ExportExcelButton'
@@ -15,6 +16,7 @@ export default function EncaissementsGlobal() {
   const { clients, getClientById } = useClientsStore()
   const { addEncaissement } = useEncaissementsStore()
   const { addLog } = useAuditStore()
+  const { ajouterNotification } = useNotificationsStore()
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [clientFiltre, setClientFiltre] = useState('')
@@ -72,7 +74,12 @@ export default function EncaissementsGlobal() {
 
   const handleSaveEncaissement = () => {
     if (!formEncaissement.montant || !formEncaissement.date || !formEncaissement.moyenPaiement) {
-      alert('Veuillez remplir tous les champs obligatoires')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Veuillez remplir tous les champs obligatoires'
+      })
       return
     }
 
@@ -80,7 +87,12 @@ export default function EncaissementsGlobal() {
     const restant = (factureSelectionnee.montantTTC || 0) - (factureSelectionnee.montantEncaisse || 0)
 
     if (montant <= 0 || montant > restant) {
-      alert(`Le montant doit être entre 0 et ${formatFCFA(restant)}`)
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: `Le montant doit être entre 0 et ${formatFCFA(restant)}`
+      })
       return
     }
 

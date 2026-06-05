@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
@@ -14,6 +15,7 @@ export default function SuiviFactures() {
   const { factures, addFacture, updateFacture, deleteFacture, addPaiement, deletePaiement } = useFacturesStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
+  const { ajouterNotification } = useNotificationsStore()
   const [showPaiementsHistory, setShowPaiementsHistory] = useState(false)
 
   const [recherche, setRecherche] = useState('')
@@ -169,7 +171,12 @@ export default function SuiviFactures() {
     const montantPaiement = parseFloat(formData.montantPaiement) || 0
 
     if (montantPaiement <= 0) {
-      alert('Veuillez saisir un montant valide pour le paiement')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Veuillez saisir un montant valide pour le paiement'
+      })
       return
     }
 

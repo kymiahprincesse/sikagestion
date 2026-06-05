@@ -3,6 +3,7 @@ import { useDevisStore } from '../../store/useDevisStore'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
@@ -20,6 +21,7 @@ export default function ListeDevis() {
   const { addFacture } = useFacturesStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
+  const { ajouterNotification } = useNotificationsStore()
 
   const [recherche, setRecherche] = useState('')
   const [filtreType, setFiltreType] = useState('')
@@ -287,7 +289,12 @@ export default function ListeDevis() {
   const handleModifier = (devis) => {
     // Vérifier que le devis a un ID
     if (!devis || !devis.id) {
-      alert('Erreur: Ce devis n\'a pas d\'identifiant. Impossible de le modifier.')
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: 'Ce devis n\'a pas d\'identifiant. Impossible de le modifier.'
+      })
       console.error('Devis sans ID:', devis)
       return
     }
@@ -297,7 +304,12 @@ export default function ListeDevis() {
 
     // Si toujours pas de type, on ne peut pas modifier
     if (!typeDevis || typeDevis === 'INCONNU') {
-      alert(`Ce devis n'a pas de type défini (type: ${typeDevis || 'null'}). Impossible de l'ouvrir pour modification.`)
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: `Ce devis n'a pas de type défini (type: ${typeDevis || 'null'}). Impossible de l'ouvrir.`
+      })
       console.error('Devis sans type valide:', devis)
       return
     }
@@ -317,7 +329,12 @@ export default function ListeDevis() {
     const route = routeMap[typeDevis]
 
     if (!route) {
-      alert(`Type de devis non reconnu: "${typeDevis}".\nRoutes disponibles: ${Object.keys(routeMap).join(', ')}`)
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: `Type de devis non reconnu: "${typeDevis}". Routes: ${Object.keys(routeMap).join(', ')}`
+      })
       console.error('Type devis inconnu:', devis)
       return
     }
@@ -431,10 +448,21 @@ export default function ListeDevis() {
         apres: { devis: devis.numero, facture: facture?.numero }
       })
 
-      alert(`Devis ${devis.numero} converti en facture ${facture?.numero} avec succès !`)
+      ajouterNotification({
+        type: 'INFO',
+        icone: '✅',
+        titre: 'SUCCÈS',
+        message: `Devis ${devis.numero} converti en facture ${facture?.numero} avec succès !`,
+        lien: '/factures'
+      })
     } catch (error) {
       console.error('Erreur conversion devis en facture:', error)
-      alert('Erreur lors de la conversion du devis en facture')
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: 'Erreur lors de la conversion du devis en facture'
+      })
     }
   }
 

@@ -15,11 +15,20 @@ export const TYPES_NOTIFICATION = {
   INFO: 'INFO'
 };
 
+// Types pour les toasts éphémères
+export const TYPES_TOAST = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+  WARNING: 'warning',
+  INFO: 'info'
+};
+
 export const useNotificationsStore = create(
   persist(
     (set, get) => ({
       notifications: [],
       notificationsLues: [],
+      toasts: [], // Toasts éphémères qui s'affichent et disparaissent
 
       genererNotifications: (factures, devis, ao, projets, fournisseurs) => {
         const nouvelles = [];
@@ -173,6 +182,71 @@ export const useNotificationsStore = create(
         return nouvelle;
       },
 
+      // ═══ SYSTÈME DE TOASTS ÉPHÉMÈRES ═══
+      ajouterToast: (toast) => {
+        const id = toast.id || `toast-${Date.now()}`;
+        const nouveauToast = {
+          ...toast,
+          id,
+          type: toast.type || TYPES_TOAST.INFO,
+          duration: toast.duration || 4000,
+          date: new Date().toISOString()
+        };
+
+        set((state) => ({
+          toasts: [...state.toasts, nouveauToast]
+        }));
+
+        // Auto-suppression après duration
+        if (nouveauToast.duration > 0) {
+          setTimeout(() => {
+            get().supprimerToast(id);
+          }, nouveauToast.duration);
+        }
+
+        return id;
+      },
+
+      supprimerToast: (toastId) => {
+        set((state) => ({
+          toasts: state.toasts.filter(t => t.id !== toastId)
+        }));
+      },
+
+      // Helpers pratiques pour les toasts
+      toastSuccess: (message, duration = 4000) => {
+        return get().ajouterToast({
+          type: TYPES_TOAST.SUCCESS,
+          message,
+          duration
+        });
+      },
+
+      toastError: (message, duration = 5000) => {
+        return get().ajouterToast({
+          type: TYPES_TOAST.ERROR,
+          message,
+          duration
+        });
+      },
+
+      toastWarning: (message, duration = 4000) => {
+        return get().ajouterToast({
+          type: TYPES_TOAST.WARNING,
+          message,
+          duration
+        });
+      },
+
+      toastInfo: (message, duration = 4000) => {
+        return get().ajouterToast({
+          type: TYPES_TOAST.INFO,
+          message,
+          duration
+        });
+      },
+      // ═══════════════════════════════════
+
       notifierDevisConverti: (devisNumero) => {
         get().ajouterNotification({
           id: `devis-converti-${Date.now()}`,
@@ -244,7 +318,12 @@ export const useNotificationsStore = create(
       }
     }),
     {
-      name: 'sika_notifications'
+      name: 'sika_notifications',
+      partialize: (state) => ({
+        // Ne pas persister les toasts (éphémères)
+        notifications: state.notifications,
+        notificationsLues: state.notificationsLues
+      })
     }
   )
 );

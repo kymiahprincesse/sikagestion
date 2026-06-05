@@ -105,7 +105,12 @@ export default function DevisCalorifuge() {
           setDevisId(devisExist.id)
         } else {
           console.error('Devis non trouvé avec ID:', location.state.devisId)
-          alert('Devis non trouvé. Il a peut-être été supprimé.')
+          ajouterNotification({
+            type: 'ATTENTION',
+            icone: '⚠️',
+            titre: 'ERREUR',
+            message: 'Devis non trouvé. Il a peut-être été supprimé.'
+          })
         }
       }
     }
@@ -189,7 +194,12 @@ export default function DevisCalorifuge() {
 
   const supprimerLigne = (id) => {
     if (devisData.lignes.length <= 1) {
-      alert('Le devis doit contenir au moins une ligne')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Le devis doit contenir au moins une ligne'
+      })
       return
     }
     setDevisData(prev => ({
@@ -263,7 +273,12 @@ export default function DevisCalorifuge() {
     })
 
     if (erreurs.length > 0) {
-      alert('Erreurs de validation:\n' + erreurs.join('\n'))
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'ERREURS DE VALIDATION',
+        message: erreurs.join(', ')
+      })
       return false
     }
 
@@ -304,7 +319,13 @@ export default function DevisCalorifuge() {
     if (!devisId) {
       const validation = duplicatePrevention.vérifierDoublon(devisComplet);
       if (validation.estDoublon) {
-        alert(`⚠️ DOUBLON DÉTECTÉ : ${validation.message}\n\nDevis existant : ${validation.doublonDetecté?.numero || 'N/A'}\n\nAction annulée pour éviter le doublon.`);
+        ajouterNotification({
+          type: 'ATTENTION',
+          icone: '⚠️',
+          titre: 'DOUBLON DÉTECTÉ',
+          message: `${validation.message}. Devis existant: ${validation.doublonDetecté?.numero || 'N/A'}`,
+          lien: '/devis/liste'
+        });
         return;
       }
     }
@@ -318,7 +339,13 @@ export default function DevisCalorifuge() {
         apres: devisComplet,
         impactFinancier: totaux.ttc
       })
-      alert('Devis mis à jour avec succès')
+      ajouterNotification({
+        type: 'INFO',
+        icone: '✅',
+        titre: 'SUCCÈS',
+        message: `Devis ${devisData.numero} modifié avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
+        lien: '/devis/liste'
+      })
     } else {
       const nouveau = await addDevis(devisComplet)
       setDevisId(nouveau.id)
@@ -328,7 +355,13 @@ export default function DevisCalorifuge() {
         apres: nouveau,
         impactFinancier: totaux.ttc
       })
-      alert('Devis enregistré avec succès')
+      ajouterNotification({
+        type: 'INFO',
+        icone: '✅',
+        titre: 'SUCCÈS',
+        message: `Devis ${nouveau.numero} enregistré avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
+        lien: '/devis/liste'
+      })
     }
   }
 
@@ -405,16 +438,31 @@ export default function DevisCalorifuge() {
         }, 500);
       };
       
-      alert('Devis ouvert dans une nouvelle fenêtre pour impression');
+      ajouterNotification({
+        type: 'INFO',
+        icone: '📄',
+        titre: 'PDF GÉNÉRÉ',
+        message: 'Devis ouvert dans une nouvelle fenêtre pour impression'
+      });
     } catch (error) {
       console.error('Erreur PDF:', error);
-      alert('Erreur lors de la génération: ' + error.message);
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR PDF',
+        message: 'Erreur lors de la génération: ' + error.message
+      });
     }
   }
 
   const envoyerEmail = () => {
     if (!validerDevis()) return
-    alert('Fonctionnalité d\'envoi par email à implémenter')
+    ajouterNotification({
+      type: 'INFO',
+      icone: '📧',
+      titre: 'INFO',
+      message: 'Fonctionnalité d\'envoi par email à implémenter'
+    })
   }
 
   const totaux = calculerTotaux()

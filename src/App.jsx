@@ -74,23 +74,23 @@ function App() {
               <Route path="ao" element={<SuiviAOModule />} />
 
               {/* DEVIS */}
-              <Route path="devis/calorifuge" element={<DevisCalorifuge />} />
-              <Route path="devis/pliage" element={<DevisPliage />} />
-              <Route path="devis/reservoir" element={<DevisReservoir />} />
-              <Route path="devis/soudure" element={<DevisSoudure />} />
-              <Route path="devis/charpente" element={<DevisCharpente />} />
-              <Route path="devis/tuyauterie" element={<DevisTuyauterie />} />
-              <Route path="devis/chaudronnerie" element={<DevisChaudronnerie />} />
-              <Route path="devis/liste" element={<ListeDevis />} />
+              <Route path="devis/calorifuge" element={<ErrorBoundary><DevisCalorifuge /></ErrorBoundary>} />
+              <Route path="devis/pliage" element={<ErrorBoundary><DevisPliage /></ErrorBoundary>} />
+              <Route path="devis/reservoir" element={<ErrorBoundary><DevisReservoir /></ErrorBoundary>} />
+              <Route path="devis/soudure" element={<ErrorBoundary><DevisSoudure /></ErrorBoundary>} />
+              <Route path="devis/charpente" element={<ErrorBoundary><DevisCharpente /></ErrorBoundary>} />
+              <Route path="devis/tuyauterie" element={<ErrorBoundary><DevisTuyauterie /></ErrorBoundary>} />
+              <Route path="devis/chaudronnerie" element={<ErrorBoundary><DevisChaudronnerie /></ErrorBoundary>} />
+              <Route path="devis/liste" element={<ErrorBoundary><ListeDevis /></ErrorBoundary>} />
 
               {/* FINANCE */}
-              <Route path="factures" element={<SuiviFacturesModule />} />
-              <Route path="encaissements" element={<EncaissementParClient />} />
-              <Route path="caisse" element={<EnregistrementCaisse />} />
-              <Route path="journal" element={<JournalCaisse />} />
-              <Route path="fournisseurs" element={<FournisseursModule />} />
-              <Route path="achats" element={<AchatsModule />} />
-              <Route path="depenses" element={<DepensesModule />} />
+              <Route path="factures" element={<ErrorBoundary><SuiviFacturesModule /></ErrorBoundary>} />
+              <Route path="encaissements" element={<ErrorBoundary><EncaissementParClient /></ErrorBoundary>} />
+              <Route path="caisse" element={<ErrorBoundary><EnregistrementCaisse /></ErrorBoundary>} />
+              <Route path="journal" element={<ErrorBoundary><JournalCaisse /></ErrorBoundary>} />
+              <Route path="fournisseurs" element={<ErrorBoundary><FournisseursModule /></ErrorBoundary>} />
+              <Route path="achats" element={<ErrorBoundary><AchatsModule /></ErrorBoundary>} />
+              <Route path="depenses" element={<ErrorBoundary><DepensesModule /></ErrorBoundary>} />
 
               {/* OUTILS */}
               <Route path="import-export" element={<ImportExport />} />

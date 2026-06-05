@@ -3,6 +3,7 @@ import { useEncaissementsStore } from '../../store/useEncaissementsStore'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
+import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
@@ -21,6 +22,7 @@ export default function EncaissementParClient() {
   const { factures } = useFacturesStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
+  const { ajouterNotification } = useNotificationsStore()
 
   const [clientSelectionne, setClientSelectionne] = useState(null)
   const [sorting, setSorting] = useState([])
@@ -288,7 +290,12 @@ export default function EncaissementParClient() {
   const exportReleveCompte = async () => {
     const client = clients.find(c => c.id === clientSelectionne)
     if (!client) {
-      alert('Veuillez sélectionner un client')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Veuillez sélectionner un client'
+      })
       return
     }
     
@@ -543,7 +550,12 @@ export default function EncaissementParClient() {
           <button
             onClick={() => {
               if (!clientSelectionne) {
-                alert('⚠️ Veuillez sélectionner un client avant de créer un encaissement')
+                ajouterNotification({
+                  type: 'ATTENTION',
+                  icone: '⚠️',
+                  titre: 'VALIDATION',
+                  message: 'Veuillez sélectionner un client avant de créer un encaissement'
+                })
                 return
               }
               setCurrentEncaissement(null)
@@ -562,7 +574,12 @@ export default function EncaissementParClient() {
           <button
             onClick={() => {
               if (!clientSelectionne) {
-                alert('⚠️ Veuillez sélectionner un client avant d\'exporter le relevé de compte')
+                ajouterNotification({
+                  type: 'ATTENTION',
+                  icone: '⚠️',
+                  titre: 'VALIDATION',
+                  message: 'Veuillez sélectionner un client avant d\'exporter le relevé de compte'
+                })
                 return
               }
               exportReleveCompte()

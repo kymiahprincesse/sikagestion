@@ -87,7 +87,12 @@ export default function DevisPliage() {
           setDevisId(devisExist.id)
         } else {
           console.error('Devis non trouvé avec ID:', location.state.devisId)
-          alert('Devis non trouvé. Il a peut-être été supprimé.')
+          ajouterNotification({
+            type: 'ATTENTION',
+            icone: '⚠️',
+            titre: 'ERREUR',
+            message: 'Devis non trouvé. Il a peut-être été supprimé.'
+          })
         }
       }
     }
@@ -119,7 +124,12 @@ export default function DevisPliage() {
 
   const supprimerLigne = (id) => {
     if (devisData.lignes.length <= 1) {
-      alert('Le devis doit contenir au moins une ligne')
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Le devis doit contenir au moins une ligne'
+      })
       return
     }
     setDevisData(prev => ({
@@ -182,7 +192,12 @@ export default function DevisPliage() {
     })
 
     if (erreurs.length > 0) {
-      alert('Erreurs de validation:\n' + erreurs.join('\n'))
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'ERREURS DE VALIDATION',
+        message: erreurs.join(', ')
+      })
       return false
     }
 
@@ -349,10 +364,20 @@ export default function DevisPliage() {
         }, 500);
       };
       
-      alert('Devis ouvert dans une nouvelle fenêtre pour impression');
+      ajouterNotification({
+        type: 'INFO',
+        icone: '📄',
+        titre: 'PDF GÉNÉRÉ',
+        message: 'Devis ouvert dans une nouvelle fenêtre pour impression'
+      });
     } catch (error) {
       console.error('Erreur PDF:', error);
-      alert('Erreur lors de la génération: ' + error.message);
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR PDF',
+        message: 'Erreur lors de la génération: ' + error.message
+      });
     }
   }
 

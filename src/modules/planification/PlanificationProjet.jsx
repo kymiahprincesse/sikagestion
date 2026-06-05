@@ -4,6 +4,7 @@ import { useClientsStore } from '../../store/useClientsStore';
 import { useParametresStore } from '../../store/useParametresStore';
 import { useDevisStore } from '../../store/useDevisStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useNotificationsStore } from '../../store/useNotificationsStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line } from 'recharts';
 import * as XLSX from 'xlsx';
 import { createSikaPDF, addSikaHeaderFooterToAllPages, getSikaContentMargins } from '../../utils/pdfTemplate';
@@ -70,6 +71,8 @@ export default function PlanificationProjet() {
   const getStatistiquesProjet = usePlanificationStore(state => state.getStatistiquesProjet);
   const calculerBudgetTache = usePlanificationStore(state => state.calculerBudgetTache);
   const importerTaches = usePlanificationStore(state => state.importerTaches);
+
+  const { ajouterNotification } = useNotificationsStore();
 
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [projetSelectionne, setProjetSelectionne] = useState(null);
@@ -163,7 +166,12 @@ export default function PlanificationProjet() {
 
   const handleSaveProjet = () => {
     if (!formProjet.nom || !formProjet.clientId) {
-      alert('Veuillez remplir les champs obligatoires');
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Veuillez remplir les champs obligatoires (nom et client)'
+      });
       return;
     }
     
@@ -217,7 +225,12 @@ export default function PlanificationProjet() {
 
   const handleSaveTache = () => {
     if (!formTache.nom || !projetSelectionne) {
-      alert('Veuillez remplir les champs obligatoires');
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Veuillez remplir les champs obligatoires (nom de la tâche)'
+      });
       return;
     }
     
@@ -390,7 +403,12 @@ export default function PlanificationProjet() {
       doc.save(`Planification_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('Erreur lors de l\'export PDF:', error);
-      alert('Erreur lors de l\'export PDF: ' + (error.message || 'Erreur inconnue'));
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR PDF',
+        message: 'Erreur lors de l\'export PDF: ' + (error.message || 'Erreur inconnue')
+      });
     }
   };
 
@@ -507,7 +525,12 @@ export default function PlanificationProjet() {
       }
     } catch (error) {
       console.error('Erreur lors de la visualisation:', error);
-      alert('Erreur lors de la visualisation: ' + (error.message || 'Erreur inconnue'));
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: 'Erreur lors de la visualisation: ' + (error.message || 'Erreur inconnue')
+      });
     }
   };
 
@@ -615,7 +638,12 @@ export default function PlanificationProjet() {
 
     } catch (error) {
       console.error('Erreur lors de l\'impression:', error);
-      alert('Erreur lors de l\'impression: ' + (error.message || 'Erreur inconnue'));
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR',
+        message: 'Erreur lors de l\'impression: ' + (error.message || 'Erreur inconnue')
+      });
     }
   };
 
