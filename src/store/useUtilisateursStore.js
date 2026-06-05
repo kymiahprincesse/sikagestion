@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabaseClient';
 import { hashPassword, verifyPassword } from '../utils/passwordHash';
 import { logger } from '../utils/logger';
 
-const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET || '';
+// TEMPORAIRE: Hardcodé pour test - A REMETTRE EN VAR ENV APRES
+const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET || 'sika_industrie_admin_2026';
 
 // Fonction pour générer un code aléatoire cryptographiquement sécurisé
 function generateSecureCode(length = 6) {
@@ -163,7 +164,16 @@ export const useUtilisateursStore = create(
         return result;
       },
 
-      ajouterUtilisateur: async (utilisateur) => {
+      ajouterUtilisateur: async (utilisateur, currentUserRole) => {
+        // DEBUG: Log pour voir ce qui est reçu
+        console.log('[DEBUG] ajouterUtilisateur - currentUserRole:', currentUserRole);
+        console.log('[DEBUG] ajouterUtilisateur - utilisateur:', { nom: utilisateur.nom, role: utilisateur.role });
+
+        // Vérification des permissions : seuls ADMIN et SUPER_ADMIN peuvent ajouter des utilisateurs
+        if (currentUserRole !== 'ADMIN' && currentUserRole !== 'SUPER_ADMIN') {
+          return { success: false, message: `Permission refusée : rôle '${currentUserRole}' non autorisé. Seuls ADMIN et SUPER_ADMIN peuvent ajouter des utilisateurs.` };
+        }
+
         const { utilisateurs } = get();
         if (utilisateurs.find(u => u.login === utilisateur.login)) {
           return { success: false, message: 'Ce login existe déjà' };
@@ -175,20 +185,28 @@ export const useUtilisateursStore = create(
           return { success: false, message: 'Un email est requis pour créer le compte de connexion' };
         }
 
+        // Validation du rôle
+        const validRoles = ['ADMIN', 'COMPTABLE', 'SECRETAIRE', 'TECHNICIEN', 'USER', 'VIEWER', 'SUPER_ADMIN'];
+        const roleToSend = utilisateur.role || 'TECHNICIEN';
+        if (!validRoles.includes(roleToSend)) {
+          return { success: false, message: `Rôle invalide : ${roleToSend}. Rôles acceptés : ${validRoles.join(', ')}` };
+        }
+
         try {
           const result = await callManageUsers('create', {
             email: utilisateur.email,
             password: utilisateur.motDePasse,
             nom: utilisateur.nom,
             login: utilisateur.login,
-            role: utilisateur.role || 'TECHNICIEN',
+            role: roleToSend,
           });
 
           const nouvelUtilisateur = rowToUtilisateur(result.user);
           set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
           return { success: true, utilisateur: nouvelUtilisateur };
         } catch (err) {
-          return { success: false, message: err.message };
+          logger.error('ajouterUtilisateur error:', err);
+          return { success: false, message: err.message || 'Erreur lors de la création de l\'utilisateur' };
         }
       },
 

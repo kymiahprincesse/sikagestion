@@ -10,4 +10,5 @@ export { useNotification } from './useNotification';
 export { useNotifications } from './useNotifications';
 export { usePWAInstall } from './usePWAInstall';
 export { usePagination } from './usePagination';
+export { useResponsive } from './useResponsive';
 export { useSupabaseSync } from './useSupabaseSync';

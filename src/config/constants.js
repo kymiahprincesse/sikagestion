@@ -46,9 +46,13 @@ export const FINANCIAL_CONFIG = {
 };
 
 // ── RÔLES UTILISATEURS ─────────────────────────────────
+// Les rôles doivent correspondre à ceux définis dans la base Supabase
 export const ROLES = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMIN',
+  COMPTABLE: 'COMPTABLE',
+  SECRETAIRE: 'SECRETAIRE',
+  TECHNICIEN: 'TECHNICIEN',
   USER: 'USER',
   VIEWER: 'VIEWER',
 };

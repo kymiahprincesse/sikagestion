@@ -9,7 +9,7 @@ import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useNotificationsStore } from '../store/useNotificationsStore'
-import { useSupabaseRealtime } from '../hooks/useSupabaseRealtime'
+import { useSupabaseRealtimeEnhanced } from '../hooks/useSupabaseRealtimeEnhanced'
 import { offlineQueue } from '../services/offlineQueue'
 
 /**
@@ -17,8 +17,8 @@ import { offlineQueue } from '../services/offlineQueue'
  * ET active la synchronisation temps réel
  */
 export default function DataLoader() {
-  // Activer la sync temps réel
-  useSupabaseRealtime()
+  // Activer la sync temps réel améliorée avec reconnexion auto
+  useSupabaseRealtimeEnhanced()
 
   const setClients = useClientsStore(state => state.setClients)
   const setFactures = useFacturesStore(state => state.setFactures)

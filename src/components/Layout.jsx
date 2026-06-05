@@ -122,7 +122,7 @@ export default function Layout() {
       {/* SIDEBAR */}
       <aside
         className={`fixed lg:relative z-30 flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ width: '260px', backgroundColor: '#1B2A4A', minHeight: '100vh' }}
+        style={{ width: '280px', maxWidth: '85vw', backgroundColor: '#1B2A4A', minHeight: '100vh', height: '100vh' }}
       >
         {/* Logo SIKA INDUSTRIE */}
         <div className="p-6">
@@ -141,7 +141,7 @@ export default function Layout() {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 overflow-y-auto">
+        <nav className="flex-1 px-3 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-800 scrollbar-track-transparent">
           {/* TABLEAU DE BORD */}
           <Link
             to="/dashboard"
@@ -551,9 +551,9 @@ export default function Layout() {
       {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* HEADER */}
-        <header className="bg-white border-b px-8 py-4" style={{ borderColor: '#C8C8D0' }}>
+        <header className="bg-white border-b px-4 sm:px-8 py-3 sm:py-4" style={{ borderColor: '#C8C8D0' }}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <button
                 className="lg:hidden p-2 rounded-lg transition-colors hover:bg-gray-100"
                 style={{ color: '#1B2A4A' }}
@@ -566,32 +566,40 @@ export default function Layout() {
                   <line x1="3" y1="18" x2="19" y2="18" />
                 </svg>
               </button>
-              <h2 className="text-2xl font-bold" style={{ color: '#1B2A4A' }}>SIKA GESTION</h2>
+              <h2 className="text-lg sm:text-2xl font-bold truncate" style={{ color: '#1B2A4A' }}>SIKA GESTION</h2>
             </div>
-            <div className="flex-1 mx-8 max-w-md">
+            <div className="hidden sm:block flex-1 mx-4 sm:mx-8 max-w-md">
               <SearchGlobal />
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 sm:gap-6">
               <SyncStatusIndicator />
               {utilisateurConnecte && (
-                <div className="flex items-center gap-3">
-                  <ShortcutsHelp />
-                  <NotificationSettings />
-                  <div className="text-right">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="hidden sm:block">
+                    <ShortcutsHelp />
+                  </div>
+                  <div className="hidden sm:block">
+                    <NotificationSettings />
+                  </div>
+                  <div className="hidden md:block text-right">
                     <p className="text-sm font-medium" style={{ color: '#1B2A4A' }}>{utilisateurConnecte.nom}</p>
                     <p className="text-xs" style={{ color: '#1F5C99' }}>{utilisateurConnecte.role}</p>
                   </div>
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: '#E60000' }}>
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-base" style={{ backgroundColor: '#E60000' }}>
                     {utilisateurConnecte.nom.charAt(0).toUpperCase()}
                   </div>
                 </div>
               )}
             </div>
           </div>
+          {/* Barre de recherche mobile */}
+          <div className="sm:hidden mt-3">
+            <SearchGlobal />
+          </div>
         </header>
 
         {/* BREADCRUMB + CONTENT */}
-        <div className="flex-1 p-8">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
           <Breadcrumb items={getBreadcrumbItems()} />
           <Outlet />
         </div>

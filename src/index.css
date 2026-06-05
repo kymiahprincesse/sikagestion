@@ -48,6 +48,75 @@
 }
 
 /* ═══════════════════════════════════════════
+   SIKA INDUSTRIE — STYLES RESPONSIVE MOBILE
+═══════════════════════════════════════════ */
+
+/* Mobile First - Optimisations tactiles */
+@media (max-width: 768px) {
+  /* Tables scrollables horizontalement */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .table-container table {
+    min-width: 600px;
+  }
+  
+  /* Formulaires optimisés tactile */
+  input, select, textarea, button {
+    font-size: 16px !important; /* Empêche le zoom iOS */
+    min-height: 44px; /* Zone tactile minimale */
+  }
+  
+  /* Boutons plus grands sur mobile */
+  button, .btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+  }
+  
+  /* Cards empilées */
+  .card-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Padding réduit */
+  .mobile-padding {
+    padding: 1rem !important;
+  }
+  
+  /* Texte plus lisible */
+  .mobile-text {
+    font-size: 14px !important;
+  }
+}
+
+/* Tablette */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tablet-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Animations réduites pour les appareils à batterie */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mode sombre automatique si préféré */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Garder le thème clair SIKA même en dark mode système */
+    color-scheme: light;
+  }
+}
+
+/* ═══════════════════════════════════════════
    SIKA INDUSTRIE — STYLES D'IMPRESSION
 ═══════════════════════════════════════════ */
 @media print {

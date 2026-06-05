@@ -7,6 +7,7 @@ import { NotificationProvider } from './components/NotificationProvider'
 import Login from './modules/auth/Login'
 import PWAInstallBanner from './components/PWAInstallBanner'
 import PWAUpdateNotice from './components/PWAUpdateNotice'
+import { NetworkStatusBanner } from './components/NetworkStatusBanner'
 
 const DashboardEnhanced     = lazy(() => import('./modules/DashboardEnhanced'))
 const SuiviAOModule         = lazy(() => import('./modules/ao').then(m => ({ default: m.SuiviAO })))
@@ -104,6 +105,7 @@ function App() {
         </Suspense>
         <PWAInstallBanner />
         <PWAUpdateNotice />
+        <NetworkStatusBanner />
       </BrowserRouter>
     </NotificationProvider>
     </ErrorBoundary>

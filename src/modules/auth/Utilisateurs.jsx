@@ -218,9 +218,24 @@ const Utilisateurs = () => {
     if (!formData.nom || !formData.login || !formData.motDePasse) { afficherMessage('error', 'Tous les champs sont obligatoires'); return; }
     if (!formData.email) { afficherMessage('error', 'L\'email est obligatoire pour créer un compte Supabase'); return; }
     if (formData.motDePasse.length < 6) { afficherMessage('error', 'Minimum 6 caractères pour le mot de passe'); return; }
+
+    // Vérifier que l'utilisateur est connecté et a un rôle
+    const currentRole = utilisateurConnecte?.role;
+    console.log('[DEBUG Utilisateurs] utilisateurConnecte:', utilisateurConnecte);
+    console.log('[DEBUG Utilisateurs] currentRole:', currentRole);
+
+    if (!currentRole) {
+      afficherMessage('error', 'Erreur: Votre session semble expirée. Reconnectez-vous.');
+      return;
+    }
+    if (currentRole !== 'ADMIN' && currentRole !== 'SUPER_ADMIN') {
+      afficherMessage('error', `Permission refusée: votre rôle '${currentRole}' ne permet pas d'ajouter des utilisateurs.`);
+      return;
+    }
+
     setLoadingCreate(true);
     try {
-      const result = await ajouterUtilisateur(formData);
+      const result = await ajouterUtilisateur(formData, currentRole);
       if (result.success) {
         enregistrerAction('UTILISATEUR', 'CREATION', `Nouvel utilisateur ${formData.nom} créé avec rôle ${formData.role}`);
         afficherMessage('success', `✅ ${formData.nom} créé — peut maintenant se connecter avec son email`);
