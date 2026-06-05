@@ -13,11 +13,6 @@ import Breadcrumb from '../../components/Breadcrumb';
 import ActionButtons from '../../components/ActionButtons';
 import SmartPlanningUpload from './SmartPlanningUpload';
 
-const CLIENTS_RAPIDES = [
-  { id: 1, nom: 'GMCI' },
-  { id: 2, nom: 'AMCC' },
-  { id: 3, nom: 'LDC' }
-];
 
 const getStatutBadge = (statut) => {
   const badges = {
@@ -666,19 +661,6 @@ export default function PlanificationProjet() {
         <div className="mb-6">
           <label className="block text-sm font-medium text-navy mb-2">Sélectionner un client</label>
           <div className="flex gap-2 flex-wrap">
-            {CLIENTS_RAPIDES.map(client => (
-              <button
-                key={client.id}
-                onClick={() => handleClientRapide(client.id)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  clientSelectionne === client.id
-                    ? 'bg-[#E60000] text-white'
-                    : 'bg-gray-100 text-navy hover:bg-[#E60000] hover:text-white'
-                }`}
-              >
-                {client.nom}
-              </button>
-            ))}
             <select
               value={clientSelectionne || ''}
               onChange={(e) => handleClientRapide(parseInt(e.target.value))}

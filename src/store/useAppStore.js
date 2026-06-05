@@ -1,11 +1,7 @@
 import { create } from 'zustand'
 
 export const useAppStore = create((set) => ({
-  user: {
-    name: 'Administrateur',
-    email: 'admin@sika.com',
-    role: 'admin'
-  },
+  user: null, // Pas d'utilisateur par défaut - doit être chargé depuis Supabase Auth
   
   sidebarOpen: true,
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),

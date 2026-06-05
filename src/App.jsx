@@ -30,7 +30,6 @@ const Utilisateurs          = lazy(() => import('./modules/auth/Utilisateurs'))
 const FournisseursModule    = lazy(() => import('./modules/fournisseurs').then(m => ({ default: m.Fournisseurs })))
 const AchatsModule          = lazy(() => import('./modules/achats/Achats'))
 const DepensesModule        = lazy(() => import('./modules/depenses/Depenses'))
-const InjectionDonnees      = lazy(() => import('./components/InjectionDonnees'))
 const TourDeControle        = lazy(() => import('./components/TourDeControle'))
 const Parametres            = lazy(() => import('./components/Parametres'))
 const Rapport               = lazy(() => import('./modules/rapport/Rapport'))
@@ -94,7 +93,6 @@ function App() {
 
               {/* OUTILS */}
               <Route path="import-export" element={<ImportExport />} />
-              <Route path="injection-donnees" element={<AdminRoute><InjectionDonnees /></AdminRoute>} />
 
               {/* PILOTAGE — ADMIN/SUPER_ADMIN uniquement */}
               <Route path="utilisateurs" element={<AdminRoute><Utilisateurs /></AdminRoute>} />
