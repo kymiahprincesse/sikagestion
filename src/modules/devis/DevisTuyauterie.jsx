@@ -219,9 +219,12 @@ export default function DevisTuyauterie() {
     const client = clients.find(c => c.id === devisData.clientId);
     const totaux = calculerTotaux();
     
-    // Préparer les données pour le template
+    // Préparer les données pour le template avec tous les détails
     const lignesAvecMontant = devisData.lignes.map(l => ({
-      designation: l.typeTuyau || '—',
+      designation: l.designation || `${l.typeTuyau || 'Tuyau'} ${l.dn || ''}`,
+      typeTuyau: l.typeTuyau,
+      pression: l.pression,
+      longueur: l.longueur,
       dn: l.dn || '—',
       qte: parseFloat(l.quantite) || 0,
       pu: parseFloat(l.pu) || 0,
@@ -230,7 +233,7 @@ export default function DevisTuyauterie() {
     
     const templateData = {
       reference: devisData.numero,
-      objet: devisData.objet || 'Tuyauterie Industrielle',
+      objet: devisData.objet || `Tuyauterie - ${devisData.fluideTransporte || 'Fluide'}`,
       type: 'TUYAUTERIE',
       client: {
         nom: client?.nom || '—',
@@ -244,6 +247,8 @@ export default function DevisTuyauterie() {
         tel: '(225) 07 97 25 25 26'
       },
       lignes: lignesAvecMontant,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       tva: totaux.tva,
       ttc: totaux.ttc

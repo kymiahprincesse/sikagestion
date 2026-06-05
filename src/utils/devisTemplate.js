@@ -11,11 +11,12 @@
  * @param {string} data.objet - Objet du devis
  * @param {Object} data.client - Informations client { nom, interlocuteur, site }
  * @param {Object} data.infos - Informations du devis { date, validite, etabliPar, tel }
- * @param {Array} data.lignes - Lignes du devis [{ designation, dn, qte, pu, montant }]
+ * @param {Array} data.lignes - Lignes du devis [{ designation, details, dn, qte, pu, montant }]
  * @param {number} data.montantHT - Montant HT
  * @param {number} data.tva - Montant TVA
  * @param {number} data.ttc - Montant TTC
  * @param {string} data.type - Type de devis (optionnel, affiché dans le bandeau)
+ * @param {string} data.remise - Montant de la remise (optionnel)
  * @returns {string} HTML complet du devis
  */
 export function generateDevisHTML(data) {
@@ -28,7 +29,9 @@ export function generateDevisHTML(data) {
     montantHT = 0,
     tva = 0,
     ttc = 0,
-    type = ''
+    type = '',
+    remise = 0,
+    montantBrut = 0
   } = data;
 
   // Formater les montants avec séparateur de milliers
@@ -43,16 +46,38 @@ export function generateDevisHTML(data) {
     return new Date(date).toLocaleDateString('fr-FR');
   };
 
-  // Générer les lignes du tableau
-  const lignesHTML = lignes.map((ligne, index) => `
+  // Générer les lignes du tableau avec détails complets
+  const lignesHTML = lignes.map((ligne, index) => {
+    // Construire la désignation complète avec tous les détails
+    let designationComplete = ligne.designation || '';
+    
+    // Ajouter les détails supplémentaires si présents
+    const details = [];
+    if (ligne.typeTravail) details.push(ligne.typeTravail);
+    if (ligne.materiau) details.push(ligne.materiau);
+    if (ligne.typeTole) details.push(ligne.typeTole);
+    if (ligne.epaisseur) details.push(`Ép. ${ligne.epaisseur}mm`);
+    if (ligne.typeTuyau) details.push(ligne.typeTuyau);
+    if (ligne.pression) details.push(ligne.pression);
+    if (ligne.longueur && ligne.longueur > 0) details.push(`L: ${ligne.longueur}m`);
+    if (ligne.ml && ligne.ml > 0) details.push(`ML: ${ligne.ml}`);
+    if (ligne.pt && ligne.pt > 0) details.push(`PT: ${ligne.pt}`);
+    if (ligne.surface && ligne.surface > 0) details.push(`Surf: ${ligne.surface}m²`);
+    if (ligne.dimension || ligne.surface) details.push(ligne.dimension || ligne.surface);
+    
+    if (details.length > 0) {
+      designationComplete += `<br><span class="detail-spec">${details.join(' | ')}</span>`;
+    }
+    
+    return `
     <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-alterne'}">
-      <td class="col-designation">${ligne.designation || ''}</td>
-      <td class="col-dn">${ligne.dn || ligne.unite || '—'}</td>
+      <td class="col-designation">${designationComplete}</td>
+      <td class="col-dn">${ligne.dn || ligne.unite || 'U'}</td>
       <td class="col-qte">${formatMontant(ligne.qte || 0)}</td>
       <td class="col-pu">${formatMontant(ligne.pu || 0)}</td>
       <td class="col-montant">${formatMontant(ligne.montant || (ligne.qte * ligne.pu) || 0)}</td>
     </tr>
-  `).join('');
+  `}).join('');
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -222,6 +247,17 @@ export function generateDevisHTML(data) {
       background: #f0f4f9;
     }
     
+    /* ═══ DÉTAILS SPÉCIFICATIONS ═══ */
+    .detail-spec {
+      font-size: 8pt;
+      color: #4a6fa5;
+      font-style: italic;
+      display: block;
+      margin-top: 2px;
+      padding-left: 4px;
+      border-left: 2px solid #c8d4e8;
+    }
+    
     /* ═══ TOTAUX ═══ */
     .totaux-container {
       width: 100%;
@@ -234,6 +270,21 @@ export function generateDevisHTML(data) {
       font-size: 10pt;
       font-weight: bold;
       border: 1px solid #c8d4e8;
+    }
+    
+    .ligne-brut {
+      background: #f5f7fa;
+      color: #1a3a6b;
+    }
+    
+    .ligne-remise {
+      background: #fff5f5;
+      color: #c53030;
+    }
+    
+    .ligne-remise .libelle,
+    .ligne-remise .montant {
+      color: #c53030;
     }
     
     .ligne-ht {
@@ -394,14 +445,26 @@ export function generateDevisHTML(data) {
       
       <!-- TOTAUX -->
       <table class="totaux-container">
+        ${montantBrut > 0 && remise > 0 ? `
+        <tr class="ligne-brut">
+          <td class="libelle">MONTANT BRUT</td>
+          <td class="montant">${formatMontant(montantBrut)} FCFA</td>
+        </tr>
+        <tr class="ligne-remise">
+          <td class="libelle">REMISE</td>
+          <td class="montant">- ${formatMontant(remise)} FCFA</td>
+        </tr>
+        ` : ''}
         <tr class="ligne-ht">
           <td class="libelle">MONTANT HT</td>
           <td class="montant">${formatMontant(montantHT)} FCFA</td>
         </tr>
+        ${tva > 0 ? `
         <tr class="ligne-tva">
           <td class="libelle">TVA 18%</td>
           <td class="montant">${formatMontant(tva)} FCFA</td>
         </tr>
+        ` : ''}
         <tr class="ligne-ttc">
           <td class="libelle">MONTANT TOTAL TTC</td>
           <td class="montant">${formatMontant(ttc)} FCFA</td>
@@ -440,7 +503,7 @@ export function generateDevisHTML(data) {
 export function prepareDevisData(devisData, clients, utilisateur = {}) {
   const client = clients.find(c => c.id === devisData.clientId) || {};
   
-  // Normaliser les lignes selon le type de devis
+  // Normaliser les lignes selon le type de devis avec tous les détails
   let lignes = [];
   if (devisData.lignes && Array.isArray(devisData.lignes)) {
     lignes = devisData.lignes.map(l => ({
@@ -448,7 +511,18 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
       dn: l.dn || l.unite || '',
       qte: parseFloat(l.qte) || 0,
       pu: parseFloat(l.pu) || 0,
-      montant: parseFloat(l.montant) || (parseFloat(l.qte) * parseFloat(l.pu)) || 0
+      montant: parseFloat(l.montant) || (parseFloat(l.qte) * parseFloat(l.pu)) || 0,
+      // Détails spécifiques par type de devis
+      typeTravail: l.typeTravail || '',
+      materiau: l.materiau || '',
+      typeTole: l.typeTole || '',
+      epaisseur: l.epaisseur || 0,
+      typeTuyau: l.typeTuyau || '',
+      pression: l.pression || '',
+      longueur: l.longueur || 0,
+      ml: l.ml || 0,
+      pt: l.pt || 0,
+      surface: l.surface || l.dimension || 0
     }));
   } else if (devisData.lignesCommerciales && Array.isArray(devisData.lignesCommerciales)) {
     lignes = devisData.lignesCommerciales.map(l => ({
@@ -456,16 +530,25 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
       dn: l.unite || 'U',
       qte: parseFloat(l.qte) || 0,
       pu: parseFloat(l.pu) || 0,
-      montant: parseFloat(l.qte) * parseFloat(l.pu) || 0
+      montant: parseFloat(l.qte) * parseFloat(l.pu) || 0,
+      // Détails supplémentaires si présents
+      typeTravail: l.typeTravail || '',
+      materiau: l.materiau || '',
+      epaisseur: l.epaisseur || 0,
+      longueur: l.longueur || 0,
+      surface: l.surface || 0
     }));
   }
 
   // Calculer les totaux
-  const montantHT = parseFloat(devisData.montantHT) || 
+  const montantBrut = parseFloat(devisData.montantBrut) || 
     lignes.reduce((sum, l) => sum + (l.montant || 0), 0);
+  const tauxRemise = parseFloat(devisData.tauxRemise) || 0;
+  const remise = parseFloat(devisData.remise) || (montantBrut * (tauxRemise / 100));
+  const montantHT = parseFloat(devisData.montantHT) || (montantBrut - remise);
   const tvaActive = devisData.tvaActive !== false;
-  const tva = tvaActive ? montantHT * 0.18 : 0;
-  const ttc = montantHT + tva;
+  const tva = parseFloat(devisData.tva) || (tvaActive ? montantHT * 0.18 : 0);
+  const ttc = parseFloat(devisData.ttc) || (montantHT + tva);
 
   return {
     reference: devisData.numero,
@@ -483,6 +566,8 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
       tel: utilisateur.telephone || '(225) 07 97 25 25 26'
     },
     lignes,
+    montantBrut,
+    remise,
     montantHT,
     tva,
     ttc

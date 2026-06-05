@@ -331,9 +331,9 @@ export default function DevisReservoir() {
     const client = clients.find(c => c.id === devisData.clientId);
     const totaux = calculerTotaux();
     
-    // Préparer les données pour le template
+    // Préparer les données pour le template avec tous les détails
     const lignesAvecMontant = devisData.lignesCommerciales.map(l => ({
-      designation: l.designation,
+      designation: l.designation || 'Ligne de devis',
       dn: 'U',
       qte: parseFloat(l.qte) || 0,
       pu: parseFloat(l.pu) || 0,
@@ -342,7 +342,7 @@ export default function DevisReservoir() {
     
     const templateData = {
       reference: devisData.numero,
-      objet: devisData.objet || `Construction Réservoir ${devisData.forme} - ${devisData.volume} ${devisData.volumeUnit}`,
+      objet: devisData.objet || `Réservoir ${devisData.forme} ${devisData.volume}${devisData.volumeUnit} - ${devisData.typeAcier}`,
       type: 'RÉSERVOIR',
       client: {
         nom: client?.nom || '—',
@@ -356,6 +356,8 @@ export default function DevisReservoir() {
         tel: '(225) 07 97 25 25 26'
       },
       lignes: lignesAvecMontant,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       tva: totaux.tva,
       ttc: totaux.ttc

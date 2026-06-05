@@ -219,10 +219,13 @@ export default function DevisCharpente() {
     const client = clients.find(c => c.id === devisData.clientId);
     const totaux = calculerTotaux();
     
-    // Préparer les données pour le template
+    // Préparer les données pour le template avec tous les détails
     const lignesAvecMontant = devisData.lignes.map(l => ({
-      designation: l.typeProfil || '—',
-      dn: l.surface || '—',
+      designation: l.designation || `Profil ${l.typeProfil || 'IPE'}`,
+      typeProfil: l.typeProfil,
+      surface: l.surface,
+      longueur: l.longueur,
+      dn: l.surface || l.longueur ? `${l.longueur || 0}m - ${l.surface || ''}` : '—',
       qte: parseFloat(l.quantite) || 0,
       pu: parseFloat(l.pu) || 0,
       montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
@@ -230,7 +233,7 @@ export default function DevisCharpente() {
     
     const templateData = {
       reference: devisData.numero,
-      objet: devisData.objet || 'Charpente Métallique',
+      objet: devisData.objet || `Charpente Métallique - Portée ${devisData.portee || 0}m`,
       type: 'CHARPENTE',
       client: {
         nom: client?.nom || '—',
@@ -244,6 +247,8 @@ export default function DevisCharpente() {
         tel: '(225) 07 97 25 25 26'
       },
       lignes: lignesAvecMontant,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       tva: totaux.tva,
       ttc: totaux.ttc

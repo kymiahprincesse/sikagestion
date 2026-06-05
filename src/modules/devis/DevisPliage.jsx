@@ -319,22 +319,26 @@ export default function DevisPliage() {
     try {
       const client = clients.find(c => c.id === devisData.clientId);
       
-      // Préparer les données pour le template
+      // Préparer les données pour le template avec tous les détails
       const lignesAvecMontant = devisData.lignes.map(l => ({
-        designation: l.designation || `${l.typeTole} - ${l.epaisseur}mm`,
-        dn: `${l.longueur || 0}m`,
-        qte: parseFloat(l.quantite) || 0,
+        designation: l.designation || `Pliage ${l.typeTole || 'Tôle'}`,
+        typeTole: l.typeTole,
+        epaisseur: l.epaisseur,
+        longueur: l.longueur,
+        nombrePlis: l.nombrePlis,
+        dn: l.epaisseur ? `${l.epaisseur}mm` : '—',
+        qte: parseFloat(l.qte) || 0,
         pu: parseFloat(l.pu) || 0,
-        montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
+        montant: (parseFloat(l.qte) || 0) * (parseFloat(l.pu) || 0)
       }));
       
       const templateData = {
         reference: devisData.numero,
-        objet: devisData.objet || 'Pliage de Tôles',
+        objet: devisData.objet || `Pliage ${specifications.typeTole || 'Tôle'} ${specifications.epaisseur || ''}mm`,
         type: 'PLIAGE',
         client: {
           nom: client?.nom || '—',
-          interlocuteur: devisData.demandePar || client?.contactNom || '—',
+          interlocuteur: client?.contactNom || '—',
           site: client?.ville || '—'
         },
         infos: {
@@ -344,6 +348,8 @@ export default function DevisPliage() {
           tel: '(225) 07 97 25 25 26'
         },
         lignes: lignesAvecMontant,
+        montantBrut: totaux.montantBrut,
+        remise: totaux.remise,
         montantHT: totaux.montantHT,
         tva: totaux.tva,
         ttc: totaux.ttc

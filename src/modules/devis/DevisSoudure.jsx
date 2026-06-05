@@ -231,10 +231,14 @@ export default function DevisSoudure() {
     const client = clients.find(c => c.id === devisData.clientId);
     const totaux = calculerTotaux();
     
-    // Préparer les données pour le template
+    // Préparer les données pour le template avec tous les détails
     const lignesAvecMontant = devisData.lignes.map(l => ({
-      designation: `${l.typeSoudure || '—'} - ${l.materiau || '—'}`,
-      dn: `${l.longueur || 0}m`,
+      designation: l.designation || `Soudure ${l.typeSoudure || 'TIG'}`,
+      typeSoudure: l.typeSoudure,
+      materiau: l.materiau,
+      epaisseur: l.epaisseur,
+      longueur: l.longueur,
+      dn: l.epaisseur ? `Ép. ${l.epaisseur}mm` : `${l.longueur || 0}m`,
       qte: parseFloat(l.quantite) || 0,
       pu: parseFloat(l.pu) || 0,
       montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
@@ -242,7 +246,7 @@ export default function DevisSoudure() {
     
     const templateData = {
       reference: devisData.numero,
-      objet: devisData.objet || 'Soudure Industrielle',
+      objet: devisData.objet || `Soudure ${devisData.typeSoudure || 'TIG'} - ${devisData.materiau || 'Acier'}`,
       type: 'SOUDURE',
       client: {
         nom: client?.nom || '—',
@@ -256,6 +260,8 @@ export default function DevisSoudure() {
         tel: '(225) 07 97 25 25 26'
       },
       lignes: lignesAvecMontant,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       tva: totaux.tva,
       ttc: totaux.ttc

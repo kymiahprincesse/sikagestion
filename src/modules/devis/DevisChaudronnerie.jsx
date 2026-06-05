@@ -208,9 +208,13 @@ export default function DevisChaudronnerie() {
     const client = clients.find(c => c.id === devisData.clientId);
     const totaux = calculerTotaux();
     
-    // Préparer les données pour le template
+    // Préparer les données pour le template avec tous les détails
     const lignesAvecMontant = devisData.lignes.map(l => ({
-      designation: `${l.typeTravaux || '—'} - ${l.materiau || '—'}`,
+      designation: l.designation || `${l.typeTravail || 'Travail'} - ${l.materiau || 'Acier'}`,
+      typeTravail: l.typeTravail,
+      materiau: l.materiau,
+      epaisseur: l.epaisseur,
+      surface: l.surface,
       dn: `${l.surface || 0}m²`,
       qte: parseFloat(l.quantite) || 0,
       pu: parseFloat(l.pu) || 0,
@@ -224,7 +228,7 @@ export default function DevisChaudronnerie() {
       client: {
         nom: client?.nom || '—',
         interlocuteur: client?.contactNom || '—',
-        site: client?.ville || '—'
+        site: devisData.lieuInstallation || client?.ville || '—'
       },
       infos: {
         date: devisData.date,
@@ -233,6 +237,8 @@ export default function DevisChaudronnerie() {
         tel: '(225) 07 97 25 25 26'
       },
       lignes: lignesAvecMontant,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       tva: totaux.tva,
       ttc: totaux.ttc

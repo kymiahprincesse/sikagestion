@@ -396,15 +396,16 @@ export default function DevisCalorifuge() {
     try {
       const client = clients.find(c => c.id === devisData.clientId);
       
-      // Préparer les données pour le template
+      // Préparer les données pour le template avec tous les détails
       const lignesAvecMontant = devisData.lignes.map(l => ({
         ...l,
+        designation: l.designation || 'Ligne calorifuge',
         montant: calculerMontant(l)
       }));
       
       const templateData = {
         reference: devisData.numero,
-        objet: devisData.objet || 'Devis Calorifuge',
+        objet: devisData.objet || 'Calorifuge',
         type: 'CALORIFUGE',
         client: {
           nom: client?.nom || '—',
@@ -418,6 +419,8 @@ export default function DevisCalorifuge() {
           tel: '(225) 07 97 25 25 26'
         },
         lignes: lignesAvecMontant,
+        montantBrut: totaux.montantBrut,
+        remise: totaux.remise,
         montantHT: totaux.montantHT,
         tva: totaux.tva,
         ttc: totaux.ttc
