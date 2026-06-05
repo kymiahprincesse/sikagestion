@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { hashPassword, verifyPassword } from '../utils/passwordHash';
+import { logger } from '../utils/logger';
 
 const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET || '';
 
@@ -61,27 +62,13 @@ async function hashLocal(password) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Utilisateurs initiaux avec mots de passe hashés (à remplacer par des hash réels)
-const PERSONNEL_INITIAL = [
-  { id: 101, nom: 'KOMLAN AMEMATCHRON', login: 'komlan', email: 'komlan.amematchron@sikaindustrie.ci', motDePasseHash: null, role: 'ADMIN',      actif: true, auth_user_id: null },
-  { id: 102, nom: 'ANANI ALIDA OLGA',   login: 'anani',  email: 'anani.alida@sikaindustrie.ci',        motDePasseHash: null, role: 'COMPTABLE',  actif: true, auth_user_id: null },
-  { id: 103, nom: 'KOUASSI JULIANA',    login: 'kouassi',email: 'kouassi.juliana@sikaindustrie.ci',    motDePasseHash: null, role: 'SECRETAIRE', actif: true, auth_user_id: null },
-  { id: 104, nom: 'Technicien 1',       login: 'tech1',  email: 'tech1@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 105, nom: 'Technicien 2',       login: 'tech2',  email: 'tech2@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 106, nom: 'Technicien 3',       login: 'tech3',  email: 'tech3@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 107, nom: 'Technicien 4',       login: 'tech4',  email: 'tech4@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 108, nom: 'Technicien 5',       login: 'tech5',  email: 'tech5@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 109, nom: 'Technicien 6',       login: 'tech6',  email: 'tech6@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 110, nom: 'Technicien 7',       login: 'tech7',  email: 'tech7@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 111, nom: 'Technicien 8',       login: 'tech8',  email: 'tech8@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 112, nom: 'Technicien 9',       login: 'tech9',  email: 'tech9@sikaindustrie.ci',              motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null },
-  { id: 113, nom: 'Technicien 10',      login: 'tech10', email: 'tech10@sikaindustrie.ci',             motDePasseHash: null, role: 'TECHNICIEN', actif: true, auth_user_id: null }
-];
+// Aucun utilisateur initial fictif - tous les utilisateurs viennent de Supabase
+const PERSONNEL_INITIAL = [];
 
 export const useUtilisateursStore = create(
   persist(
     (set, get) => ({
-      utilisateurs: PERSONNEL_INITIAL,
+      utilisateurs: [],
 
       fetchUtilisateurs: async () => {
         try {
@@ -89,27 +76,25 @@ export const useUtilisateursStore = create(
             .from('utilisateurs')
             .select('*')
             .order('id');
-          if (error || !data || data.length === 0) return;
+          if (error) {
+            logger.error('fetchUtilisateurs error:', error.message);
+            return;
+          }
 
-          const localUsers = get().utilisateurs;
+          // Filtrer les utilisateurs fictifs (IDs 101-113) qui pourraient être en cache
+          const localUsers = get().utilisateurs.filter(u => u.id < 100 || u.id > 113);
 
-          const supabaseLogins = new Set(data.map(r => r.login));
-          const merged = localUsers
-            .filter(u => !u.auth_user_id || supabaseLogins.has(u.login))
-            .map(u => {
-              const row = data.find(r => r.login === u.login);
-              return row ? rowToUtilisateur(row, u) : u;
-            });
+          if (!data || data.length === 0) {
+            // Si Supabase est vide, garder seulement les utilisateurs locaux valides
+            set({ utilisateurs: localUsers });
+            return;
+          }
 
-          data.forEach(row => {
-            if (!merged.find(u => u.login === row.login)) {
-              merged.push(rowToUtilisateur(row));
-            }
-          });
-
-          set({ utilisateurs: merged });
+          // Utiliser uniquement les données de Supabase
+          const supabaseUsers = data.map(row => rowToUtilisateur(row));
+          set({ utilisateurs: supabaseUsers });
         } catch (err) {
-          console.error('fetchUtilisateurs:', err.message);
+          logger.error('fetchUtilisateurs:', err.message);
         }
       },
 
@@ -233,7 +218,9 @@ export const useUtilisateursStore = create(
           is_actif: modifies[index].actif,
           permissions: modifies[index].permissions || null,
         }).eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase modifierUtilisateur:', error.message);
+          if (error) logger.error('Supabase modifierUtilisateur:', error.message);
+        }).catch((err) => {
+          logger.error('Erreur modifierUtilisateur:', err.message);
         });
 
         return { success: true, utilisateur: modifies[index] };
@@ -313,7 +300,9 @@ export const useUtilisateursStore = create(
         set({ utilisateurs: modifies });
 
         supabase.from('utilisateurs').update({ is_actif: modifies[index].actif }).eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase toggleActif:', error.message);
+          if (error) logger.error('Supabase toggleActif:', error.message);
+        }).catch((err) => {
+          logger.error('Erreur toggleActif:', err.message);
         });
 
         return { success: true, utilisateur: modifies[index] };
@@ -382,12 +371,13 @@ export const useUtilisateursStore = create(
       name: 'sika_utilisateurs',
       version: 3,
       migrate: (persistedState) => {
+        // Filtrer les utilisateurs fictifs (IDs 101-113) de l'ancien PERSONNEL_INITIAL
+        const cleanedUsers = (persistedState.utilisateurs || [])
+          .filter(u => u.id < 100 || u.id > 113)
+          .map(u => ({ ...u, auth_user_id: u.auth_user_id || null }));
         return {
           ...persistedState,
-          utilisateurs: (persistedState.utilisateurs || PERSONNEL_INITIAL).map(u => ({
-            ...u,
-            auth_user_id: u.auth_user_id || null,
-          }))
+          utilisateurs: cleanedUsers
         };
       }
     }

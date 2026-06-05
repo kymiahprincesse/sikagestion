@@ -6,6 +6,7 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
+import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_TOLE = [
@@ -38,12 +39,13 @@ export default function DevisPliage() {
   const { ajouterNotification } = useNotificationsStore()
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: getNextNumero(),
+    numero: '',
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'PLIAGE',
     objet: '',
     lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    tauxRemise: 0,
     statut: 'BROUILLON',
     tvaActive: true
   }))
@@ -56,6 +58,13 @@ export default function DevisPliage() {
   })
 
   const [devisId, setDevisId] = useState(null)
+
+  // Générer le numéro après le montage (évite setState pendant le render)
+  useEffect(() => {
+    if (!devisData.numero && !location.state?.devisId) {
+      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
+    }
+  }, [devisData.numero, location.state?.devisId, getNextNumero])
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
@@ -71,7 +80,8 @@ export default function DevisPliage() {
             objet: devisExist.objet || '',
             lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
             statut: devisExist.statut || 'BROUILLON',
-            tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true
+            tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
+            tauxRemise: devisExist.tauxRemise || 0
           })
           setSpecifications(devisExist.specifications || { typeTole: 'Galvanisé', epaisseur: 0, nombrePlis: 0, unitePrix: 'piece' })
           setDevisId(devisExist.id)
@@ -91,10 +101,13 @@ export default function DevisPliage() {
   }
 
   const calculerTotaux = () => {
-    const montantHT = devisData.lignes.reduce((sum, ligne) => sum + calculerMontant(ligne), 0)
+    const montantBrut = devisData.lignes.reduce((sum, ligne) => sum + calculerMontant(ligne), 0)
+    const tauxRemise = parseFloat(devisData.tauxRemise) || 0
+    const remise = montantBrut * (tauxRemise / 100)
+    const montantHT = montantBrut - remise
     const tva = devisData.tvaActive ? montantHT * 0.18 : 0
     const ttc = montantHT + tva
-    return { montantHT, tva, ttc }
+    return { montantBrut, remise, montantHT, tva, ttc }
   }
 
   const ajouterLigne = () => {
@@ -184,6 +197,7 @@ export default function DevisPliage() {
         clientId: null,
         objet: '',
         lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+        tauxRemise: 0,
         statut: 'BROUILLON',
         tvaActive: true
       })
@@ -204,6 +218,8 @@ export default function DevisPliage() {
     const devisComplet = {
       ...devisData,
       specifications,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       montantTVA: totaux.tva,
       montantTTC: totaux.ttc,
@@ -262,6 +278,8 @@ export default function DevisPliage() {
     const devisComplet = {
       ...devisData,
       specifications,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       montantTVA: totaux.tva,
       montantTTC: totaux.ttc,
@@ -285,74 +303,56 @@ export default function DevisPliage() {
 
     try {
       const client = clients.find(c => c.id === devisData.clientId);
-      const ctx = await createSikaPDF(`DEVIS PLIAGE - ${devisData.numero}`);
-      const { doc, startY, MARGE_G, PAGE_W } = ctx;
       
-      let y = startY;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(27, 42, 74);
+      // Préparer les données pour le template
+      const lignesAvecMontant = devisData.lignes.map(l => ({
+        designation: l.designation || `${l.typeTole} - ${l.epaisseur}mm`,
+        dn: `${l.longueur || 0}m`,
+        qte: parseFloat(l.quantite) || 0,
+        pu: parseFloat(l.pu) || 0,
+        montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
+      }));
       
-      const infos = [
-        ['Client', client?.nom || 'N/A'],
-        ['Date', formatDate(devisData.date)],
-        ['Demandé par', devisData.demandePar || 'N/A'],
-        ['Objet', devisData.objet || 'N/A']
-      ];
+      const templateData = {
+        reference: devisData.numero,
+        objet: devisData.objet || 'Pliage de Tôles',
+        type: 'PLIAGE',
+        client: {
+          nom: client?.nom || '—',
+          interlocuteur: devisData.demandePar || client?.contactNom || '—',
+          site: client?.ville || '—'
+        },
+        infos: {
+          date: devisData.date,
+          validite: '30 jours',
+          etabliPar: 'SIKA INDUSTRIE',
+          tel: '(225) 07 97 25 25 26'
+        },
+        lignes: lignesAvecMontant,
+        montantHT: totaux.montantHT,
+        tva: totaux.tva,
+        ttc: totaux.ttc
+      };
+
+      // Générer le HTML avec le nouveau template
+      const htmlContent = generateDevisHTML(templateData);
       
-      infos.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(label + ' :', MARGE_G, y);
-        doc.setFont('helvetica', 'normal');
-        const lines = doc.splitTextToSize(value, 120);
-        doc.text(lines, MARGE_G + 35, y);
-        y += lines.length * 6;
-      });
+      // Ouvrir dans une nouvelle fenêtre pour impression
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
       
-      y += 8;
+      // Attendre le chargement puis imprimer
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      };
       
-      const columns = ['Désignation', 'Type', 'Épaisseur', 'Longueur', 'Qté', 'PU (FCFA)', 'Montant (FCFA)'];
-      const rows = devisData.lignes.map(ligne => [
-        ligne.designation,
-        ligne.typeTole || '—',
-        ligne.epaisseur || '—',
-        ligne.longueur || 0,
-        ligne.quantite || 0,
-        formatMontant(ligne.pu),
-        formatMontant(ligne.quantite * ligne.pu)
-      ]);
-      
-      const finalY = sikaTable(doc, columns, rows, y, ctx);
-      y = finalY + 10;
-      
-      const totauxX = PAGE_W - 80;
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(27, 42, 74);
-      
-      const rowsTotaux = [
-        ['Montant HT', formatMontant(totaux.montantHT) + ' FCFA'],
-        ...(devisData.tvaActive ? [['TVA (18%)', formatMontant(totaux.tva) + ' FCFA']] : []),
-        ['MONTANT TTC', formatMontant(totaux.ttc) + ' FCFA']
-      ];
-      rowsTotaux.forEach(([label, val], idx) => {
-        if (idx === rowsTotaux.length - 1) {
-          doc.setFillColor(27, 42, 74);
-          doc.rect(totauxX - 2, y - 4, 82, 8, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(10);
-        }
-        doc.text(label, totauxX, y);
-        doc.text(val, PAGE_W - 15, y, { align: 'right' });
-        y += (idx === rowsTotaux.length - 1) ? 10 : 6;
-        doc.setTextColor(27, 42, 74);
-        doc.setFontSize(9);
-      });
-      
-      await finalizeSikaPDF(ctx, `SIKA_Devis_Pliage_${devisData.numero.replace(/\//g, '_')}.pdf`);
-      alert('PDF généré avec succès');
+      alert('Devis ouvert dans une nouvelle fenêtre pour impression');
     } catch (error) {
-      alert('Erreur lors de la génération du PDF: ' + error.message);
+      console.error('Erreur PDF:', error);
+      alert('Erreur lors de la génération: ' + error.message);
     }
   }
 
@@ -590,7 +590,28 @@ export default function DevisPliage() {
           <div className="w-full md:w-1/2 bg-navyClair p-4 rounded-lg border-2 border-orange">
             <div className="space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-argent">
-                <span className="font-bold text-navy">MONTANT HT</span>
+                <span className="font-bold text-navy">MONTANT BRUT HT</span>
+                <span className="font-bold text-navy text-lg">{formatFCFA(totaux.montantBrut)}</span>
+              </div>
+
+              <div className="flex justify-between items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-navy">REMISE</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={devisData.tauxRemise}
+                    onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))}
+                    className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
+                  />
+                  <span className="text-navy">%</span>
+                </div>
+                <span className="font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
+              </div>
+
+              <div className="flex justify-between items-center pb-2 border-b border-argent bg-orangeClair p-2 rounded">
+                <span className="font-bold text-navy">MONTANT TOTAL HT</span>
                 <span className="font-bold text-navy text-lg">{formatFCFA(totaux.montantHT)}</span>
               </div>
               
@@ -604,7 +625,7 @@ export default function DevisPliage() {
                     className="w-4 h-4 accent-orange cursor-pointer"
                   />
                   <label htmlFor="tva-checkbox" className="font-medium text-bleu cursor-pointer">
-                    TVA 18%
+                    TVA (18%)
                   </label>
                 </div>
                 <span className="font-bold text-orange">{formatFCFA(totaux.tva)}</span>
@@ -697,12 +718,22 @@ export default function DevisPliage() {
             </tbody>
             <tfoot>
               <tr className="bg-navyClair">
-                <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-navy">MONTANT HT</td>
+                <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-navy">MONTANT BRUT HT</td>
+                <td className="border border-navy px-4 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantBrut)}</td>
+              </tr>
+              {devisData.tauxRemise > 0 && (
+                <tr className="bg-white">
+                  <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-rouge">REMISE {devisData.tauxRemise}%</td>
+                  <td className="border border-navy px-4 py-2 text-right font-bold text-rouge">- {formatFCFA(totaux.remise)}</td>
+                </tr>
+              )}
+              <tr className="bg-orangeClair">
+                <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-navy">MONTANT TOTAL HT</td>
                 <td className="border border-navy px-4 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantHT)}</td>
               </tr>
               {devisData.tvaActive && (
-                <tr className="bg-orangeClair">
-                  <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-orange">TVA 18%</td>
+                <tr className="bg-white">
+                  <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-orange">TVA (18%)</td>
                   <td className="border border-navy px-4 py-2 text-right font-bold text-orange">{formatFCFA(totaux.tva)}</td>
                 </tr>
               )}

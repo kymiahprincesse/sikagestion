@@ -6,6 +6,7 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
+import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const FORMES_RESERVOIR = ['Cylindrique', 'Sphérique', 'Rectangulaire', 'Conique']
@@ -49,7 +50,7 @@ export default function DevisReservoir() {
   const { ajouterNotification } = useNotificationsStore()
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: getNextNumero(),
+    numero: '',
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'RESERVOIR',
@@ -94,6 +95,13 @@ export default function DevisReservoir() {
   }))
 
   const [devisId, setDevisId] = useState(null)
+
+  // Générer le numéro après le montage (évite setState pendant le render)
+  useEffect(() => {
+    if (!devisData.numero && !location.state?.devisId) {
+      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
+    }
+  }, [devisData.numero, location.state?.devisId, getNextNumero])
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
@@ -294,77 +302,61 @@ export default function DevisReservoir() {
     }
     
     const client = clients.find(c => c.id === devisData.clientId);
-    const ctx = await createSikaPDF(`DEVIS RÉSERVOIR - ${devisData.numero}`);
-    const { doc, startY, MARGE_G, PAGE_W } = ctx;
-    
-    let y = startY;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 42, 74);
-    
-    const infos = [
-      ['Client', client?.nom || 'N/A'],
-      ['Date', formatDate(devisData.date)],
-      ['Objet', devisData.objet || 'N/A'],
-      ['Forme', devisData.parametresReservoir?.forme || 'N/A'],
-      ['Capacité', devisData.parametresReservoir?.capacite ? `${devisData.parametresReservoir.capacite} L` : 'N/A']
-    ];
-    
-    infos.forEach(([label, value]) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(label + ' :', MARGE_G, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(value, MARGE_G + 35, y);
-      y += 6;
-    });
-    
-    y += 8;
-    
-    const columns = ['Désignation', 'Qté', 'Unité', 'PU (FCFA)', 'Montant (FCFA)'];
-    const rows = devisData.lignes.map(ligne => [
-      ligne.designation,
-      ligne.quantite || 0,
-      ligne.unite || '—',
-      formatMontant(ligne.pu),
-      formatMontant(ligne.quantite * ligne.pu)
-    ]);
-    
-    const finalY = sikaTable(doc, columns, rows, y, ctx);
-    y = finalY + 10;
-    
-    const totauxX = PAGE_W - 80;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 42, 74);
-    
     const totaux = calculerTotaux();
-    const rowsTotaux = [
-      ['Montant HT', formatMontant(totaux.montantHT) + ' FCFA'],
-      ...(devisData.tvaActive ? [['TVA (18%)', formatMontant(totaux.tva) + ' FCFA']] : []),
-      ['MONTANT TTC', formatMontant(totaux.ttc) + ' FCFA']
-    ];
-    rowsTotaux.forEach(([label, val], idx) => {
-      if (idx === rowsTotaux.length - 1) {
-        doc.setFillColor(27, 42, 74);
-        doc.rect(totauxX - 2, y - 4, 82, 8, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
-      }
-      doc.text(label, totauxX, y);
-      doc.text(val, PAGE_W - 15, y, { align: 'right' });
-      y += (idx === rowsTotaux.length - 1) ? 10 : 6;
-      doc.setTextColor(27, 42, 74);
-      doc.setFontSize(9);
-    });
     
-    await finalizeSikaPDF(ctx, `SIKA_Devis_Reservoir_${devisData.numero.replace(/\//g, '_')}.pdf`)
+    // Préparer les données pour le template
+    const lignesAvecMontant = devisData.lignesCommerciales.map(l => ({
+      designation: l.designation,
+      dn: 'U',
+      qte: parseFloat(l.qte) || 0,
+      pu: parseFloat(l.pu) || 0,
+      montant: (parseFloat(l.qte) || 0) * (parseFloat(l.pu) || 0)
+    }));
+    
+    const templateData = {
+      reference: devisData.numero,
+      objet: devisData.objet || `Construction Réservoir ${devisData.forme} - ${devisData.volume} ${devisData.volumeUnit}`,
+      type: 'RÉSERVOIR',
+      client: {
+        nom: client?.nom || '—',
+        interlocuteur: client?.contactNom || '—',
+        site: devisData.lieuMontage || client?.ville || '—'
+      },
+      infos: {
+        date: devisData.date,
+        validite: '30 jours',
+        etabliPar: 'SIKA INDUSTRIE',
+        tel: '(225) 07 97 25 25 26'
+      },
+      lignes: lignesAvecMontant,
+      montantHT: totaux.montantHT,
+      tva: totaux.tva,
+      ttc: totaux.ttc
+    };
+
+    // Générer le HTML avec le nouveau template
+    const htmlContent = generateDevisHTML(templateData);
+    
+    // Ouvrir dans une nouvelle fenêtre pour impression
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Attendre le chargement puis imprimer
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    };
     
     addLog({
       module: 'DEVIS_RESERVOIR',
       action: 'EXPORT_PDF',
       utilisateur: 'Utilisateur',
       apres: { numero: devisData.numero }
-    })
+    });
+    
+    alert('Devis ouvert dans une nouvelle fenêtre pour impression');
   }
 
   const clientSelectionne = clients.find(c => c.id === devisData.clientId)

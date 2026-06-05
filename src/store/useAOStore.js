@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { generateSecureId } from '../utils/format';
 
 function toSupabaseRow(ao) {
   return {
@@ -40,7 +41,7 @@ export const useAOStore = create(
         const { compteurNumero } = get();
         const nouvelAO = {
           ...ao,
-          id: Date.now(),
+          id: generateSecureId('AO'),
           numeroDevis: ao.numeroDevis || `AO-${String(compteurNumero).padStart(5, '0')}`,
           dateDevis: ao.dateDevis || new Date().toISOString().split('T')[0],
           statut: ao.statut || STATUTS_AO.A_CHIFFRER,

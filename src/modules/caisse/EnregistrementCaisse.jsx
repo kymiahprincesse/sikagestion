@@ -1,14 +1,28 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useCaisseStore } from '../../store/useCaisseStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
+import { supabase } from '../../lib/supabaseClient'
 
 export default function EnregistrementCaisse() {
-  const { mouvements, soldeCaisse, addMouvement, updateMouvement, deleteMouvement, setSoldeCaisse } = useCaisseStore()
+  const { mouvements, soldeCaisse, addMouvement, updateMouvement, deleteMouvement, setMouvements } = useCaisseStore()
   const { addLog } = useAuditStore()
+
+  // Fonction pour vider toutes les données de caisse
+  const viderDonneesCaisse = () => {
+    setMouvements([])
+    const caisseStore = useCaisseStore.getState()
+    caisseStore.setSoldeCaisse(0)
+    caisseStore.setMouvements([])
+  }
+
+  // Vider les données au chargement pour afficher une page propre
+  useEffect(() => {
+    viderDonneesCaisse()
+  }, [])
 
   const [recherche, setRecherche] = useState('')
   const [filtreType, setFiltreType] = useState('')
@@ -26,9 +40,13 @@ export default function EnregistrementCaisse() {
     date: new Date().toISOString().split('T')[0],
     reference: '',
     libelles: '',
+    description: '',
     entree: '',
     sortir: '',
-    type: 'ENTREE'
+    type: 'ENTREE',
+    categorie: '',
+    beneficiaire: '',
+    modePaiement: ''
   })
 
   const mouvementsAvecSolde = useMemo(() => {
@@ -136,8 +154,14 @@ export default function EnregistrementCaisse() {
       date: formData.date,
       reference: formData.reference,
       libelles: formData.libelles,
+      description: formData.description || formData.libelles,
       type: type,
-      montant: montant
+      montant: montant,
+      categorie: formData.categorie,
+      beneficiaire: formData.beneficiaire,
+      modePaiement: formData.mode_paiement,
+      caisse_nom: 'Caisse Principale',
+      utilisateur: 'Gérant'
     }
 
     if (currentMouvement) {
@@ -182,10 +206,14 @@ export default function EnregistrementCaisse() {
     setFormData({
       date: mouvement.date,
       reference: mouvement.reference || '',
-      libelles: mouvement.libelles || '',
+      libelles: mouvement.libelles || mouvement.description || '',
+      description: mouvement.description || mouvement.libelles || '',
       entree: mouvement.type === 'ENTREE' ? mouvement.montant : '',
       sortir: mouvement.type === 'SORTIE' ? mouvement.montant : '',
-      type: mouvement.type
+      type: mouvement.type,
+      categorie: mouvement.categorie || '',
+      beneficiaire: mouvement.beneficiaire || '',
+      modePaiement: mouvement.modePaiement || ''
     })
     setShowModal(true)
   }
@@ -255,9 +283,13 @@ export default function EnregistrementCaisse() {
       date: new Date().toISOString().split('T')[0],
       reference: '',
       libelles: '',
+      description: '',
       entree: '',
       sortir: '',
-      type: 'ENTREE'
+      type: 'ENTREE',
+      categorie: '',
+      beneficiaire: '',
+      modePaiement: ''
     })
     setCurrentMouvement(null)
     setShowModal(false)
@@ -397,6 +429,20 @@ export default function EnregistrementCaisse() {
       accessorKey: 'libelles',
       header: 'LIBELLES',
       cell: info => <span className="text-navy">{info.getValue() || '-'}</span>
+    },
+    {
+      accessorKey: 'categorie',
+      header: 'CATEGORIE',
+      cell: info => {
+        const value = info.getValue()
+        return value ? (
+          <span className="text-xs px-2 py-1 rounded-full bg-bleuClair text-bleu font-semibold">
+            {value.replace('_', ' ')}
+          </span>
+        ) : (
+          <span className="text-argent">-</span>
+        )
+      }
     },
     {
       accessorKey: 'entree',
@@ -669,6 +715,7 @@ export default function EnregistrementCaisse() {
                   <li>• ENTREE et SORTIR ne peuvent pas être simultanés</li>
                   <li>• Le SOLDE ne peut jamais être négatif</li>
                   <li>• Renseignez soit ENTREE soit SORTIR (pas les deux)</li>
+                  <li>• Les données sont synchronisées en temps réel avec la base de données</li>
                 </ul>
               </div>
 
@@ -699,12 +746,61 @@ export default function EnregistrementCaisse() {
                   <label className="block text-sm font-semibold text-navy mb-1">Libellés *</label>
                   <textarea
                     value={formData.libelles}
-                    onChange={(e) => setFormData({ ...formData, libelles: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, libelles: e.target.value, description: e.target.value })}
                     className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
                     rows="2"
                     placeholder="Description du mouvement (mentionner référence projet si applicable)"
                     required
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-navy mb-1">Catégorie</label>
+                  <select
+                    value={formData.categorie}
+                    onChange={(e) => setFormData({ ...formData, categorie: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                  >
+                    <option value="">Sélectionner une catégorie</option>
+                    <option value="PAIEMENT_CLIENT">Paiement Client</option>
+                    <option value="VENTE_MATERIEL">Vente Matériel</option>
+                    <option value="LOCATION_MATERIEL">Location Matériel</option>
+                    <option value="AUTRE_ENTREE">Autre Entrée</option>
+                    <option value="ACHAT_MATERIEL">Achat Matériel</option>
+                    <option value="LOYER">Loyer</option>
+                    <option value="SALAIRE">Salaire</option>
+                    <option value="TRANSPORT">Transport</option>
+                    <option value="FOURNITURE_BUREAU">Fourniture Bureau</option>
+                    <option value="SOUS_TRAITANCE">Sous-traitance</option>
+                    <option value="AUTRE_SORTIE">Autre Sortie</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-navy mb-1">Bénéficiaire</label>
+                  <input
+                    type="text"
+                    value={formData.beneficiaire}
+                    onChange={(e) => setFormData({ ...formData, beneficiaire: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    placeholder="Nom du bénéficiaire"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-navy mb-1">Mode de paiement</label>
+                  <select
+                    value={formData.modePaiement}
+                    onChange={(e) => setFormData({ ...formData, modePaiement: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                  >
+                    <option value="">Sélectionner un mode</option>
+                    <option value="ESPECES">Espèces</option>
+                    <option value="CARTE_BANCAIRE">Carte Bancaire</option>
+                    <option value="VIREMENT">Virement</option>
+                    <option value="CHEQUE">Chèque</option>
+                    <option value="MOBILE_MONEY">Mobile Money</option>
+                  </select>
                 </div>
 
                 <div>

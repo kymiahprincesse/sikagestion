@@ -13,7 +13,7 @@ export const useAppStore = create((set) => ({
   notifications: [],
   addNotification: (notification) => 
     set((state) => ({ 
-      notifications: [...state.notifications, { id: Date.now(), ...notification }] 
+      notifications: [...state.notifications, { id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, ...notification }] 
     })),
   removeNotification: (id) => 
     set((state) => ({ 

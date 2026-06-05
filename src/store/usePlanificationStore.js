@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { notifyError } from '../utils/notifications';
 import { logger } from '../utils/logger';
+import { generateSecureId } from '../utils/format';
 import { useCaisseStore } from './useCaisseStore';
 import { useDevisStore } from './useDevisStore';
 
@@ -88,7 +89,7 @@ export const usePlanificationStore = create(
       addProjet: async (projet) => {
         const nouveauProjet = {
           ...projet,
-          id: Date.now(),
+          id: generateSecureId('PROJ'),
           dateCreation: projet.dateCreation || new Date().toISOString().split('T')[0],
           statut: projet.statut || STATUTS_PROJET.EN_PREPARATION
         };
@@ -97,7 +98,7 @@ export const usePlanificationStore = create(
 
         const { data, error } = await supabase.from('projets').insert(projetToRow(nouveauProjet)).select().single();
         if (error) {
-          console.error('Supabase addProjet:', error.message);
+          logger.error('Supabase addProjet:', error.message);
           notifyError('Erreur de sauvegarde', `Impossible de créer le projet: ${error.message}`);
         } else if (data) {
           set((state) => ({
@@ -123,7 +124,7 @@ export const usePlanificationStore = create(
 
         supabase.from('projets').update(projetToRow({ ...projet, ...modifications })).eq('id', id).then(({ error }) => {
           if (error) {
-            console.error('Supabase updateProjet:', error.message);
+            logger.error('Supabase updateProjet:', error.message);
             notifyError('Erreur de mise à jour', `Impossible de modifier le projet: ${error.message}`);
           }
         });
@@ -161,7 +162,7 @@ export const usePlanificationStore = create(
         }));
         supabase.from('projets').delete().eq('id', id).then(({ error }) => {
           if (error) {
-            console.error('Supabase deleteProjet:', error.message);
+            logger.error('Supabase deleteProjet:', error.message);
             notifyError('Erreur de suppression', `Impossible de supprimer le projet: ${error.message}`);
           }
         });
@@ -186,7 +187,7 @@ export const usePlanificationStore = create(
       addTache: async (tache) => {
         const nouvelleTache = {
           ...tache,
-          id: Date.now(),
+          id: generateSecureId('TACH'),
           dateCreation: tache.dateCreation || new Date().toISOString().split('T')[0],
           statut: tache.statut || 'A_FAIRE'
         };
@@ -195,7 +196,7 @@ export const usePlanificationStore = create(
 
         const { data, error } = await supabase.from('taches').insert(tacheToRow(nouvelleTache)).select().single();
         if (error) {
-          console.error('Supabase addTache:', error.message);
+          logger.error('Supabase addTache:', error.message);
           notifyError('Erreur de sauvegarde', `Impossible de créer la tâche: ${error.message}`);
         } else if (data) {
           set((state) => ({
@@ -216,7 +217,7 @@ export const usePlanificationStore = create(
         if (tacheMaj) {
           supabase.from('taches').update(tacheToRow({ ...tacheMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
-              console.error('Supabase updateTache:', error.message);
+              logger.error('Supabase updateTache:', error.message);
               notifyError('Erreur de mise à jour', `Impossible de modifier la tâche: ${error.message}`);
             }
           });
@@ -230,7 +231,7 @@ export const usePlanificationStore = create(
         }));
         supabase.from('taches').delete().eq('id', id).then(({ error }) => {
           if (error) {
-            console.error('Supabase deleteTache:', error.message);
+            logger.error('Supabase deleteTache:', error.message);
             notifyError('Erreur de suppression', `Impossible de supprimer la tâche: ${error.message}`);
           }
         });
@@ -253,13 +254,13 @@ export const usePlanificationStore = create(
 
       // Gestion des ressources hebdomadaires
       addRessource: async (ressource) => {
-        const nouvelleRessource = { ...ressource, id: Date.now() };
+        const nouvelleRessource = { ...ressource, id: generateSecureId('RESS') };
 
         set((state) => ({ ressourcesHebdo: [...state.ressourcesHebdo, nouvelleRessource] }));
 
         const { data, error } = await supabase.from('ressources_hebdo').insert(ressourceToRow(nouvelleRessource)).select().single();
         if (error) {
-          console.error('Supabase addRessource:', error.message);
+          logger.error('Supabase addRessource:', error.message);
           notifyError('Erreur de sauvegarde', `Impossible de créer la ressource: ${error.message}`);
         } else if (data) {
           set((state) => ({
@@ -280,7 +281,7 @@ export const usePlanificationStore = create(
         if (rMaj) {
           supabase.from('ressources_hebdo').update(ressourceToRow({ ...rMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
-              console.error('Supabase updateRessource:', error.message);
+              logger.error('Supabase updateRessource:', error.message);
               notifyError('Erreur de mise à jour', `Impossible de modifier la ressource: ${error.message}`);
             }
           });
@@ -291,7 +292,7 @@ export const usePlanificationStore = create(
         set((state) => ({ ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.id !== id) }));
         supabase.from('ressources_hebdo').delete().eq('id', id).then(({ error }) => {
           if (error) {
-            console.error('Supabase deleteRessource:', error.message);
+            logger.error('Supabase deleteRessource:', error.message);
             notifyError('Erreur de suppression', `Impossible de supprimer la ressource: ${error.message}`);
           }
         });
@@ -473,7 +474,7 @@ export const usePlanificationStore = create(
             });
           });
         } catch (error) {
-          console.error('Erreur déclenchement alerte:', error);
+          logger.error('Erreur déclenchement alerte:', error);
         }
       },
 

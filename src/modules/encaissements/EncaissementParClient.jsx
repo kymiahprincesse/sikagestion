@@ -429,6 +429,19 @@ export default function EncaissementParClient() {
       cell: info => <span className="text-navy text-sm">{info.getValue() || '-'}</span>
     },
     {
+      id: 'journal',
+      header: 'JOURNAL',
+      cell: ({ row }) => (
+        <div className="text-center">
+          {row.original.mouvementCaisseId ? (
+            <span className="text-xs text-vert font-semibold">✓ Synchronisé</span>
+          ) : (
+            <span className="text-xs text-orange">⏳ En attente</span>
+          )}
+        </div>
+      )
+    },
+    {
       id: 'actions',
       header: 'ACTIONS',
       cell: ({ row }) => (

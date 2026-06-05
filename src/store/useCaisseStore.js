@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { logger } from '../utils/logger';
 
 function toSupabaseRow(mouvement) {
   return {
@@ -26,7 +27,7 @@ export const useCaisseStore = create(
       addMouvement: (mouvement) => {
         const nouveauMouvement = {
           ...mouvement,
-          id: Date.now(),
+          id: generateSecureId('CAIS'),
           date: mouvement.date || new Date().toISOString().split('T')[0],
           type: mouvement.type || 'ENTREE',
         };
@@ -74,7 +75,9 @@ export const useCaisseStore = create(
             .update(toSupabaseRow(mouvementModifie))
             .eq('id', mouvementOriginal.supabaseId)
             .then(({ error }) => {
-              if (error) console.error('Supabase sync updateMouvement:', error.message);
+              if (error) logger.error('Supabase sync updateMouvement:', error.message);
+            }).catch((err) => {
+              logger.error('Erreur sync updateMouvement:', err.message);
             });
         }
       },
@@ -98,7 +101,9 @@ export const useCaisseStore = create(
             .delete()
             .eq('id', mouvement.supabaseId)
             .then(({ error }) => {
-              if (error) console.error('Supabase sync deleteMouvement:', error.message);
+              if (error) logger.error('Supabase sync deleteMouvement:', error.message);
+            }).catch((err) => {
+              logger.error('Erreur sync deleteMouvement:', err.message);
             });
         }
       },
@@ -144,6 +149,10 @@ export const useCaisseStore = create(
       setMouvements: (mouvements) => {
         set({ mouvements });
         // Recalculer automatiquement le solde après chargement
+        get().recalculerSoldeAvecMouvements(mouvements);
+      },
+
+      recalculerSoldeAvecMouvements: (mouvements) => {
         const totalEntrees = mouvements.filter(m => m.type === 'ENTREE').reduce((sum, m) => sum + (m.montant || 0), 0);
         const totalSorties = mouvements.filter(m => m.type === 'SORTIE').reduce((sum, m) => sum + (m.montant || 0), 0);
         set({ soldeCaisse: totalEntrees - totalSorties });

@@ -115,7 +115,7 @@ export const useAuditStore = create((set, get) => ({
       // la fuite de données sensibles. Seul Supabase stocke les logs.
       console.warn('[Audit] Échec stockage Supabase:', e.message);
       // Fallback: stockage en mémoire uniquement (perdu au refresh)
-      set(state => ({ logs: [{ ...entry, id: Date.now() }, ...state.logs] }));
+      set(state => ({ logs: [{ ...entry, id: generateSecureId('LOG') }, ...state.logs] }));
     }
   },
 

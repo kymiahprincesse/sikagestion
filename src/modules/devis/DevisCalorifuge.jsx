@@ -7,6 +7,9 @@ import ClientSelect from '../../components/ClientSelect'
 import TVABlock from '../../components/TVABlock'
 import { formatDateLong, formatFCFA, safeParseFloat, getTodayISO } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
+import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
+import { useDuplicatePrevention } from '../../hooks/useDuplicatePrevention'
+import { AlertTriangle, CheckCircle } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const DESIGNATIONS_PREDEFINES = [
@@ -28,6 +31,8 @@ const LIGNE_VIDE = {
   dn: '',
   ml: 0,
   pt: 0,
+  qte: 0,
+  qteManuelle: false,
   pu: 0
 }
 
@@ -35,19 +40,35 @@ export default function DevisCalorifuge() {
   const pdfRef = useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
-  const { addDevis, updateDevis, getNextNumero, getDevisById } = useDevisStore()
+  const { addDevis, updateDevis, getNextNumero, getDevisById, devis } = useDevisStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
 
+  // ═══ SYSTÈME DE PRÉVENTION DES DOUBLONS ═══
+  const duplicatePrevention = useDuplicatePrevention('devis', devis, {
+    délaiAntiDoubleClic: 3000,
+    onDoublonDetecté: (result) => {
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'DOUBLON DÉTECTÉ',
+        message: result.raison,
+        lien: '/devis/liste'
+      });
+    }
+  });
+  // ════════════════════════════════════════
+
   const [devisData, setDevisData] = useState(() => ({
-    numero: getNextNumero(),
+    numero: '',
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'CALORIFUGE',
     demandePar: '',
     objet: '',
     lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    tauxRemise: 0,
     tvaActive: true,
     statut: 'BROUILLON'
   }))
@@ -55,6 +76,13 @@ export default function DevisCalorifuge() {
   const [devisId, setDevisId] = useState(null)
   const [showDesignationSuggestions, setShowDesignationSuggestions] = useState({})
   const [designationSearch, setDesignationSearch] = useState({})
+
+  // Générer le numéro après le montage (évite setState pendant le render)
+  useEffect(() => {
+    if (!devisData.numero && !location.state?.devisId) {
+      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
+    }
+  }, [devisData.numero, location.state?.devisId, getNextNumero])
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
@@ -70,6 +98,7 @@ export default function DevisCalorifuge() {
             demandePar: devisExist.demandePar || '',
             objet: devisExist.objet || '',
             lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            tauxRemise: devisExist.tauxRemise || 0,
             tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
             statut: devisExist.statut || 'BROUILLON'
           })
@@ -83,11 +112,55 @@ export default function DevisCalorifuge() {
     loadDevis()
   }, [location.state, location.state?.devisId, getDevisById])
 
-  // Calculs automatiques
+  // Calculs automatiques avec synchronisation QTE/ML/PT
   const calculerQte = (ligne) => {
+    if (ligne.qteManuelle) {
+      return safeParseFloat(ligne.qte, 0)
+    }
     const ml = safeParseFloat(ligne.ml, 0)
     const pt = safeParseFloat(ligne.pt, 0)
     return ml + pt
+  }
+
+  const synchroniserQte = (ligneId, champ, valeur) => {
+    const ligne = devisData.lignes.find(l => l.id === ligneId)
+    if (!ligne) return
+
+    if (champ === 'qte') {
+      const nouvelleQte = safeParseFloat(valeur, 0)
+      const ml = safeParseFloat(ligne.ml, 0)
+      const pt = safeParseFloat(ligne.pt, 0)
+      const totalActuel = ml + pt
+
+      if (nouvelleQte !== totalActuel) {
+        const diff = nouvelleQte - totalActuel
+        if (ml >= pt) {
+          setDevisData(prev => ({
+            ...prev,
+            lignes: prev.lignes.map(l => 
+              l.id === ligneId ? { ...l, ml: Math.max(0, ml + diff) } : l
+            )
+          }))
+        } else {
+          setDevisData(prev => ({
+            ...prev,
+            lignes: prev.lignes.map(l => 
+              l.id === ligneId ? { ...l, pt: Math.max(0, pt + diff) } : l
+            )
+          }))
+        }
+      }
+    } else if (champ === 'ml' || champ === 'pt') {
+      const ml = champ === 'ml' ? safeParseFloat(valeur, 0) : safeParseFloat(ligne.ml, 0)
+      const pt = champ === 'pt' ? safeParseFloat(valeur, 0) : safeParseFloat(ligne.pt, 0)
+      const nouvelleQte = ml + pt
+      setDevisData(prev => ({
+        ...prev,
+        lignes: prev.lignes.map(l => 
+          l.id === ligneId ? { ...l, qte: nouvelleQte } : l
+        )
+      }))
+    }
   }
 
   const calculerMontant = (ligne) => {
@@ -97,10 +170,13 @@ export default function DevisCalorifuge() {
   }
 
   const calculerTotaux = () => {
-    const montantHT = devisData.lignes.reduce((sum, ligne) => sum + calculerMontant(ligne), 0)
+    const montantBrut = devisData.lignes.reduce((sum, ligne) => sum + calculerMontant(ligne), 0)
+    const tauxRemise = parseFloat(devisData.tauxRemise) || 0
+    const remise = montantBrut * (tauxRemise / 100)
+    const montantHT = montantBrut - remise
     const tva = devisData.tvaActive ? montantHT * 0.18 : 0
     const ttc = montantHT + tva
-    return { montantHT, tva, ttc }
+    return { montantBrut, remise, montantHT, tva, ttc }
   }
 
   // Gestion des lignes
@@ -205,6 +281,7 @@ export default function DevisCalorifuge() {
         demandePar: '',
         objet: '',
         lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+        tauxRemise: 0,
         tvaActive: true,
         statut: 'BROUILLON'
       })
@@ -212,14 +289,26 @@ export default function DevisCalorifuge() {
     }
   }
 
-  const enregistrerDevis = () => {
+  const enregistrerDevis = async () => {
     const totaux = calculerTotaux()
     const devisComplet = {
       ...devisData,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       montantTVA: totaux.tva,
       montantTTC: totaux.ttc
     }
+
+    // ═══ VÉRIFICATION DES DOUBLONS AVANT ENREGISTREMENT ═══
+    if (!devisId) {
+      const validation = duplicatePrevention.vérifierDoublon(devisComplet);
+      if (validation.estDoublon) {
+        alert(`⚠️ DOUBLON DÉTECTÉ : ${validation.message}\n\nDevis existant : ${validation.doublonDetecté?.numero || 'N/A'}\n\nAction annulée pour éviter le doublon.`);
+        return;
+      }
+    }
+    // ═══════════════════════════════════════════════════
 
     if (devisId) {
       updateDevis(devisId, devisComplet)
@@ -231,7 +320,7 @@ export default function DevisCalorifuge() {
       })
       alert('Devis mis à jour avec succès')
     } else {
-      const nouveau = addDevis(devisComplet)
+      const nouveau = await addDevis(devisComplet)
       setDevisId(nouveau.id)
       addLog({
         module: 'devis',
@@ -249,6 +338,8 @@ export default function DevisCalorifuge() {
     const totaux = calculerTotaux()
     const devisComplet = {
       ...devisData,
+      montantBrut: totaux.montantBrut,
+      remise: totaux.remise,
       montantHT: totaux.montantHT,
       montantTVA: totaux.tva,
       montantTTC: totaux.ttc,
@@ -271,79 +362,53 @@ export default function DevisCalorifuge() {
 
     try {
       const client = clients.find(c => c.id === devisData.clientId);
-      const ctx = await createSikaPDF(`DEVIS CALORIFUGE - ${devisData.numero}`);
-      const { doc, startY, MARGE_G, PAGE_W } = ctx;
       
-      let y = startY;
+      // Préparer les données pour le template
+      const lignesAvecMontant = devisData.lignes.map(l => ({
+        ...l,
+        montant: calculerMontant(l)
+      }));
       
-      // Informations devis
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(27, 42, 74);
+      const templateData = {
+        reference: devisData.numero,
+        objet: devisData.objet || 'Devis Calorifuge',
+        type: 'CALORIFUGE',
+        client: {
+          nom: client?.nom || '—',
+          interlocuteur: devisData.demandePar || client?.contactNom || '—',
+          site: client?.ville || '—'
+        },
+        infos: {
+          date: devisData.date,
+          validite: '30 jours',
+          etabliPar: 'SIKA INDUSTRIE',
+          tel: '(225) 07 97 25 25 26'
+        },
+        lignes: lignesAvecMontant,
+        montantHT: totaux.montantHT,
+        tva: totaux.tva,
+        ttc: totaux.ttc
+      };
+
+      // Générer le HTML avec le nouveau template
+      const htmlContent = generateDevisHTML(templateData);
       
-      const infos = [
-        ['Client', client?.nom || 'N/A'],
-        ['Date', formatDate(devisData.date)],
-        ['Demandé par', devisData.demandePar || 'N/A'],
-        ['Objet', devisData.objet || 'N/A']
-      ];
+      // Ouvrir dans une nouvelle fenêtre pour impression
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
       
-      infos.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(label + ' :', MARGE_G, y);
-        doc.setFont('helvetica', 'normal');
-        const lines = doc.splitTextToSize(value, 120);
-        doc.text(lines, MARGE_G + 35, y);
-        y += lines.length * 6;
-      });
+      // Attendre le chargement puis imprimer
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      };
       
-      y += 8;
-      
-      // Tableau lignes
-      const columns = ['Désignation', 'DN', 'ML', 'PT', 'Qté', 'PU (FCFA)', 'Montant (FCFA)'];
-      const rows = devisData.lignes.map(ligne => [
-        ligne.designation,
-        ligne.dn || '—',
-        ligne.ml || 0,
-        ligne.pt || 0,
-        calculerQte(ligne),
-        formatMontant(ligne.pu),
-        formatMontant(calculerMontant(ligne))
-      ]);
-      
-      const finalY = sikaTable(doc, columns, rows, y, ctx);
-      y = finalY + 10;
-      
-      // Totaux
-      const totauxX = PAGE_W - 80;
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(27, 42, 74);
-      
-      const rowsTotaux = [
-        ['Montant HT', formatMontant(totaux.montantHT) + ' FCFA'],
-        ...(devisData.tvaActive ? [['TVA (18%)', formatMontant(totaux.tva) + ' FCFA']] : []),
-        ['MONTANT TTC', formatMontant(totaux.ttc) + ' FCFA']
-      ];
-      rowsTotaux.forEach(([label, val], idx) => {
-        const isTTC = idx === rowsTotaux.length - 1;
-        if (isTTC) {
-          doc.setFillColor(27, 42, 74);
-          doc.rect(totauxX - 2, y - 4, 82, 8, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(10);
-        }
-        doc.text(label, totauxX, y);
-        doc.text(val, PAGE_W - 15, y, { align: 'right' });
-        y += isTTC ? 10 : 6;
-        doc.setTextColor(27, 42, 74);
-        doc.setFontSize(9);
-      });
-      
-      await finalizeSikaPDF(ctx, `SIKA_Devis_Calorifuge_${devisData.numero.replace(/\//g, '_')}.pdf`);
-      alert('PDF généré avec succès');
+      alert('Devis ouvert dans une nouvelle fenêtre pour impression');
     } catch (error) {
-      alert('Erreur lors de la génération du PDF: ' + error.message);
+      console.error('Erreur PDF:', error);
+      alert('Erreur lors de la génération: ' + error.message);
     }
   }
 
@@ -531,7 +596,11 @@ export default function DevisCalorifuge() {
                         <input
                           type="number"
                           value={ligne.ml}
-                          onChange={(e) => modifierLigne(ligne.id, 'ml', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0
+                            modifierLigne(ligne.id, 'ml', val)
+                            synchroniserQte(ligne.id, 'ml', val)
+                          }}
                           min="0"
                           step="0.01"
                           className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
@@ -541,14 +610,34 @@ export default function DevisCalorifuge() {
                         <input
                           type="number"
                           value={ligne.pt}
-                          onChange={(e) => modifierLigne(ligne.id, 'pt', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0
+                            modifierLigne(ligne.id, 'pt', val)
+                            synchroniserQte(ligne.id, 'pt', val)
+                          }}
                           min="0"
                           step="0.01"
                           className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
                         />
                       </td>
                       <td className="border border-argent px-2 py-2 bg-navyClair">
-                        <div className="text-center font-bold text-navy">{qte.toFixed(2)}</div>
+                        <input
+                          type="number"
+                          value={qte}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0
+                            modifierLigne(ligne.id, 'qte', val)
+                            modifierLigne(ligne.id, 'qteManuelle', true)
+                            synchroniserQte(ligne.id, 'qte', val)
+                          }}
+                          onBlur={() => {
+                            modifierLigne(ligne.id, 'qteManuelle', false)
+                          }}
+                          min="0"
+                          step="0.01"
+                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange font-bold text-navy bg-white"
+                          title="Saisir la quantité - ML et PT se synchroniseront automatiquement"
+                        />
                       </td>
                       <td className="border border-argent px-2 py-2">
                         <input
@@ -614,8 +703,46 @@ export default function DevisCalorifuge() {
 
         {/* TOTAUX */}
         <div className="flex justify-end">
-          <div className="w-full md:w-1/2">
-            <TVABlock ht={totaux.montantHT} tvaActive={devisData.tvaActive} />
+          <div className="w-full md:w-1/2 bg-navyClair border-l-4 border-orange p-4 rounded-r-lg">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center pb-2 border-b border-argent">
+                <span className="text-sm font-medium text-bleu">MONTANT BRUT HT</span>
+                <span className="text-lg font-bold text-navy">{formatFCFA(totaux.montantBrut)}</span>
+              </div>
+
+              <div className="flex justify-between items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-navy">REMISE</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={devisData.tauxRemise}
+                    onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))}
+                    className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
+                  />
+                  <span className="text-navy">%</span>
+                </div>
+                <span className="font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
+              </div>
+
+              <div className="flex justify-between items-center pb-2 border-b border-argent bg-orange bg-opacity-20 p-2 rounded">
+                <span className="font-bold text-navy">MONTANT TOTAL HT</span>
+                <span className="font-bold text-navy text-lg">{formatFCFA(totaux.montantHT)}</span>
+              </div>
+
+              {devisData.tvaActive && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-bleu">TVA (18%)</span>
+                  <span className="text-lg font-bold text-orange">{formatFCFA(totaux.tva)}</span>
+                </div>
+              )}
+
+              <div className="border-t-2 border-orange pt-2 flex justify-between items-center">
+                <span className="text-base font-bold text-navy">MONTANT TTC</span>
+                <span className="text-xl font-bold text-navy">{formatFCFA(totaux.ttc)}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -683,12 +810,22 @@ export default function DevisCalorifuge() {
             </tbody>
             <tfoot>
               <tr className="bg-navyClair">
-                <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT HT</td>
+                <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT BRUT HT</td>
+                <td className="border border-navy px-3 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantBrut)}</td>
+              </tr>
+              {devisData.tauxRemise > 0 && (
+                <tr className="bg-white">
+                  <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-rouge">REMISE {devisData.tauxRemise}%</td>
+                  <td className="border border-navy px-3 py-2 text-right font-bold text-rouge">- {formatFCFA(totaux.remise)}</td>
+                </tr>
+              )}
+              <tr className="bg-orangeClair">
+                <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT TOTAL HT</td>
                 <td className="border border-navy px-3 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantHT)}</td>
               </tr>
               {devisData.tvaActive && (
-                <tr className="bg-orangeClair">
-                  <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-orange">TVA 18%</td>
+                <tr className="bg-white">
+                  <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-orange">TVA (18%)</td>
                   <td className="border border-navy px-3 py-2 text-right font-bold text-orange">{formatFCFA(totaux.tva)}</td>
                 </tr>
               )}

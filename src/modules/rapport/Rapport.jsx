@@ -227,8 +227,8 @@ export default function Rapport() {
                   label={({ name, value }) => `${name} (${value})`}
                   labelLine={false}
                 >
-                  {devisParType.map((_, i) => (
-                    <Cell key={i} fill={COULEURS[i % COULEURS.length]} />
+                  {devisParType.map((item, i) => (
+                    <Cell key={`cell-${item.name}-${i}`} fill={COULEURS[i % COULEURS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />

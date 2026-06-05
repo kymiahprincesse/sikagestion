@@ -60,36 +60,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-sm border border-argent p-6">
-          <h3 className="text-lg font-bold text-navy mb-4">Démonstration Composants</h3>
-          <div className="space-y-4">
-            <MoneyInput 
-              label="Montant exemple" 
-              value={montant} 
-              onChange={setMontant} 
-            />
-            <DatePickerFR 
-              label="Date exemple" 
-              value={date} 
-              onChange={setDate} 
-            />
-            <ClientSelect 
-              value={client} 
-              onChange={setClient} 
-            />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-argent p-6">
-          <h3 className="text-lg font-bold text-navy mb-4">Calcul TVA</h3>
-          <TVABlock ht={montant} />
-          <div className="mt-4">
-            <SoldeDisplay solde={2500000} label="Solde client" />
-          </div>
-        </div>
-      </div>
-
+      
       <div className="bg-white rounded-lg shadow-sm border border-argent p-6">
         <h3 className="text-lg font-bold text-navy mb-4">Factures récentes</h3>
         <div className="overflow-x-auto">

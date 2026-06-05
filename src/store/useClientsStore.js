@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
+import { logger } from '../utils/logger';
 
 function toSupabaseRow(c) {
   return {
@@ -21,68 +22,12 @@ function toSupabaseRow(c) {
   };
 }
 
-const CLIENTS_INITIAUX = [
-  {
-    id: 1,
-    nom: 'GMCI',
-    raisonSociale: 'Générale Marocaine de Construction Industrielle',
-    ncc: 'NCC-001',
-    secteur: 'Construction',
-    adresse: 'Zone Industrielle de Yopougon',
-    ville: 'Abidjan',
-    pays: 'Côte d\'Ivoire',
-    contactNom: 'M. Hassan BENALI',
-    contactTelephone: '+225 27 21 25 36 48',
-    contactEmail: 'contact@gmci.ci',
-    conditionsPaiement: 30,
-    type: 'CLIENT',
-    isActif: true,
-    notes: '',
-    dateCreation: '2024-01-15'
-  },
-  {
-    id: 2,
-    nom: 'AMCC',
-    raisonSociale: 'African Metal Construction Company',
-    ncc: 'NCC-002',
-    secteur: 'Métallurgie',
-    adresse: 'Boulevard VGE, Marcory',
-    ville: 'Abidjan',
-    pays: 'Côte d\'Ivoire',
-    contactNom: 'Mme. Fatou DIALLO',
-    contactTelephone: '+225 27 21 35 47 89',
-    contactEmail: 'f.diallo@amcc.ci',
-    conditionsPaiement: 45,
-    type: 'CLIENT',
-    isActif: true,
-    notes: '',
-    dateCreation: '2024-02-20'
-  },
-  {
-    id: 3,
-    nom: 'LDC',
-    raisonSociale: 'Les Distributeurs de Côte d\'Ivoire',
-    ncc: 'NCC-003',
-    secteur: 'Distribution',
-    adresse: 'Rue du Commerce, Plateau',
-    ville: 'Abidjan',
-    pays: 'Côte d\'Ivoire',
-    contactNom: 'M. Kouassi KOFFI',
-    contactTelephone: '+225 27 21 45 78 96',
-    contactEmail: 'k.koffi@ldc.ci',
-    conditionsPaiement: 30,
-    type: 'CLIENT',
-    isActif: true,
-    notes: '',
-    dateCreation: '2024-03-10'
-  }
-];
 
 export const useClientsStore = create(
   persist(
     (set, get) => ({
-      clients: CLIENTS_INITIAUX,
-      compteurId: 4,
+      clients: [],
+      compteurId: 1,
 
       addClient: async (client) => {
         const { compteurId } = get();
@@ -116,7 +61,9 @@ export const useClientsStore = create(
         const clientMaj = get().clients.find((c) => c.id === id);
         if (clientMaj) {
           supabase.from('clients').update(toSupabaseRow({ ...clientMaj, ...modifications })).eq('id', id).then(({ error }) => {
-            if (error) console.error('Supabase updateClient:', error.message);
+            if (error) logger.error('Supabase updateClient:', error.message);
+          }).catch((err) => {
+            logger.error('Erreur updateClient:', err.message);
           });
         }
       },
@@ -124,7 +71,9 @@ export const useClientsStore = create(
       deleteClient: (id) => {
         set((state) => ({ clients: state.clients.filter((client) => client.id !== id) }));
         supabase.from('clients').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase deleteClient:', error.message);
+          if (error) logger.error('Supabase deleteClient:', error.message);
+        }).catch((err) => {
+          logger.error('Erreur deleteClient:', err.message);
         });
       },
 
@@ -154,6 +103,10 @@ export const useClientsStore = create(
       },
 
       setClients: (clients) => {
+        get().updateClientsWithCompteur(clients);
+      },
+
+      updateClientsWithCompteur: (clients) => {
         const maxId = clients.length > 0 ? Math.max(...clients.map(c => c.id)) : 0;
         set({ clients, compteurId: maxId + 1 });
       },

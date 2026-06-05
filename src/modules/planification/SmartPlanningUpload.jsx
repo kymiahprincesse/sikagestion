@@ -305,7 +305,7 @@ export default function SmartPlanningUpload({ onClose, onImport, projetId }) {
                   </thead>
                   <tbody>
                     {Object.entries(colonnesDetectees).map(([index, mapping]) => (
-                      <tr key={index} className="border-b border-argent hover:bg-orangeClair">
+                      <tr key={`col-${index}-${mapping.nomOriginal}`} className="border-b border-argent hover:bg-orangeClair">
                         <td className="px-4 py-2 font-medium text-navy">
                           {mapping.nomOriginal}
                         </td>

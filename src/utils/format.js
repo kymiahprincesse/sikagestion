@@ -175,3 +175,20 @@ export const safeParseInt = (valeur, defaut = 0) => {
   const parsed = parseInt(valeur, 10);
   return isNaN(parsed) ? defaut : parsed;
 };
+
+/**
+ * Génère un ID unique cryptographiquement sécurisé
+ * Remplace Date.now() + Math.random() qui peut causer des collisions
+ * @param {string} prefix - Préfixe optionnel pour l'ID
+ * @returns {string} ID unique
+ */
+export const generateSecureId = (prefix = '') => {
+  const timestamp = Date.now().toString(36);
+  const randomValues = new Uint8Array(8);
+  crypto.getRandomValues(randomValues);
+  const randomPart = Array.from(randomValues)
+    .map(b => b.toString(36).padStart(2, '0'))
+    .join('')
+    .slice(0, 9);
+  return prefix ? `${prefix}-${timestamp}-${randomPart}` : `${timestamp}-${randomPart}`;
+};

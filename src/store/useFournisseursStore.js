@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { notifyError } from '../utils/notifications';
+import { logger } from '../utils/logger';
+import { generateSecureId } from '../utils/format';
 
 function fournisseurToRow(f) {
   return {
@@ -23,76 +25,17 @@ function fournisseurToRow(f) {
   };
 }
 
-const FOURNISSEURS_INITIAUX = [
-  {
-    id: 1,
-    nom: 'ACIER CÔTE D\'IVOIRE',
-    raisonSociale: 'Société Ivoirienne de l\'Acier',
-    type: 'MATIERE_PREMIERE',
-    secteur: 'Métallurgie',
-    adresse: 'Zone Industrielle de Vridi',
-    ville: 'Abidjan',
-    pays: 'Côte d\'Ivoire',
-    contactNom: 'M. TRAORE Moussa',
-    contactTelephone: '+225 27 21 45 67 89',
-    contactEmail: 'contact@acierci.com',
-    conditionsPaiement: 45,
-    numeroCompte: 'CI93 CI 01234567890123456789',
-    banque: 'SGBCI',
-    isActif: true,
-    notes: 'Fournisseur principal pour tôles et profilés acier',
-    dateCreation: '2024-01-10'
-  },
-  {
-    id: 2,
-    nom: 'EQUIPEMENTS INDUSTRIELS SA',
-    raisonSociale: 'Equipements Industriels Société Anonyme',
-    type: 'MATERIEL',
-    secteur: 'Équipements',
-    adresse: 'Boulevard Latrille, Cocody',
-    ville: 'Abidjan',
-    pays: 'Côte d\'Ivoire',
-    contactNom: 'Mme. KONE Aminata',
-    contactTelephone: '+225 27 22 48 56 78',
-    contactEmail: 'a.kone@equipind.ci',
-    conditionsPaiement: 30,
-    numeroCompte: 'CI93 CI 98765432109876543210',
-    banque: 'BICICI',
-    isActif: true,
-    notes: 'Machines et outils de soudure',
-    dateCreation: '2024-02-15'
-  },
-  {
-    id: 3,
-    nom: 'TRANSPORT LOGISTIQUE EXPRESS',
-    raisonSociale: 'TLE SARL',
-    type: 'TRANSPORT',
-    secteur: 'Transport',
-    adresse: 'Rue du Port, Treichville',
-    ville: 'Abidjan',
-    pays: 'Côte d\'Ivoire',
-    contactNom: 'M. BAMBA Sekou',
-    contactTelephone: '+225 07 08 09 10 11',
-    contactEmail: 'contact@tle-ci.com',
-    conditionsPaiement: 15,
-    numeroCompte: '',
-    banque: 'ECOBANK',
-    isActif: true,
-    notes: 'Livraisons urgentes et transport de matériaux lourds',
-    dateCreation: '2024-03-20'
-  }
-];
 
 export const useFournisseursStore = create(
   persist(
     (set, get) => ({
-      fournisseurs: FOURNISSEURS_INITIAUX,
+      fournisseurs: [],
       achats: [],
 
       addFournisseur: async (fournisseur) => {
         const nouveauFournisseur = {
           ...fournisseur,
-          id: Date.now(),
+          id: generateSecureId('FRN'),
           dateCreation: fournisseur.dateCreation || new Date().toISOString().split('T')[0],
           isActif: fournisseur.isActif !== undefined ? fournisseur.isActif : true
         };
@@ -122,9 +65,11 @@ export const useFournisseursStore = create(
         if (fMaj) {
           supabase.from('fournisseurs').update(fournisseurToRow({ ...fMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
-              console.error('Supabase updateFournisseur:', error.message);
+              logger.error('Supabase updateFournisseur:', error.message);
               notifyError('Erreur de mise à jour', `Impossible de modifier le fournisseur: ${error.message}`);
             }
+          }).catch((err) => {
+            logger.error('Erreur updateFournisseur:', err.message);
           });
         }
       },
@@ -133,9 +78,11 @@ export const useFournisseursStore = create(
         set((state) => ({ fournisseurs: state.fournisseurs.filter((f) => f.id !== id) }));
         supabase.from('fournisseurs').delete().eq('id', id).then(({ error }) => {
           if (error) {
-            console.error('Supabase deleteFournisseur:', error.message);
+            logger.error('Supabase deleteFournisseur:', error.message);
             notifyError('Erreur de suppression', `Impossible de supprimer le fournisseur: ${error.message}`);
           }
+        }).catch((err) => {
+          logger.error('Erreur deleteFournisseur:', err.message);
         });
       },
 
@@ -152,7 +99,7 @@ export const useFournisseursStore = create(
       addAchat: (achat) => {
         const nouvelAchat = {
           ...achat,
-          id: Date.now(),
+          id: generateSecureId('FRN'),
           dateAchat: achat.dateAchat || new Date().toISOString().split('T')[0],
           statut: achat.statut || 'EN_ATTENTE'
         };
@@ -207,6 +154,10 @@ export const useFournisseursStore = create(
 ,
 
       setFournisseurs: (fournisseurs) => {
+        get().updateFournisseursWithCompteur(fournisseurs);
+      },
+
+      updateFournisseursWithCompteur: (fournisseurs) => {
         set({ fournisseurs, compteurId: Math.max(...fournisseurs.map(f => f.id), 0) + 1 });
       },
 

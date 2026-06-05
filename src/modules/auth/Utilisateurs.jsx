@@ -131,7 +131,11 @@ const Utilisateurs = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const tousUtilisateurs = filtrerSuperAdmin(utilisateurs);
+  // SUPER_ADMIN voit TOUS les utilisateurs (y compris lui-même)
+  // Les autres admins ne voient pas le SUPER_ADMIN
+  const tousUtilisateurs = utilisateurConnecte.role === 'SUPER_ADMIN'
+    ? utilisateurs
+    : filtrerSuperAdmin(utilisateurs);
 
   const utilisateursFiltres = tousUtilisateurs
     .filter(u => filtreRole === 'TOUS' || u.role === filtreRole)

@@ -260,7 +260,7 @@ export default function DataLoader() {
     }
 
     loadAllData()
-  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements])
+  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements, genererNotifications])
 
   return null // Composant invisible
 }

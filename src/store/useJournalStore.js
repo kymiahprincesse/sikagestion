@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { notifyError } from '../utils/notifications';
+import { logger } from '../utils/logger';
+import { generateSecureId } from '../utils/format';
 
 function ecritureToRow(e) {
   return {
@@ -25,9 +27,9 @@ export const useJournalStore = create(
       addEcriture: async (ecriture) => {
         const nouvelleEcriture = {
           ...ecriture,
-          id: Date.now(),
+          id: generateSecureId('ECR'),
           date: ecriture.date || new Date().toISOString().split('T')[0],
-          pieceComptable: ecriture.pieceComptable || `PC-${Date.now()}`
+          pieceComptable: ecriture.pieceComptable || `PC-${generateSecureId('pc')}`
         };
 
         set((state) => ({ ecritures: [...state.ecritures, nouvelleEcriture] }));
@@ -55,9 +57,11 @@ export const useJournalStore = create(
         if (eMaj) {
           supabase.from('ecritures_journal').update(ecritureToRow({ ...eMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
-              console.error('Supabase updateEcriture:', error.message);
+              logger.error('Supabase updateEcriture:', error.message);
               notifyError('Erreur de mise à jour', `Impossible de modifier l'écriture: ${error.message}`);
             }
+          }).catch((err) => {
+            logger.error('Erreur updateEcriture:', err.message);
           });
         }
       },
@@ -66,9 +70,11 @@ export const useJournalStore = create(
         set((state) => ({ ecritures: state.ecritures.filter((e) => e.id !== id) }));
         supabase.from('ecritures_journal').delete().eq('id', id).then(({ error }) => {
           if (error) {
-            console.error('Supabase deleteEcriture:', error.message);
+            logger.error('Supabase deleteEcriture:', error.message);
             notifyError('Erreur de suppression', `Impossible de supprimer l'écriture: ${error.message}`);
           }
+        }).catch((err) => {
+          logger.error('Erreur deleteEcriture:', err.message);
         });
       },
 

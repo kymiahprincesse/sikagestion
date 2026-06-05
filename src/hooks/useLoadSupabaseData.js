@@ -147,7 +147,8 @@ export function useLoadSupabaseData() {
           id: e.id, factureId: e.facture_id, clientId: e.client_id, clientNom: e.client_nom,
           montant: parseFloat(e.montant || 0), dateEncaissement: e.date_encaissement,
           modePaiement: e.mode_paiement, reference: e.reference,
-          notes: e.notes, statut: e.statut, dateCreation: e.date_creation
+          notes: e.notes, statut: e.statut, dateCreation: e.date_creation,
+          mouvementCaisseId: e.mouvement_caisse_id
         }))
 
         setClients(clients)
@@ -188,7 +189,7 @@ export function useLoadSupabaseData() {
     }
 
     loadAllData()
-  }, [])
+  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setUtilisateurs, setEcritures])
 
   return { loading, error, stats }
 }

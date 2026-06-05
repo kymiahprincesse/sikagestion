@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
-import { getTodayISO } from '../utils/format';
+import { getTodayISO, generateSecureId } from '../utils/format';
 import { notifyError } from '../utils/notifications';
+import { logger } from '../utils/logger';
 
 function toSupabaseRow(f) {
   return {
@@ -50,7 +51,7 @@ export const useFacturesStore = create(
 
         const nouvelleFacture = {
           ...facture,
-          id: Date.now(),
+          id: generateSecureId('FAC'),
           numero: numero,
           dateCreation: facture.dateCreation || getTodayISO(),
           dateEcheance: dateEcheance,
@@ -91,9 +92,11 @@ export const useFacturesStore = create(
         if (factureMaj) {
           supabase.from('factures').update(toSupabaseRow({ ...factureMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
-              console.error('Supabase updateFacture:', error.message);
+              logger.error('Supabase updateFacture:', error.message);
               notifyError('Erreur de mise à jour', `Impossible de modifier la facture: ${error.message}`);
             }
+          }).catch((err) => {
+            logger.error('Erreur updateFacture:', err.message);
           });
         }
       },
@@ -102,9 +105,11 @@ export const useFacturesStore = create(
         set((state) => ({ factures: state.factures.filter((f) => f.id !== id) }));
         supabase.from('factures').delete().eq('id', id).then(({ error }) => {
           if (error) {
-            console.error('Supabase deleteFacture:', error.message);
+            logger.error('Supabase deleteFacture:', error.message);
             notifyError('Erreur de suppression', `Impossible de supprimer la facture: ${error.message}`);
           }
+        }).catch((err) => {
+          logger.error('Erreur deleteFacture:', err.message);
         });
       },
 
@@ -162,7 +167,7 @@ export const useFacturesStore = create(
         if (!facture) return;
 
         const nouveauPaiement = {
-          id: Date.now(),
+          id: generateSecureId('FAC'),
           date: paiement.date || getTodayISO(),
           montant: parseFloat(paiement.montant) || 0,
           mode: paiement.mode || 'Virement',

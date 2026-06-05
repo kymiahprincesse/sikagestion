@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, openPDFForPrint, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
 import { useNavigate } from 'react-router-dom'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
+import GestionDoublons from '../../components/GestionDoublons'
 
 const STATUTS = ['BROUILLON', 'VALIDE', 'FACTURE', 'ANNULE']
 const TYPES = ['CALORIFUGE', 'PLIAGE', 'RESERVOIR', 'SOUDURE', 'CHARPENTE', 'TUYAUTERIE', 'CHAUDRONNERIE']
@@ -30,6 +31,7 @@ export default function ListeDevis() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
   const [devisSelectionne, setDevisSelectionne] = useState(null)
   const [showModalVoir, setShowModalVoir] = useState(false)
+  const [showGestionDoublons, setShowGestionDoublons] = useState(false)
 
   // Fermer la modale avec la touche Escape
   useEscapeKey(showModalVoir, () => setShowModalVoir(false))
@@ -748,6 +750,13 @@ export default function ListeDevis() {
           >
             🖨️ Imprimer
           </button>
+          <button
+            onClick={() => setShowGestionDoublons(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition font-semibold"
+            title="Détecter et gérer les devis en doublon"
+          >
+            🔍 Doublons
+          </button>
           <div className="flex-1 min-w-[200px]">
             <input
               type="text"
@@ -1068,6 +1077,14 @@ export default function ListeDevis() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de gestion des doublons */}
+      {showGestionDoublons && (
+        <GestionDoublons 
+          onClose={() => setShowGestionDoublons(false)} 
+          type="devis"
+        />
       )}
     </div>
   )

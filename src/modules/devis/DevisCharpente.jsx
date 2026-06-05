@@ -6,18 +6,17 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
+import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_PROFIL = ['IPE', 'HEA', 'HEB', 'UPN', 'Tube carré', 'Tube rectangulaire', 'Cornière']
-const DIMENSIONS_IPE = ['IPE80', 'IPE100', 'IPE120', 'IPE140', 'IPE160', 'IPE180', 'IPE200', 'IPE220', 'IPE240', 'IPE270', 'IPE300', 'IPE330', 'IPE360', 'IPE400', 'IPE450', 'IPE500']
-const DIMENSIONS_HEA = ['HEA100', 'HEA120', 'HEA140', 'HEA160', 'HEA180', 'HEA200', 'HEA220', 'HEA240', 'HEA260', 'HEA280', 'HEA300']
 const TRAITEMENTS = ['Galvanisation à chaud', 'Peinture antirouille', 'Métallisation', 'Aucun']
 
 const LIGNE_VIDE = {
   id: Date.now(),
   designation: '',
   typeProfil: 'IPE',
-  dimension: 'IPE200',
+  surface: '',
   longueur: 0,
   quantite: 1,
   pu: 0
@@ -33,7 +32,7 @@ export default function DevisCharpente() {
   const { ajouterNotification } = useNotificationsStore()
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: getNextNumero(),
+    numero: '',
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'CHARPENTE',
@@ -50,6 +49,13 @@ export default function DevisCharpente() {
 
   const [devisId, setDevisId] = useState(null)
 
+  // Générer le numéro après le montage (évite setState pendant le render)
+  useEffect(() => {
+    if (!devisData.numero && !location.state?.devisId) {
+      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
+    }
+  }, [devisData.numero, location.state?.devisId, getNextNumero])
+
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
     const loadDevis = () => {
@@ -65,7 +71,7 @@ export default function DevisCharpente() {
             portee: devisExist.portee || 0,
             hauteur: devisExist.hauteur || 0,
             traitement: devisExist.traitement || 'Peinture antirouille',
-            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes.map(l => ({ ...l, surface: l.surface || l.dimension || '', quantite: l.quantite || 1, pu: l.pu || 0 })) : [{ ...LIGNE_VIDE, id: Date.now() }],
             tauxRemise: devisExist.tauxRemise || 0,
             tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
             statut: devisExist.statut || 'BROUILLON'
@@ -80,28 +86,14 @@ export default function DevisCharpente() {
     loadDevis()
   }, [location.state, location.state?.devisId, getDevisById])
 
-  const getDimensionsDisponibles = (typeProfil) => {
-    switch(typeProfil) {
-      case 'IPE': return DIMENSIONS_IPE
-      case 'HEA': return DIMENSIONS_HEA
-      case 'HEB': return DIMENSIONS_HEA.map(d => d.replace('HEA', 'HEB'))
-      case 'UPN': return ['UPN80', 'UPN100', 'UPN120', 'UPN140', 'UPN160', 'UPN180', 'UPN200']
-      case 'Tube carré': return ['40x40', '50x50', '60x60', '80x80', '100x100', '120x120', '140x140', '160x160']
-      case 'Tube rectangulaire': return ['40x20', '50x30', '60x40', '80x40', '100x50', '120x60', '140x80', '160x80']
-      case 'Cornière': return ['40x40', '50x50', '60x60', '70x70', '80x80', '100x100', '120x120']
-      default: return DIMENSIONS_IPE
-    }
-  }
-
   const calculerPoidsLineaire = (ligne) => {
     return 0
   }
 
   const calculerMontant = (ligne) => {
-    const longueur = parseFloat(ligne.longueur) || 0
     const quantite = parseFloat(ligne.quantite) || 1
     const pu = parseFloat(ligne.pu) || 0
-    return longueur * quantite * pu
+    return quantite * pu
   }
 
   const calculerTotaux = () => {
@@ -137,12 +129,7 @@ export default function DevisCharpente() {
       ...prev,
       lignes: prev.lignes.map(l => {
         if (l.id === id) {
-          const nouvelleLigne = { ...l, [champ]: valeur }
-          if (champ === 'typeProfil') {
-            const dimensions = getDimensionsDisponibles(valeur)
-            nouvelleLigne.dimension = dimensions[0]
-          }
-          return nouvelleLigne
+          return { ...l, [champ]: valeur }
         }
         return l
       })
@@ -198,70 +185,55 @@ export default function DevisCharpente() {
     }
     
     const client = clients.find(c => c.id === devisData.clientId);
-    const ctx = await createSikaPDF(`DEVIS CHARPENTE - ${devisData.numero}`);
-    const { doc, startY, MARGE_G, PAGE_W } = ctx;
-    
-    let y = startY;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 42, 74);
-    
-    const infos = [
-      ['Client', client?.nom || 'N/A'],
-      ['Date', formatDate(devisData.date)],
-      ['Objet', devisData.objet || 'N/A']
-    ];
-    
-    infos.forEach(([label, value]) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(label + ' :', MARGE_G, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(value, MARGE_G + 25, y);
-      y += 6;
-    });
-    
-    y += 8;
-    
-    const columns = ['Profil', 'Dimension', 'Longueur (m)', 'Qté', 'PU (FCFA)', 'Montant (FCFA)'];
-    const rows = devisData.lignes.map(ligne => [
-      ligne.typeProfil || '—',
-      ligne.dimension || '—',
-      ligne.longueur || 0,
-      ligne.quantite || 0,
-      formatMontant(ligne.pu),
-      formatMontant(ligne.quantite * ligne.pu)
-    ]);
-    
-    const finalY = sikaTable(doc, columns, rows, y, ctx);
-    y = finalY + 10;
-    
-    const totauxX = PAGE_W - 80;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 42, 74);
-    
     const totaux = calculerTotaux();
-    const rowsTotaux = [
-      ['Montant HT', formatMontant(totaux.montantHT) + ' FCFA'],
-      ...(devisData.tvaActive ? [['TVA (18%)', formatMontant(totaux.tva) + ' FCFA']] : []),
-      ['MONTANT TTC', formatMontant(totaux.ttc) + ' FCFA']
-    ];
-    rowsTotaux.forEach(([label, val], idx) => {
-      if (idx === rowsTotaux.length - 1) {
-        doc.setFillColor(27, 42, 74);
-        doc.rect(totauxX - 2, y - 4, 82, 8, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(10);
-      }
-      doc.text(label, totauxX, y);
-      doc.text(val, PAGE_W - 15, y, { align: 'right' });
-      y += (idx === rowsTotaux.length - 1) ? 10 : 6;
-      doc.setTextColor(27, 42, 74);
-      doc.setFontSize(9);
-    });
     
-    await finalizeSikaPDF(ctx, `SIKA_Devis_Charpente_${devisData.numero.replace(/\//g, '_')}.pdf`);
+    // Préparer les données pour le template
+    const lignesAvecMontant = devisData.lignes.map(l => ({
+      designation: l.typeProfil || '—',
+      dn: l.surface || '—',
+      qte: parseFloat(l.quantite) || 0,
+      pu: parseFloat(l.pu) || 0,
+      montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
+    }));
+    
+    const templateData = {
+      reference: devisData.numero,
+      objet: devisData.objet || 'Charpente Métallique',
+      type: 'CHARPENTE',
+      client: {
+        nom: client?.nom || '—',
+        interlocuteur: client?.contactNom || '—',
+        site: client?.ville || '—'
+      },
+      infos: {
+        date: devisData.date,
+        validite: '30 jours',
+        etabliPar: 'SIKA INDUSTRIE',
+        tel: '(225) 07 97 25 25 26'
+      },
+      lignes: lignesAvecMontant,
+      montantHT: totaux.montantHT,
+      tva: totaux.tva,
+      ttc: totaux.ttc
+    };
+
+    // Générer le HTML avec le nouveau template
+    const htmlContent = generateDevisHTML(templateData);
+    
+    // Ouvrir dans une nouvelle fenêtre pour impression
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Attendre le chargement puis imprimer
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    };
+    
     addLog({ module: 'DEVIS_CHARPENTE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devisData.numero } });
+    alert('Devis ouvert dans une nouvelle fenêtre pour impression');
   }
 
   const clientSelectionne = clients.find(c => c.id === devisData.clientId)
@@ -343,13 +315,11 @@ export default function DevisCharpente() {
               <thead>
                 <tr className="bg-navy text-white">
                   <th className="border border-argent px-4 py-2 text-left">DÉSIGNATION</th>
-                  <th className="border border-argent px-4 py-2 text-center w-32">TYPE PROFILÉ</th>
-                  <th className="border border-argent px-4 py-2 text-center w-32">DIMENSION</th>
-                  <th className="border border-argent px-4 py-2 text-center w-24">LONG. (m)</th>
-                  <th className="border border-argent px-4 py-2 text-center w-20">QTÉ</th>
-                  <th className="border border-argent px-4 py-2 text-right w-32">PU (FCFA/m)</th>
-                  <th className="border border-argent px-4 py-2 text-right w-32">MONTANT (FCFA)</th>
-                  <th className="border border-argent px-4 py-2 text-center w-20">Actions</th>
+                  <th className="border border-argent px-4 py-2 text-center w-40">SURFACE</th>
+                  <th className="border border-argent px-4 py-2 text-center w-24">QTÉ</th>
+                  <th className="border border-argent px-4 py-2 text-right w-36">PU (FCFA/m)</th>
+                  <th className="border border-argent px-4 py-2 text-right w-36">MONTANT (FCFA)</th>
+                  <th className="border border-argent px-4 py-2 text-center w-24">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -361,17 +331,7 @@ export default function DevisCharpente() {
                         <input type="text" value={ligne.designation} onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange" placeholder="Désignation..." />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <select value={ligne.typeProfil} onChange={(e) => modifierLigne(ligne.id, 'typeProfil', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange">
-                          {TYPES_PROFIL.map(type => <option key={type} value={type}>{type}</option>)}
-                        </select>
-                      </td>
-                      <td className="border border-argent px-4 py-2">
-                        <select value={ligne.dimension} onChange={(e) => modifierLigne(ligne.id, 'dimension', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange">
-                          {getDimensionsDisponibles(ligne.typeProfil).map(dim => <option key={dim} value={dim}>{dim}</option>)}
-                        </select>
-                      </td>
-                      <td className="border border-argent px-4 py-2">
-                        <input type="number" step="0.01" value={ligne.longueur} onChange={(e) => modifierLigne(ligne.id, 'longueur', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                        <input type="text" value={ligne.surface} onChange={(e) => modifierLigne(ligne.id, 'surface', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" placeholder="m²..." />
                       </td>
                       <td className="border border-argent px-4 py-2">
                         <input type="number" value={ligne.quantite} onChange={(e) => modifierLigne(ligne.id, 'quantite', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
@@ -398,16 +358,14 @@ export default function DevisCharpente() {
               <span className="text-lg font-bold text-navy">{formatFCFA(totaux.montantBrut)}</span>
             </div>
             
-            {devisData.tauxRemise > 0 && (
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-navy font-semibold">REMISE</span>
-                  <input type="number" value={devisData.tauxRemise} onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))} className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
-                  <span className="text-navy">%</span>
-                </div>
-                <span className="text-lg font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-navy font-semibold">REMISE</span>
+                <input type="number" min="0" max="100" value={devisData.tauxRemise} onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))} className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                <span className="text-navy">%</span>
               </div>
-            )}
+              <span className="text-lg font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
+            </div>
             
             <div className="flex justify-between items-center bg-orangeClair p-2 rounded">
               <span className="text-navy font-bold">MONTANT TOTAL HT</span>

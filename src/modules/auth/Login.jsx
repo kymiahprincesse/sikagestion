@@ -41,6 +41,7 @@ const Login = () => {
   const genererCodeRecuperation = useUtilisateursStore(state => state.genererCodeRecuperation);
   const reinitialiserAvecCode = useUtilisateursStore(state => state.reinitialiserAvecCode);
   const envoyerEmailRecuperation = useUtilisateursStore(state => state.envoyerEmailRecuperation);
+  const fetchUtilisateurs = useUtilisateursStore(state => state.fetchUtilisateurs);
   const navigate = useNavigate();
 
   const [modeEmail, setModeEmail] = useState(false);
@@ -48,13 +49,16 @@ const Login = () => {
   useEffect(() => {
     // Nettoyage sécurité: supprimer ancien mot de passe stocké si présent
     localStorage.removeItem('sika_saved_password');
-    
+
     const savedLogin = localStorage.getItem('sika_saved_login');
     if (localStorage.getItem('sika_remember_me') === 'true' && savedLogin) {
       setIdentifiant(savedLogin);
       setRememberMe(true);
     }
-  }, []);
+
+    // Synchroniser les utilisateurs depuis Supabase
+    fetchUtilisateurs();
+  }, [fetchUtilisateurs]);
 
   useEffect(() => {
     if (vue === 'code') {

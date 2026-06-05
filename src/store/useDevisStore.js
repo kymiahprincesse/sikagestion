@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { formatFCFA, getTodayISO } from '../utils/format';
+import { quickCheck, findAllDuplicates, mergeDuplicates } from '../utils/duplicateDetector';
+import { logger } from '../utils/logger';
 
 function toSupabaseRow(devis) {
   return {
@@ -33,53 +35,78 @@ export const useDevisStore = create(
         const { compteurGlobal } = get();
         const annee = new Date().getFullYear();
         const numero = `N°${compteurGlobal}/SIKA/${annee}`;
-        set({ compteurGlobal: compteurGlobal + 1 });
+        // Ne pas incrémenter ici - causerait setState pendant render
+        // L'incrémentation se fait dans addDevis quand le numéro est réellement utilisé
         return numero;
       },
 
-      addDevis: async (devis) => {
-        const numero = devis.numero || get().getNextNumero();
+      incrementCompteur: () => {
+        set((state) => ({ compteurGlobal: state.compteurGlobal + 1 }));
+      },
 
-        // Vérifier les doublons par numéro
-        const existant = get().devis.find((d) => d.numero === numero);
-        if (existant && !devis.id) {
-          console.warn('Devis avec ce numéro existe déjà:', numero);
-          // Générer un nouveau numéro si doublon détecté
-          const nouveauNumero = get().getNextNumero();
-          devis.numero = nouveauNumero;
+      addDevis: async (devis, options = {}) => {
+        const { ignorerDoublons = false, fusionnerSiDoublon = false } = options;
+        
+        let numero = devis.numero;
+        if (!numero) {
+          numero = get().getNextNumero();
+          get().incrementCompteur();
         }
+        devis.numero = numero;
 
-        // Vérifier les doublons par contenu (même client, même montant, même date)
-        const doublonContenu = get().devis.find((d) =>
-          d.clientId === devis.clientId &&
-          d.montantTTC === devis.montantTTC &&
-          d.type === devis.type &&
-          d.date === devis.date &&
-          Math.abs(new Date(d.dateCreation || d.date).getTime() - Date.now()) < 60000 // créé dans la dernière minute
-        );
-
-        if (doublonContenu && !devis.id) {
-          console.warn('Doublon de contenu détecté, devis ignoré');
-          if (typeof window !== 'undefined') {
-            import('./useNotificationsStore').then(({ useNotificationsStore }) => {
-              useNotificationsStore.getState().ajouterNotification({
-                type: 'ATTENTION',
-                icone: '⚠️',
-                titre: 'DOUBLON DÉTECTÉ',
-                message: 'Un devis similaire vient d\'être créé. Veuillez patienter quelques secondes.',
-                lien: '/devis/liste'
+        // ═══ NOUVEAU SYSTÈME DE DÉTECTION DE DOUBLONS ═══
+        if (!ignorerDoublons && !devis.id) {
+          const résultatVérification = quickCheck('devis', devis, get().devis);
+          
+          if (résultatVérification.estDoublon) {
+            logger.warn('🚫 DOUBLON DÉTECTÉ:', résultatVérification.raison, résultatVérification);
+            
+            // Notification utilisateur
+            if (typeof window !== 'undefined') {
+              import('./useNotificationsStore').then(({ useNotificationsStore }) => {
+                const notifStore = useNotificationsStore.getState();
+                
+                notifStore.ajouterNotification({
+                  type: 'ATTENTION',
+                  icone: '⚠️',
+                  titre: 'DOUBLON DÉTECTÉ',
+                  message: `${résultatVérification.raison}. Devis existant: ${résultatVérification.doublonDetecté?.numero || 'N/A'}`,
+                  lien: '/devis/liste',
+                  donnees: { 
+                    devisId: résultatVérification.doublonDetecté?.id,
+                    typeDoublon: résultatVérification.type 
+                  }
+                });
+              }).catch((err) => {
+                logger.error('Erreur import useNotificationsStore:', err.message);
               });
-            });
+            }
+
+            // Option: fusionner avec le doublon existant
+            if (fusionnerSiDoublon) {
+              const fusionné = mergeDuplicates(
+                résultatVérification.doublonDetecté,
+                [devis],
+                'fusionnerDonnées'
+              );
+              await get().updateDevis(fusionné.id, fusionné);
+              return fusionné;
+            }
+
+            // Retourner le doublon existant au lieu d'en créer un nouveau
+            return résultatVérification.doublonDetecté;
           }
-          return doublonContenu;
         }
+        // ═══════════════════════════════════════════════
 
         const nouveauDevis = {
           ...devis,
-          id: devis.id || Date.now(),
+          id: devis.id || generateSecureId('DEV'),
           numero: devis.numero || numero,
           dateCreation: devis.dateCreation || getTodayISO(),
-          statut: devis.statut || 'BROUILLON'
+          statut: devis.statut || 'BROUILLON',
+          // Ajouter un hash unique pour traçabilité
+          hashUnique: generateSecureId('hash')
         };
 
         set((state) => ({ devis: [...state.devis, nouveauDevis] }));
@@ -96,12 +123,14 @@ export const useDevisStore = create(
               lien: '/devis/liste',
               donnees: { devisId: nouveauDevis.id }
             });
+          }).catch((err) => {
+            logger.error('Erreur import useNotificationsStore:', err.message);
           });
         }
 
         const { data, error } = await supabase.from('devis').insert(toSupabaseRow(nouveauDevis)).select().single();
         if (error) {
-          console.error('Supabase addDevis:', error.message);
+          logger.error('Supabase addDevis:', error.message);
         } else if (data) {
           set((state) => ({
             devis: state.devis.map((d) => d.id === nouveauDevis.id ? { ...d, id: data.id } : d)
@@ -130,12 +159,14 @@ export const useDevisStore = create(
               lien: '/devis/liste',
               donnees: { devisId: id }
             });
+          }).catch((err) => {
+            logger.error('Erreur import useNotificationsStore:', err.message);
           });
         }
 
         const { error } = await supabase.from('devis').update(toSupabaseRow({ ...devisMaj, ...modifications })).eq('id', id);
         if (error) {
-          console.error('Supabase updateDevis:', error.message);
+          logger.error('Supabase updateDevis:', error.message);
         }
       },
 
@@ -154,11 +185,15 @@ export const useDevisStore = create(
               message: `Le devis ${devisSupprime.numero} a été supprimé`,
               lien: '/devis/liste'
             });
+          }).catch((err) => {
+            logger.error('Erreur import useNotificationsStore:', err.message);
           });
         }
 
         supabase.from('devis').delete().eq('id', id).then(({ error }) => {
-          if (error) console.error('Supabase deleteDevis:', error.message);
+          if (error) logger.error('Supabase deleteDevis:', error.message);
+        }).catch((err) => {
+          logger.error('Erreur deleteDevis:', err.message);
         });
       },
 
@@ -181,6 +216,8 @@ export const useDevisStore = create(
         if (typeof window !== 'undefined' && devis) {
           import('./useNotificationsStore').then(({ useNotificationsStore }) => {
             useNotificationsStore.getState().notifierDevisConverti(devis.numero);
+          }).catch((err) => {
+            logger.error('Erreur import useNotificationsStore:', err.message);
           });
         }
       },
@@ -192,9 +229,161 @@ export const useDevisStore = create(
         const { devis: currentDevis } = get();
         const existing = currentDevis.find(d => d.id === devis.id);
         if (!existing) {
-          set({ devis: [...currentDevis, devis] });
+          // Vérifier aussi les doublons en temps réel
+          const résultat = quickCheck('devis', devis, currentDevis);
+          if (!résultat.estDoublon) {
+            set({ devis: [...currentDevis, devis] });
+          } else {
+            logger.log('Devis realtime ignoré (doublon):', devis.numero);
+          }
         }
+      },
+
+      // ═══ NOUVELLES FONCTIONS DE GESTION DES DOUBLONS ═══
+      
+      /**
+       * Analyse complète des doublons dans tous les devis
+       */
+      analyserDoublons: () => {
+        const doublons = findAllDuplicates(get().devis, 'devis');
+        logger.log(`📊 Analyse des doublons: ${doublons.length} groupes trouvés`);
+        
+        if (doublons.length > 0 && typeof window !== 'undefined') {
+          import('./useNotificationsStore').then(({ useNotificationsStore }) => {
+            useNotificationsStore.getState().ajouterNotification({
+              type: 'INFO',
+              icone: '🔍',
+              titre: 'ANALYSE DES DOUBLONS',
+              message: `${doublons.length} groupe(s) de devis en doublon détecté(s). Cliquez pour voir.`,
+              lien: '/devis/liste?filter=doublons',
+              donnees: { doublons, type: 'ANALYSE_DOUBLONS' }
+            });
+          }).catch((err) => {
+            logger.error('Erreur import useNotificationsStore:', err.message);
+          });
+        }
+        
+        return doublons;
+      },
+
+      /**
+       * Fusionne un groupe de devis en doublon
+       */
+      fusionnerDoublons: (idsDoublons, idPrincipal) => {
+        const { devis } = get();
+        const entitésDoublons = idsDoublons.map(id => devis.find(d => d.id === id)).filter(Boolean);
+        const entitéPrincipale = devis.find(d => d.id === idPrincipal) || entitésDoublons[0];
+        
+        if (entitésDoublons.length < 2) {
+          logger.warn('Fusion impossible: moins de 2 devis');
+          return null;
+        }
+
+        const fusionné = mergeDuplicates(entitéPrincipale, entitésDoublons.filter(d => d.id !== idPrincipal), 'fusionnerDonnées');
+        
+        // Supprimer les doublons
+        idsDoublons.filter(id => id !== idPrincipal).forEach(id => {
+          get().deleteDevis(id);
+        });
+
+        // Mettre à jour le principal
+        get().updateDevis(idPrincipal, fusionné);
+
+        logger.log('✅ Devis fusionnés:', idsDoublons, '->', idPrincipal);
+        
+        if (typeof window !== 'undefined') {
+          import('./useNotificationsStore').then(({ useNotificationsStore }) => {
+            useNotificationsStore.getState().ajouterNotification({
+              type: 'INFO',
+              icone: '🔗',
+              titre: 'DEVIS FUSIONNÉS',
+              message: `${entitésDoublons.length} devis fusionnés en un seul: ${fusionné.numero}`,
+              lien: '/devis/liste'
+            });
+          }).catch((err) => {
+            logger.error('Erreur import useNotificationsStore:', err.message);
+          });
+        }
+
+        return fusionné;
+      },
+
+      /**
+       * Supprime tous les doublons d'un groupe (garde le premier)
+       */
+      supprimerDoublons: (idsDoublons, garderId = null) => {
+        const idAGarder = garderId || idsDoublons[0];
+        const idsASupprimer = idsDoublons.filter(id => id !== idAGarder);
+        
+        idsASupprimer.forEach(id => get().deleteDevis(id));
+        
+        logger.log('🗑️ Doublons supprimés:', idsASupprimer, '- Gardé:', idAGarder);
+        
+        return { supprimés: idsASupprimer, gardé: idAGarder };
+      },
+
+      /**
+       * Vérifie rapidement si un devis serait un doublon (sans l'ajouter)
+       */
+      vérifierDoublon: (devis) => {
+        return quickCheck('devis', devis, get().devis);
+      },
+
+      /**
+       * Récupère les devis en doublon pour un client spécifique
+       */
+      getDoublonsParClient: (clientId) => {
+        const devisClient = get().devis.filter(d => d.clientId === clientId);
+        return findAllDuplicates(devisClient, 'devis');
+      },
+
+      /**
+       * Nettoyage automatique des doublons (à exécuter périodiquement)
+       */
+      nettoyerDoublonsAuto: (options = {}) => {
+        const { 
+          seuilTempsMinutes = 5,
+          fusionner = false,
+          notifier = true 
+        } = options;
+        
+        const doublons = findAllDuplicates(get().devis, 'devis');
+        let nettoyés = 0;
+        
+        doublons.forEach(({ groupe }) => {
+          const récent = groupe.filter(d => {
+            const date = new Date(d.dateCreation || d.date || 0);
+            const diffMinutes = (Date.now() - date.getTime()) / 60000;
+            return diffMinutes <= seuilTempsMinutes;
+          });
+          
+          if (récent.length >= 2) {
+            if (fusionner) {
+              get().fusionnerDoublons(groupe.map(d => d.id), groupe[0].id);
+            } else {
+              get().supprimerDoublons(groupe.map(d => d.id));
+            }
+            nettoyés++;
+          }
+        });
+        
+        if (notifier && nettoyés > 0) {
+          import('./useNotificationsStore').then(({ useNotificationsStore }) => {
+            useNotificationsStore.getState().ajouterNotification({
+              type: 'INFO',
+              icone: '🧹',
+              titre: 'NETTOYAGE AUTO',
+              message: `${nettoyés} groupe(s) de doublons nettoyé(s)`,
+              lien: '/devis/liste'
+            });
+          }).catch((err) => {
+            logger.error('Erreur import useNotificationsStore:', err.message);
+          });
+        }
+        
+        return { nettoyés, doublonsTrouvés: doublons.length };
       }
+      // ═══════════════════════════════════════════════════
     }),
     { name: 'sika_devis' }
   )
