@@ -10,14 +10,20 @@ function toSupabaseRow(ao) {
     client_id: ao.clientId || null,
     objet: ao.objet || null,
     date_devis: ao.dateDevis || new Date().toISOString().split('T')[0],
-    date_reception_ao: ao.dateReceptionAO || null,
+    date_reception_ao: ao.receptionAO || ao.dateReceptionAO || null,
     date_reponse_ao: ao.dateReponseAO || null,
     date_limite: ao.dateLimite || null,
     date_soumission: ao.dateSoumission || null,
     date_decision: ao.dateDecision || null,
-    montant_estime: ao.montantEstime || null,
+    date_visite_chantier: ao.dateVisiteChantier || null,
+    montant_estime: ao.montantEstime || ao.montantRetenue || null,
+    montant_retenue: ao.montantRetenue || null,
     priorite: ao.priorite || null,
     statut: ao.statut || 'A_CHIFFRER',
+    reference_ao: ao.referenceAO || null,
+    secteur_activite: ao.secteurActivite || null,
+    prestation_souhaitee: ao.prestationSouhaitee || null,
+    designations: ao.designations || null,
     notes: ao.notes || null,
   };
 }
@@ -34,7 +40,7 @@ export const STATUTS_AO = {
 export const useAOStore = create(
   persist(
     (set, get) => ({
-      appelsDoffres: [],
+      appelsDoffres: [], // Toujours chargé depuis Supabase, non persisté localement
       compteurNumero: 1,
 
       addAO: async (ao) => {
@@ -159,7 +165,8 @@ export const useAOStore = create(
       }
     }),
     {
-      name: 'sika_ao'
+      name: 'sika_ao',
+      partialize: (state) => ({ compteurNumero: state.compteurNumero })
     }
   )
 );

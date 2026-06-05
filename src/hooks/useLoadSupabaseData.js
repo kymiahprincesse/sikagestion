@@ -101,9 +101,18 @@ export function useLoadSupabaseData() {
         const ao = (aoRes.data || []).map(a => ({
           id: a.id, numeroDevis: a.numero_devis, client: a.client, clientId: a.client_id,
           objet: a.objet, dateDevis: a.date_devis,
-          dateReceptionAO: a.date_reception_ao, dateReponseAO: a.date_reponse_ao,
+          referenceAO: a.reference_ao,
+          secteurActivite: a.secteur_activite,
+          prestationSouhaitee: a.prestation_souhaitee,
+          designations: a.designations,
+          receptionAO: a.date_reception_ao,
+          dateReceptionAO: a.date_reception_ao,
+          dateVisiteChantier: a.date_visite_chantier,
+          dateReponseAO: a.date_reponse_ao,
           dateLimite: a.date_limite, dateSoumission: a.date_soumission, dateDecision: a.date_decision,
-          montantEstime: parseFloat(a.montant_estime || 0), priorite: a.priorite,
+          montantEstime: parseFloat(a.montant_estime || 0),
+          montantRetenue: parseFloat(a.montant_retenue || 0),
+          priorite: a.priorite,
           statut: a.statut, notes: a.notes, dateCreation: a.date_creation
         }))
 
