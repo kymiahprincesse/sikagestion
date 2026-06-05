@@ -9,6 +9,9 @@ import { connectionManager } from '../lib/connectionManager';
  */
 
 export function NetworkStatusBanner() {
+  // Bannière désactivée - ne rien afficher
+  return null;
+
   const [status, setStatus] = useState({
     isOnline: navigator.onLine,
     isSupabaseConnected: false,
