@@ -97,6 +97,7 @@ export default function Layout() {
     if (path === '/fournisseurs') items.push({ label: 'Fournisseurs' })
     if (path === '/achats') items.push({ label: 'Achats' })
     if (path === '/depenses') items.push({ label: 'Dépenses' })
+    if (path === '/achats-depenses') items.push({ label: 'Achats & Dépenses' })
     if (path === '/rapport') items.push({ label: 'Rapport de synthèse' })
     if (path === '/import-export') items.push({ label: 'Import / Export' })
     if (path === '/utilisateurs') items.push({ label: 'Utilisateurs' })
@@ -384,37 +385,20 @@ export default function Layout() {
             </Link>
           )}
 
-          {/* ACHATS */}
+          {/* ACHATS & DÉPENSES */}
           {canAccess('CAISSE') && (
             <Link
-              to="/achats"
+              to="/achats-depenses"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
-                isActive('/achats')
+                isActive('/achats-depenses')
                   ? 'text-white font-semibold'
                   : 'hover:bg-opacity-10 hover:bg-white'
               }`}
-              style={isActive('/achats') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={isActive('/achats-depenses') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
             >
-              <span>🛒</span>
-              <span className="text-sm">Achats</span>
-            </Link>
-          )}
-
-          {/* DÉPENSES */}
-          {canAccess('CAISSE') && (
-            <Link
-              to="/depenses"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
-                isActive('/depenses')
-                  ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
-              }`}
-              style={isActive('/depenses') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
-            >
-              <span>💸</span>
-              <span className="text-sm">Dépenses</span>
+              <span>🛒💸</span>
+              <span className="text-sm">Achats & Dépenses</span>
             </Link>
           )}
 

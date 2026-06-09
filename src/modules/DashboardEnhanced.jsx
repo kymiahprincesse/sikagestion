@@ -146,20 +146,20 @@ export default function DashboardEnhanced() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-bold" style={{ color: '#06006E' }}>Tableau de Bord</h1>
-        <p className="text-lg mt-2" style={{ color: '#06006E' }}>Vue d'ensemble de votre activité SIKA INDUSTRIE</p>
-      </div>
-
-      {/* INDICATEUR BACKEND ET SYNCHRONISATION */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <BackendStatusIndicator variant="full" />
+      {/* HEADER avec Horloge */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: '#06006E' }}>Tableau de Bord</h1>
+          <p className="text-lg mt-2" style={{ color: '#06006E' }}>Vue d'ensemble de votre activité SIKA INDUSTRIE</p>
         </div>
-        <div className="flex items-center justify-center lg:justify-end">
+        <div className="flex items-center justify-start lg:justify-end">
           <SyncButton />
         </div>
+      </div>
+
+      {/* INDICATEUR BACKEND */}
+      <div className="grid grid-cols-1 gap-4">
+        <BackendStatusIndicator variant="full" />
       </div>
 
       {/* KPIs PRINCIPAUX */}

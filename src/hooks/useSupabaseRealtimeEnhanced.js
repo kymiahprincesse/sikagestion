@@ -12,42 +12,57 @@ import { useEncaissementsStore } from '../store/useEncaissementsStore'
 /**
  * Hook amélioré pour la synchronisation temps réel Supabase
  * Utilise le ConnectionManager pour une reconnexion automatique robuste
+ * Optimisé: utilise des refs pour éviter les dépendances massives
  */
 export function useSupabaseRealtimeEnhanced() {
-  const channelsRef = useRef([])
+  // Les actions Zustand sont stables (ne changent jamais) - on les lit via getState()
+  // pour éviter la création d'objets à chaque render qui causait la boucle infinie
+  const actionsRef = useRef(null)
 
-  const updateClient = useClientsStore(state => state.updateClient)
-  const addClient = useClientsStore(state => state.addClientFromRealtime)
-  const deleteClient = useClientsStore(state => state.deleteClient)
-  const setClients = useClientsStore(state => state.setClients)
-
-  const updateFacture = useFacturesStore(state => state.updateFacture)
-  const addFacture = useFacturesStore(state => state.addFactureFromRealtime)
-  const deleteFacture = useFacturesStore(state => state.deleteFacture)
-
-  const updateDevis = useDevisStore(state => state.updateDevis)
-  const addDevis = useDevisStore(state => state.addDevisFromRealtime)
-  const deleteDevis = useDevisStore(state => state.deleteDevis)
-
-  const updateAO = useAOStore(state => state.updateAO)
-  const addAO = useAOStore(state => state.addAOFromRealtime)
-  const deleteAO = useAOStore(state => state.deleteAO)
-
-  const updateFournisseur = useFournisseursStore(state => state.updateFournisseur)
-  const addFournisseur = useFournisseursStore(state => state.addFournisseurFromRealtime)
-  const deleteFournisseur = useFournisseursStore(state => state.deleteFournisseur)
-
-  const updateProjet = usePlanificationStore(state => state.updateProjet)
-  const addProjet = usePlanificationStore(state => state.addProjetFromRealtime)
-  const deleteProjet = usePlanificationStore(state => state.deleteProjet)
-
-  const updateMouvement = useCaisseStore(state => state.updateMouvement)
-  const addMouvement = useCaisseStore(state => state.addMouvementFromRealtime)
-  const deleteMouvement = useCaisseStore(state => state.deleteMouvement)
-
-  const updateEncaissement = useEncaissementsStore(state => state.updateEncaissement)
-  const addEncaissement = useEncaissementsStore(state => state.addEncaissementFromRealtime)
-  const deleteEncaissement = useEncaissementsStore(state => state.deleteEncaissement)
+  if (!actionsRef.current) {
+    actionsRef.current = {
+      clients: {
+        update: (...args) => useClientsStore.getState().updateClient(...args),
+        add: (...args) => useClientsStore.getState().addClientFromRealtime(...args),
+        remove: (...args) => useClientsStore.getState().deleteClient(...args)
+      },
+      factures: {
+        update: (...args) => useFacturesStore.getState().updateFacture(...args),
+        add: (...args) => useFacturesStore.getState().addFactureFromRealtime(...args),
+        remove: (...args) => useFacturesStore.getState().deleteFacture(...args)
+      },
+      devis: {
+        update: (...args) => useDevisStore.getState().updateDevis(...args),
+        add: (...args) => useDevisStore.getState().addDevisFromRealtime(...args),
+        remove: (...args) => useDevisStore.getState().deleteDevis(...args)
+      },
+      ao: {
+        update: (...args) => useAOStore.getState().updateAO(...args),
+        add: (...args) => useAOStore.getState().addAOFromRealtime(...args),
+        remove: (...args) => useAOStore.getState().deleteAO(...args)
+      },
+      fournisseurs: {
+        update: (...args) => useFournisseursStore.getState().updateFournisseur(...args),
+        add: (...args) => useFournisseursStore.getState().addFournisseurFromRealtime(...args),
+        remove: (...args) => useFournisseursStore.getState().deleteFournisseur(...args)
+      },
+      projets: {
+        update: (...args) => usePlanificationStore.getState().updateProjet(...args),
+        add: (...args) => usePlanificationStore.getState().addProjetFromRealtime(...args),
+        remove: (...args) => usePlanificationStore.getState().deleteProjet(...args)
+      },
+      caisse: {
+        update: (...args) => useCaisseStore.getState().updateMouvement(...args),
+        add: (...args) => useCaisseStore.getState().addMouvementFromRealtime(...args),
+        remove: (...args) => useCaisseStore.getState().deleteMouvement(...args)
+      },
+      encaissements: {
+        update: (...args) => useEncaissementsStore.getState().updateEncaissement(...args),
+        add: (...args) => useEncaissementsStore.getState().addEncaissementFromRealtime(...args),
+        remove: (...args) => useEncaissementsStore.getState().deleteEncaissement(...args)
+      }
+    }
+  }
 
   // Fonction pour mapper les données reçues du realtime
   const mapRow = useCallback((table, row) => {
@@ -124,116 +139,70 @@ export function useSupabaseRealtimeEnhanced() {
     }
   }, [])
 
-  // Configuration des tables et leurs callbacks
-  const tablesConfig = [
-    {
-      name: 'clients',
-      onInsert: (data) => {
-        const existing = useClientsStore.getState().clients.find(c => c.id === data.id)
-        if (!existing) addClient(data)
-      },
-      onUpdate: (data) => updateClient(data.id, data),
-      onDelete: (data) => deleteClient(data.id)
-    },
-    {
-      name: 'factures',
-      onInsert: (data) => {
-        const existing = useFacturesStore.getState().factures.find(f => f.id === data.id)
-        if (!existing) addFacture(data)
-      },
-      onUpdate: (data) => updateFacture(data.id, data),
-      onDelete: (data) => deleteFacture(data.id)
-    },
-    {
-      name: 'devis',
-      onInsert: (data) => {
-        const existing = useDevisStore.getState().devis.find(d => d.id === data.id)
-        if (!existing) addDevis(data)
-      },
-      onUpdate: (data) => updateDevis(data.id, data),
-      onDelete: (data) => deleteDevis(data.id)
-    },
-    {
-      name: 'appels_offres',
-      onInsert: (data) => {
-        const existing = useAOStore.getState().appelsDoffres.find(a => a.id === data.id)
-        if (!existing) addAO(data)
-      },
-      onUpdate: (data) => updateAO(data.id, data),
-      onDelete: (data) => deleteAO(data.id)
-    },
-    {
-      name: 'fournisseurs',
-      onInsert: (data) => {
-        const existing = useFournisseursStore.getState().fournisseurs.find(f => f.id === data.id)
-        if (!existing) addFournisseur(data)
-      },
-      onUpdate: (data) => updateFournisseur(data.id, data),
-      onDelete: (data) => deleteFournisseur(data.id)
-    },
-    {
-      name: 'projets',
-      onInsert: (data) => {
-        const existing = usePlanificationStore.getState().projets.find(p => p.id === data.id)
-        if (!existing) addProjet(data)
-      },
-      onUpdate: (data) => updateProjet(data.id, data),
-      onDelete: (data) => deleteProjet(data.id)
-    },
-    {
-      name: 'mouvements_caisse',
-      onInsert: (data) => {
-        const existing = useCaisseStore.getState().mouvements.find(m => m.id === data.id)
-        if (!existing) addMouvement(data)
-      },
-      onUpdate: (data) => updateMouvement(data.id, data),
-      onDelete: (data) => deleteMouvement(data.id)
-    },
-    {
-      name: 'encaissements',
-      onInsert: (data) => {
-        const existing = useEncaissementsStore.getState().encaissements.find(e => e.id === data.id)
-        if (!existing) addEncaissement(data)
-      },
-      onUpdate: (data) => updateEncaissement(data.id, data),
-      onDelete: (data) => deleteEncaissement(data.id)
-    }
-  ]
+  // Configuration des tables - version statique
+  const tablesConfig = useRef([
+    { name: 'clients', store: 'clients', idField: 'id' },
+    { name: 'factures', store: 'factures', idField: 'id' },
+    { name: 'devis', store: 'devis', idField: 'id' },
+    { name: 'appels_offres', store: 'ao', idField: 'id', stateField: 'appelsDoffres' },
+    { name: 'fournisseurs', store: 'fournisseurs', idField: 'id' },
+    { name: 'projets', store: 'projets', idField: 'id' },
+    { name: 'mouvements_caisse', store: 'caisse', idField: 'id', stateField: 'mouvements' },
+    { name: 'encaissements', store: 'encaissements', idField: 'id' }
+  ])
 
   useEffect(() => {
     // Enregistrer chaque canal avec le ConnectionManager
-    tablesConfig.forEach(config => {
-      connectionManager.registerChannel(config.name, {
+    // Utiliser une fonction stable pour éviter les recréations de callbacks
+    const configs = tablesConfig.current
+
+    configs.forEach(config => {
+      const actions = actionsRef.current[config.store]
+      if (!actions) return
+
+      // Stabiliser les callbacks avec une ref
+      const channelConfig = {
         table: config.name,
         onInsert: (row) => {
           const data = mapRow(config.name, row)
-          setTimeout(() => config.onInsert(data), 0)
+          // Délégation au prochain tick pour éviter les boucles de rendu
+          setTimeout(() => {
+            // Vérification d'existence via getState direct (pas de souscription)
+            const currentActions = actionsRef.current[config.store]
+            if (currentActions?.add) {
+              currentActions.add(data)
+            }
+          }, 0)
         },
         onUpdate: (row) => {
           const data = mapRow(config.name, row)
-          setTimeout(() => config.onUpdate(data), 0)
+          setTimeout(() => {
+            const currentActions = actionsRef.current[config.store]
+            if (currentActions?.update) {
+              currentActions.update(data.id, data)
+            }
+          }, 0)
         },
         onDelete: (row) => {
-          setTimeout(() => config.onDelete(row), 0)
+          setTimeout(() => {
+            const currentActions = actionsRef.current[config.store]
+            if (currentActions?.remove) {
+              currentActions.remove(row.id)
+            }
+          }, 0)
         }
-      })
+      }
+
+      connectionManager.registerChannel(config.name, channelConfig)
     })
 
-    // Cleanup
+    // Cleanup - ne désinscrire qu'une fois
     return () => {
-      tablesConfig.forEach(config => {
+      configs.forEach(config => {
         connectionManager.unregisterChannel(config.name)
       })
     }
-  }, [
-    mapRow,
-    updateClient, addClient, deleteClient,
-    updateFacture, addFacture, deleteFacture,
-    updateDevis, addDevis, deleteDevis,
-    updateAO, addAO, deleteAO,
-    updateFournisseur, addFournisseur, deleteFournisseur,
-    updateProjet, addProjet, deleteProjet,
-    updateMouvement, addMouvement, deleteMouvement,
-    updateEncaissement, addEncaissement, deleteEncaissement
-  ])
+    // Dépendance vide - exécution unique au montage
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 }

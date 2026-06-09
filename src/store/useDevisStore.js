@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
-import { formatFCFA, getTodayISO } from '../utils/format';
+import { formatFCFA, getTodayISO, generateSecureId } from '../utils/format';
 import { quickCheck, findAllDuplicates, mergeDuplicates } from '../utils/duplicateDetector';
 import { logger } from '../utils/logger';
 
@@ -135,6 +135,26 @@ export const useDevisStore = create(
           set((state) => ({
             devis: state.devis.map((d) => d.id === nouveauDevis.id ? { ...d, id: data.id } : d)
           }));
+          // Sauvegarder les lignes dans lignes_devis
+          if (nouveauDevis.lignes && nouveauDevis.lignes.length > 0) {
+            const lignesRows = nouveauDevis.lignes.map((l, idx) => ({
+              devis_id: data.id,
+              designation: l.designation || '',
+              quantite: parseFloat(l.qte) || parseFloat(l.quantite) || 0,
+              ml: parseFloat(l.ml) || 0,
+              pt: parseFloat(l.pt) || 0,
+              unite: l.unite || l.dn || null,
+              pu: parseFloat(l.pu) || 0,
+              montant: parseFloat(l.montant) || 0,
+              ordre: idx,
+            }));
+            try {
+              const { error: le } = await supabase.from('lignes_devis').insert(lignesRows);
+              if (le) logger.error('Supabase lignes_devis insert:', le.message);
+            } catch (err) {
+              logger.error('Erreur insert lignes_devis:', err.message);
+            }
+          }
           return { ...nouveauDevis, id: data.id };
         }
 
@@ -167,6 +187,30 @@ export const useDevisStore = create(
         const { error } = await supabase.from('devis').update(toSupabaseRow({ ...devisMaj, ...modifications })).eq('id', id);
         if (error) {
           logger.error('Supabase updateDevis:', error.message);
+        }
+        // Resynchroniser les lignes si modifiées
+        const lignesMaj = modifications.lignes || (devisMaj && devisMaj.lignes);
+        if (lignesMaj && lignesMaj.length >= 0) {
+          try {
+            await supabase.from('lignes_devis').delete().eq('devis_id', id);
+            if (lignesMaj.length > 0) {
+              const lignesRows = lignesMaj.map((l, idx) => ({
+                devis_id: id,
+                designation: l.designation || '',
+                quantite: parseFloat(l.qte) || parseFloat(l.quantite) || 0,
+                ml: parseFloat(l.ml) || 0,
+                pt: parseFloat(l.pt) || 0,
+                unite: l.unite || l.dn || null,
+                pu: parseFloat(l.pu) || 0,
+                montant: parseFloat(l.montant) || 0,
+                ordre: idx,
+              }));
+              const { error: le } = await supabase.from('lignes_devis').insert(lignesRows);
+              if (le) logger.error('Supabase lignes_devis update:', le.message);
+            }
+          } catch (err) {
+            logger.error('Erreur sync lignes_devis:', err.message);
+          }
         }
       },
 
@@ -385,7 +429,7 @@ export const useDevisStore = create(
       }
       // ═══════════════════════════════════════════════════
     }),
-    { name: 'sika_devis' }
+    { name: 'sika_devis', partialize: () => ({}) }
   )
 );
 

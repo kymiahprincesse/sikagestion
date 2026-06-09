@@ -16,10 +16,14 @@ export function usePWAInstall() {
       return;
     }
 
-    // Vérifie si installée lors d'une session précédente
-    if (localStorage.getItem('sika_pwa_installed') === 'true') {
-      setIsInstalled(true);
-      return;
+    // Vérifie si installée lors de la session courante (sessionStorage, pas localStorage)
+    try {
+      if (sessionStorage.getItem('sika_pwa_installed') === 'true') {
+        setIsInstalled(true);
+        return;
+      }
+    } catch (e) {
+      // Ignorer erreur storage
     }
 
     // Détecte la plateforme
@@ -44,7 +48,11 @@ export function usePWAInstall() {
       setIsInstalled(true);
       setCanInstall(false);
       setDeferredPrompt(null);
-      localStorage.setItem('sika_pwa_installed', 'true');
+      try {
+        sessionStorage.setItem('sika_pwa_installed', 'true');
+      } catch (e) {
+        // Ignorer erreur storage
+      }
     };
 
     window.addEventListener('appinstalled', installedHandler);
@@ -87,16 +95,24 @@ export function usePWAInstall() {
   // L'utilisateur a refusé ou fermé
   const dismiss = useCallback(() => {
     setCanInstall(false);
-    // Réaffiche dans 3 jours si refusé
+    // Réaffiche dans 3 jours si refusé (sessionStorage, pas localStorage)
     const nextShow = Date.now() + 3 * 24 * 60 * 60 * 1000;
-    localStorage.setItem('sika_pwa_next_show', nextShow.toString());
+    try {
+      sessionStorage.setItem('sika_pwa_next_show', nextShow.toString());
+    } catch (e) {
+      // Ignorer erreur storage
+    }
   }, []);
 
   // Vérifie si on doit afficher (respect du délai après refus)
   const shouldShow = () => {
-    const next = localStorage.getItem('sika_pwa_next_show');
-    if (!next) return true;
-    return Date.now() > parseInt(next);
+    try {
+      const next = sessionStorage.getItem('sika_pwa_next_show');
+      if (!next) return true;
+      return Date.now() > parseInt(next);
+    } catch (e) {
+      return true;
+    }
   };
 
   return {

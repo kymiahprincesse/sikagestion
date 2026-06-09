@@ -72,24 +72,32 @@ export const useAOStore = create(
         return nouvelAO;
       },
 
-      updateAO: (id, modifications) => {
+      updateAO: async (id, modifications) => {
         set((state) => ({
           appelsDoffres: state.appelsDoffres.map((ao) => ao.id === id ? { ...ao, ...modifications } : ao)
         }));
 
         const aoMaj = get().appelsDoffres.find((ao) => ao.id === id);
         if (aoMaj) {
-          supabase.from('appels_offres').update(toSupabaseRow({ ...aoMaj, ...modifications })).eq('id', id).then(({ error }) => {
+          try {
+            const { error } = await supabase.from('appels_offres')
+              .update(toSupabaseRow({ ...aoMaj, ...modifications }))
+              .eq('id', id);
             if (error) console.error('Supabase updateAO:', error.message);
-          });
+          } catch (err) {
+            console.error('Erreur updateAO:', err.message);
+          }
         }
       },
 
-      deleteAO: (id) => {
+      deleteAO: async (id) => {
         set((state) => ({ appelsDoffres: state.appelsDoffres.filter((ao) => ao.id !== id) }));
-        supabase.from('appels_offres').delete().eq('id', id).then(({ error }) => {
+        try {
+          const { error } = await supabase.from('appels_offres').delete().eq('id', id);
           if (error) console.error('Supabase deleteAO:', error.message);
-        });
+        } catch (err) {
+          console.error('Erreur deleteAO:', err.message);
+        }
       },
 
       getAOById: (id) => {

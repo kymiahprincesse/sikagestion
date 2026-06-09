@@ -6,6 +6,8 @@
  * mais ne remplace pas une sécurité serveur robuste.
  */
 
+import { logger } from './logger.js';
+
 const STORAGE_KEY_PREFIX = 'sika_enc_';
 
 /**
@@ -57,7 +59,7 @@ export async function encryptData(data, passphrase) {
     
     return btoa(String.fromCharCode(...result));
   } catch (error) {
-    console.error('Erreur chiffrement:', error);
+    logger.error('Erreur chiffrement:', error);
     return null;
   }
 }
@@ -82,7 +84,7 @@ export async function decryptData(encryptedData, passphrase) {
     const decoder = new TextDecoder();
     return JSON.parse(decoder.decode(decrypted));
   } catch (error) {
-    console.error('Erreur déchiffrement:', error);
+    logger.error('Erreur déchiffrement:', error);
     return null;
   }
 }

@@ -171,7 +171,8 @@ export const useFournisseursStore = create(
       }
     }),
     {
-      name: 'sika_fournisseurs'
+      name: 'sika_fournisseurs',
+      partialize: () => ({})
     }
   )
 );

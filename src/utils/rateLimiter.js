@@ -3,6 +3,8 @@
  * Limite les tentatives de connexion et bloque temporairement après échecs
  */
 
+import { logger } from './logger.js';
+
 const LOGIN_ATTEMPTS_KEY = 'sika_login_attempts';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -99,7 +101,7 @@ function saveLoginAttempts(attempts) {
   try {
     sessionStorage.setItem(LOGIN_ATTEMPTS_KEY, JSON.stringify(attempts));
   } catch (e) {
-    console.warn('Rate Limiter: Impossible de sauvegarder', e);
+    logger.warn('Rate Limiter: Impossible de sauvegarder', e);
   }
 }
 

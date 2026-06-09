@@ -582,7 +582,8 @@ export const usePlanificationStore = create(
       }
     }),
     {
-      name: 'sika_planification'
+      name: 'sika_planification',
+      partialize: () => ({})
     }
   )
 );

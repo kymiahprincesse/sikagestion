@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { logger } from '../utils/logger.js'
 
 export const syncService = {
   async syncClients(clients) {
@@ -29,7 +30,7 @@ export const syncService = {
       if (error) throw error
       return { success: true, count: clientsData.length }
     } catch (error) {
-      console.error('Erreur sync clients:', error)
+      logger.error('Erreur sync clients:', error)
       return { success: false, error: error.message }
     }
   },
@@ -64,7 +65,7 @@ export const syncService = {
       if (error) throw error
       return { success: true, count: facturesData.length }
     } catch (error) {
-      console.error('Erreur sync factures:', error)
+      logger.error('Erreur sync factures:', error)
       return { success: false, error: error.message }
     }
   },
@@ -98,7 +99,7 @@ export const syncService = {
       if (error) throw error
       return { success: true, count: devisData.length }
     } catch (error) {
-      console.error('Erreur sync devis:', error)
+      logger.error('Erreur sync devis:', error)
       return { success: false, error: error.message }
     }
   },
@@ -127,7 +128,7 @@ export const syncService = {
       if (error) throw error
       return { success: true, count: aoData.length }
     } catch (error) {
-      console.error('Erreur sync AO:', error)
+      logger.error('Erreur sync AO:', error)
       return { success: false, error: error.message }
     }
   },
@@ -161,7 +162,7 @@ export const syncService = {
       if (error) throw error
       return { success: true, count: fournisseursData.length }
     } catch (error) {
-      console.error('Erreur sync fournisseurs:', error)
+      logger.error('Erreur sync fournisseurs:', error)
       return { success: false, error: error.message }
     }
   },
@@ -192,7 +193,7 @@ export const syncService = {
       if (error) throw error
       return { success: true, count: projetsData.length }
     } catch (error) {
-      console.error('Erreur sync projets:', error)
+      logger.error('Erreur sync projets:', error)
       return { success: false, error: error.message }
     }
   },
@@ -220,7 +221,7 @@ export const syncService = {
       if (error) throw error
       return { success: true, count: mouvementsData.length }
     } catch (error) {
-      console.error('Erreur sync caisse:', error)
+      logger.error('Erreur sync caisse:', error)
       return { success: false, error: error.message }
     }
   },
@@ -275,7 +276,7 @@ export const syncService = {
         timestamp: new Date().toISOString()
       }
     } catch (error) {
-      console.error('Erreur sync globale:', error)
+      logger.error('Erreur sync globale:', error)
       return {
         success: false,
         error: error.message,
@@ -309,7 +310,7 @@ export const syncService = {
         }
       }
     } catch (error) {
-      console.error('Erreur chargement depuis Supabase:', error)
+      logger.error('Erreur chargement depuis Supabase:', error)
       return { success: false, error: error.message }
     }
   }

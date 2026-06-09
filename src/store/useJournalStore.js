@@ -135,7 +135,8 @@ export const useJournalStore = create(
       }
     }),
     {
-      name: 'sika_journal'
+      name: 'sika_journal',
+      partialize: () => ({})
     }
   )
 );

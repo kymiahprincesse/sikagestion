@@ -11,6 +11,21 @@ import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useNotificationsStore } from '../store/useNotificationsStore'
 import { useSupabaseRealtimeEnhanced } from '../hooks/useSupabaseRealtimeEnhanced'
 import { offlineQueue } from '../services/offlineQueue'
+import { logger } from '../utils/logger'
+
+/**
+ * Valide qu'un objet client a les champs minimaux requis
+ */
+function validateClient(c) {
+  return c && typeof c.id !== 'undefined' && (c.nom || c.raison_sociale);
+}
+
+/**
+ * Valide qu'un objet facture/devis a les champs minimaux requis
+ */
+function validateDocument(d) {
+  return d && typeof d.id !== 'undefined' && (d.numero || d.id);
+}
 
 /**
  * Composant invisible qui charge toutes les données depuis Supabase au démarrage
@@ -265,8 +280,53 @@ export default function DataLoader() {
           offlineQueue.processQueue()
         }
 
+        // Log du succès du chargement
+        const loadedTables = [];
+        if (clientsRes.data?.length > 0) loadedTables.push('clients');
+        if (facturesRes.data?.length > 0) loadedTables.push('factures');
+        if (devisRes.data?.length > 0) loadedTables.push('devis');
+        if (aoRes.data?.length > 0) loadedTables.push('appels_offres');
+        if (fournisseursRes.data?.length > 0) loadedTables.push('fournisseurs');
+        logger.log(`[DataLoader] Chargé: ${loadedTables.join(', ')}`);
+
+        // Vérifier les erreurs partielles
+        const errors = [];
+        if (clientsRes.error) errors.push(`clients: ${clientsRes.error.message}`);
+        if (facturesRes.error) errors.push(`factures: ${facturesRes.error.message}`);
+        if (devisRes.error) errors.push(`devis: ${devisRes.error.message}`);
+        if (aoRes.error) errors.push(`appels_offres: ${aoRes.error.message}`);
+        if (fournisseursRes.error) errors.push(`fournisseurs: ${fournisseursRes.error.message}`);
+        
+        if (errors.length > 0) {
+          logger.warn('[DataLoader] Erreurs partielles:', errors);
+          // Notification silencieuse - pas d'alerte intrusive
+          if (typeof window !== 'undefined') {
+            import('../store/useNotificationsStore').then(({ useNotificationsStore }) => {
+              useNotificationsStore.getState().ajouterNotification({
+                type: 'ATTENTION',
+                icone: '⚠️',
+                titre: 'SYNC PARTIELLE',
+                message: `${errors.length} table(s) non chargée(s). Données locales utilisées.`,
+                lien: '/tour-de-controle'
+              });
+            }).catch(() => {});
+          }
+        }
+
       } catch (err) {
-        console.error('Erreur DataLoader:', err)
+        logger.error('[DataLoader] Erreur fatale:', err);
+        // En cas d'erreur fatale, notifier l'utilisateur
+        if (typeof window !== 'undefined') {
+          import('../store/useNotificationsStore').then(({ useNotificationsStore }) => {
+            useNotificationsStore.getState().ajouterNotification({
+              type: 'URGENT',
+              icone: '🔴',
+              titre: 'ERREUR CHARGEMENT',
+              message: 'Impossible de charger les données. Vérifiez votre connexion.',
+              lien: '/tour-de-controle'
+            });
+          }).catch(() => {});
+        }
       }
     }
 

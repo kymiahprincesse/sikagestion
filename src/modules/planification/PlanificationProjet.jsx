@@ -150,11 +150,23 @@ export default function PlanificationProjet() {
     setVue('liste');
   };
 
+  const genererReferenceProjet = () => {
+    const annee = new Date().getFullYear();
+    const prefix = `PROJ-${annee}-`;
+    const numerosExistants = projets
+      .map(p => p.referenceProjet)
+      .filter(ref => ref && ref.startsWith(prefix))
+      .map(ref => parseInt(ref.replace(prefix, ''), 10))
+      .filter(n => !isNaN(n));
+    const prochain = numerosExistants.length > 0 ? Math.max(...numerosExistants) + 1 : 1;
+    return `${prefix}${String(prochain).padStart(3, '0')}`;
+  };
+
   const handleNouveauProjet = () => {
     setFormProjet({
       nom: '', clientId: clientSelectionne, devisId: null,
       dateDebut: '', dateFin: '', budgetPrevu: 0,
-      statut: STATUTS_PROJET.EN_PREPARATION, referenceProjet: '', notes: ''
+      statut: STATUTS_PROJET.EN_PREPARATION, referenceProjet: genererReferenceProjet(), notes: ''
     });
     setShowFormProjet(true);
   };

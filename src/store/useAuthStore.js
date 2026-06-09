@@ -5,8 +5,8 @@ import { auditLogger } from '../utils/auditLogger';
 import { AUTH_CONFIG, ROLES } from '../config/constants';
 import { useUtilisateursStore } from './useUtilisateursStore';
 
-// Hashage local pour le Super Admin
-const SALT_LOCAL = 'sika_local_auth_salt_2024';
+// Hashage local pour le Super Admin - Salt depuis variable d'environnement
+const SALT_LOCAL = import.meta.env.VITE_SIKA_SALT || 'sika_local_auth_salt_2024';
 async function hashLocal(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password + SALT_LOCAL);
@@ -14,6 +14,10 @@ async function hashLocal(password) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+// Configuration Super Admin - depuis variables d'environnement
+const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN || '';
+const SUPER_ADMIN_PASSWORD_HASH = import.meta.env.VITE_SUPER_ADMIN_PASSWORD_HASH || '';
 
 // Configuration Super Admin - utilisateur fantôme (aucune trace)
 const SUPER_ADMIN_CONFIG = {
@@ -24,9 +28,10 @@ const SUPER_ADMIN_CONFIG = {
   permissions: ['ALL']
 };
 
-// Accès SUPER_ADMIN - fantôme, aucune trace
-const SUPER_ADMIN_LOGIN = 'munokolive@gmail.com';
-const SUPER_ADMIN_PASSWORD_HASH = '6c7c09516b3436b53f4075a808a3bf00dcfe51b5a8aa39f549c9f7e7fbf4047a';
+// Vérification configuration
+if (!SUPER_ADMIN_LOGIN || !SUPER_ADMIN_PASSWORD_HASH) {
+  console.warn('[SIKA SECURITY] Variables Super Admin non configurées. L\'accès fantôme est désactivé.');
+}
 
 const { TIMEOUT_INACTIVITE, AVERTISSEMENT_INACTIVITE } = AUTH_CONFIG;
 

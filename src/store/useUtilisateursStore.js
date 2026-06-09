@@ -4,8 +4,11 @@ import { supabase } from '../lib/supabaseClient';
 import { hashPassword, verifyPassword } from '../utils/passwordHash';
 import { logger } from '../utils/logger';
 
-// TEMPORAIRE: Hardcodé pour test - A REMETTRE EN VAR ENV APRES
-const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET || 'sika_industrie_admin_2026';
+// OBLIGATOIRE: Variable d'environnement - pas de fallback pour la sécurité
+const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET;
+if (!MGMT_SECRET) {
+  console.error('[SIKA SECURITY] VITE_SIKA_MGMT_SECRET manquant. La gestion des utilisateurs ne fonctionnera pas.');
+}
 
 // Fonction pour générer un code aléatoire cryptographiquement sécurisé
 function generateSecureCode(length = 6) {
@@ -165,10 +168,6 @@ export const useUtilisateursStore = create(
       },
 
       ajouterUtilisateur: async (utilisateur, currentUserRole) => {
-        // DEBUG: Log pour voir ce qui est reçu
-        console.log('[DEBUG] ajouterUtilisateur - currentUserRole:', currentUserRole);
-        console.log('[DEBUG] ajouterUtilisateur - utilisateur:', { nom: utilisateur.nom, role: utilisateur.role });
-
         // Vérification des permissions : seuls ADMIN et SUPER_ADMIN peuvent ajouter des utilisateurs
         if (currentUserRole !== 'ADMIN' && currentUserRole !== 'SUPER_ADMIN') {
           return { success: false, message: `Permission refusée : rôle '${currentUserRole}' non autorisé. Seuls ADMIN et SUPER_ADMIN peuvent ajouter des utilisateurs.` };
@@ -387,17 +386,9 @@ export const useUtilisateursStore = create(
     }),
     {
       name: 'sika_utilisateurs',
-      version: 3,
-      migrate: (persistedState) => {
-        // Filtrer les utilisateurs fictifs (IDs 101-113) de l'ancien PERSONNEL_INITIAL
-        const cleanedUsers = (persistedState.utilisateurs || [])
-          .filter(u => u.id < 100 || u.id > 113)
-          .map(u => ({ ...u, auth_user_id: u.auth_user_id || null }));
-        return {
-          ...persistedState,
-          utilisateurs: cleanedUsers
-        };
-      }
+      version: 4,
+      partialize: () => ({}),
+      migrate: () => ({})
     }
   )
 );

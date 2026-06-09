@@ -68,13 +68,31 @@ export const useFacturesStore = create(
           set((state) => ({
             factures: state.factures.map((f) => f.id === nouvelleFacture.id ? { ...f, id: data.id } : f)
           }));
+          // Sauvegarder les lignes dans lignes_factures
+          if (nouvelleFacture.lignes && nouvelleFacture.lignes.length > 0) {
+            const lignesRows = nouvelleFacture.lignes.map((l, idx) => ({
+              facture_id: data.id,
+              designation: l.designation || '',
+              quantite: parseFloat(l.qte) || parseFloat(l.quantite) || 0,
+              unite: l.unite || null,
+              pu: parseFloat(l.pu) || 0,
+              montant: parseFloat(l.montant) || 0,
+              ordre: idx,
+            }));
+            try {
+              const { error: le } = await supabase.from('lignes_factures').insert(lignesRows);
+              if (le) logger.error('Supabase lignes_factures insert:', le.message);
+            } catch (err) {
+              logger.error('Erreur insert lignes_factures:', err.message);
+            }
+          }
           return { ...nouvelleFacture, id: data.id };
         }
 
         return nouvelleFacture;
       },
 
-      updateFacture: (id, modifications) => {
+      updateFacture: async (id, modifications) => {
         set((state) => ({
           factures: state.factures.map((f) => {
             if (f.id !== id) return f;
@@ -90,27 +108,54 @@ export const useFacturesStore = create(
 
         const factureMaj = get().factures.find((f) => f.id === id);
         if (factureMaj) {
-          supabase.from('factures').update(toSupabaseRow({ ...factureMaj, ...modifications })).eq('id', id).then(({ error }) => {
+          try {
+            const { error } = await supabase.from('factures')
+              .update(toSupabaseRow({ ...factureMaj, ...modifications }))
+              .eq('id', id);
             if (error) {
               logger.error('Supabase updateFacture:', error.message);
               notifyError('Erreur de mise à jour', `Impossible de modifier la facture: ${error.message}`);
             }
-          }).catch((err) => {
+          } catch (err) {
             logger.error('Erreur updateFacture:', err.message);
-          });
+          }
+
+          // Resynchroniser les lignes si modifiées
+          const lignesMaj = modifications.lignes || factureMaj.lignes;
+          if (lignesMaj && Array.isArray(lignesMaj)) {
+            try {
+              await supabase.from('lignes_factures').delete().eq('facture_id', id);
+              if (lignesMaj.length > 0) {
+                const lignesRows = lignesMaj.map((l, idx) => ({
+                  facture_id: id,
+                  designation: l.designation || '',
+                  quantite: parseFloat(l.qte) || parseFloat(l.quantite) || 0,
+                  unite: l.unite || null,
+                  pu: parseFloat(l.pu) || 0,
+                  montant: parseFloat(l.montant) || 0,
+                  ordre: idx,
+                }));
+                const { error: le } = await supabase.from('lignes_factures').insert(lignesRows);
+                if (le) logger.error('Supabase lignes_factures update:', le.message);
+              }
+            } catch (err) {
+              logger.error('Erreur sync lignes_factures:', err.message);
+            }
+          }
         }
       },
 
-      deleteFacture: (id) => {
+      deleteFacture: async (id) => {
         set((state) => ({ factures: state.factures.filter((f) => f.id !== id) }));
-        supabase.from('factures').delete().eq('id', id).then(({ error }) => {
+        try {
+          const { error } = await supabase.from('factures').delete().eq('id', id);
           if (error) {
             logger.error('Supabase deleteFacture:', error.message);
             notifyError('Erreur de suppression', `Impossible de supprimer la facture: ${error.message}`);
           }
-        }).catch((err) => {
+        } catch (err) {
           logger.error('Erreur deleteFacture:', err.message);
-        });
+        }
       },
 
       getFactureById: (id) => {
@@ -162,7 +207,7 @@ export const useFacturesStore = create(
         });
       },
 
-      addPaiement: (factureId, paiement) => {
+      addPaiement: async (factureId, paiement) => {
         const facture = get().getFactureById(factureId);
         if (!facture) return;
 
@@ -193,6 +238,27 @@ export const useFacturesStore = create(
           statut: nouveauStatut,
           datePayement: nouveauStatut === 'PAYEE' ? (paiement.date || getTodayISO()) : facture.datePayement
         });
+
+        // Persister dans paiements_factures
+        const { data, error } = await supabase.from('paiements_factures').insert({
+          facture_id: factureId,
+          date: nouveauPaiement.date,
+          montant: nouveauPaiement.montant,
+          mode: nouveauPaiement.mode,
+          reference: nouveauPaiement.reference || null,
+          notes: nouveauPaiement.notes || null,
+        }).select().single();
+        if (error) {
+          logger.error('Supabase addPaiement:', error.message);
+          notifyError('Erreur de sauvegarde', `Impossible d'enregistrer le paiement: ${error.message}`);
+        } else if (data) {
+          // Mettre à jour l'id local avec l'id Supabase
+          const paiementsMaj = tousPaiements.map(p =>
+            p.id === nouveauPaiement.id ? { ...p, id: data.id, supabaseId: data.id } : p
+          );
+          get().updateFacture(factureId, { paiements: paiementsMaj });
+          return { ...nouveauPaiement, id: data.id };
+        }
 
         // Notification
         if (typeof window !== 'undefined') {
@@ -227,6 +293,11 @@ export const useFacturesStore = create(
           montantPaye: montantTotalPaye,
           statut: nouveauStatut,
           datePayement: nouveauStatut === 'PAYEE' ? paiementsFiltres[paiementsFiltres.length - 1]?.date : null
+        });
+
+        // Supprimer dans paiements_factures (l'id peut être numérique Supabase)
+        supabase.from('paiements_factures').delete().eq('id', paiementId).then(({ error }) => {
+          if (error) logger.error('Supabase deletePaiement:', error.message);
         });
       },
 
@@ -264,7 +335,8 @@ export const useFacturesStore = create(
       }
     }),
     {
-      name: 'sika_factures'
+      name: 'sika_factures',
+      partialize: (state) => ({ compteurFacture: state.compteurFacture })
     }
   )
 );

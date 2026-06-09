@@ -11,9 +11,14 @@ export default defineConfig({
           if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'vendor';
           if (id.includes('recharts')) return 'charts';
           if (id.includes('jspdf')) return 'pdf';
+          if (id.includes('xlsx')) return 'xlsx';
+          if (id.includes('html2canvas')) return 'canvas';
+          if (id.includes('supabase')) return 'supabase';
         },
       },
     },
+    chunkSizeWarningLimit: 1000,
+    sourcemap: false,
   },
   server: {
     hmr: {
@@ -22,5 +27,8 @@ export default defineConfig({
     headers: {
       'Service-Worker-Allowed': '/',
     },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
 })

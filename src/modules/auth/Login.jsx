@@ -47,13 +47,24 @@ const Login = () => {
   const [modeEmail, setModeEmail] = useState(false);
 
   useEffect(() => {
-    // Nettoyage sécurité: supprimer ancien mot de passe stocké si présent
-    localStorage.removeItem('sika_saved_password');
+    // Nettoyage sécurité: supprimer ancien mot de passe stocké si présent (localStorage obsolète)
+    try {
+      localStorage.removeItem('sika_saved_password');
+      localStorage.removeItem('sika_saved_login');
+      localStorage.removeItem('sika_remember_me');
+    } catch (e) {
+      // Ignorer
+    }
 
-    const savedLogin = localStorage.getItem('sika_saved_login');
-    if (localStorage.getItem('sika_remember_me') === 'true' && savedLogin) {
-      setIdentifiant(savedLogin);
-      setRememberMe(true);
+    // Utiliser sessionStorage (limité à la session, plus sécurisé)
+    try {
+      const savedLogin = sessionStorage.getItem('sika_saved_login');
+      if (sessionStorage.getItem('sika_remember_me') === 'true' && savedLogin) {
+        setIdentifiant(savedLogin);
+        setRememberMe(true);
+      }
+    } catch (e) {
+      // Ignorer erreur storage
     }
 
     // Synchroniser les utilisateurs depuis Supabase
@@ -90,11 +101,19 @@ const Login = () => {
       const res = await loginAction(identifiant, motDePasse);
       if (res && res.success) {
         if (rememberMe) {
-          localStorage.setItem('sika_saved_login', identifiant);
-          localStorage.setItem('sika_remember_me', 'true');
+          try {
+            sessionStorage.setItem('sika_saved_login', identifiant);
+            sessionStorage.setItem('sika_remember_me', 'true');
+          } catch (e) {
+            // Ignorer erreur storage
+          }
         } else {
-          localStorage.removeItem('sika_saved_login');
-          localStorage.removeItem('sika_remember_me');
+          try {
+            sessionStorage.removeItem('sika_saved_login');
+            sessionStorage.removeItem('sika_remember_me');
+          } catch (e) {
+            // Ignorer
+          }
         }
         setTimeout(() => navigate('/dashboard'), 100);
       } else {

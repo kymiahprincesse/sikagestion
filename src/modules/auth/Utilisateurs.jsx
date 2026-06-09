@@ -221,8 +221,6 @@ const Utilisateurs = () => {
 
     // Vérifier que l'utilisateur est connecté et a un rôle
     const currentRole = utilisateurConnecte?.role;
-    console.log('[DEBUG Utilisateurs] utilisateurConnecte:', utilisateurConnecte);
-    console.log('[DEBUG Utilisateurs] currentRole:', currentRole);
 
     if (!currentRole) {
       afficherMessage('error', 'Erreur: Votre session semble expirée. Reconnectez-vous.');

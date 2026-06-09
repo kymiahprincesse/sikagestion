@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { SUPER_ADMIN_ID, SUPER_ADMIN_EMAIL, SUPER_ADMIN_LOGIN, AUDIT_ACTIONS, AUDIT_MODULES } from '../config/auditConfig';
+import { SUPER_ADMIN_ID, SUPER_ADMIN_LOGIN, AUDIT_ACTIONS, AUDIT_MODULES } from '../config/auditConfig';
 
 export const ACTIONS_AUDIT  = AUDIT_ACTIONS;
 export const MODULES_AUDIT  = AUDIT_MODULES;
@@ -175,9 +175,7 @@ export const useAuditStore = create((set, get) => ({
     cutoff.setMonth(cutoff.getMonth() - 6);
     const cutoffISO = cutoff.toISOString();
     await supabase.from('audit_logs').delete().lt('timestamp', cutoffISO);
-    const local = JSON.parse(localStorage.getItem('sika_audit') || '[]');
-    const filtered = local.filter(l => l.timestamp >= cutoffISO);
-    localStorage.setItem('sika_audit', JSON.stringify(filtered));
+    // SECURITY: Pas de localStorage pour les logs d'audit - uniquement Supabase
     set(state => ({ logs: state.logs.filter(l => l.timestamp >= cutoffISO) }));
   },
 }));

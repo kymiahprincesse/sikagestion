@@ -30,6 +30,7 @@ const Utilisateurs          = lazy(() => import('./modules/auth/Utilisateurs'))
 const FournisseursModule    = lazy(() => import('./modules/fournisseurs').then(m => ({ default: m.Fournisseurs })))
 const AchatsModule          = lazy(() => import('./modules/achats/Achats'))
 const DepensesModule        = lazy(() => import('./modules/depenses/Depenses'))
+const AchatsDepensesModule  = lazy(() => import('./modules/achats/AchatsDepenses'))
 const TourDeControle        = lazy(() => import('./components/TourDeControle'))
 const Parametres            = lazy(() => import('./components/Parametres'))
 const Rapport               = lazy(() => import('./modules/rapport/Rapport'))
@@ -88,8 +89,9 @@ function App() {
               <Route path="caisse" element={<ErrorBoundary><EnregistrementCaisse /></ErrorBoundary>} />
               <Route path="journal" element={<ErrorBoundary><JournalCaisse /></ErrorBoundary>} />
               <Route path="fournisseurs" element={<ErrorBoundary><FournisseursModule /></ErrorBoundary>} />
-              <Route path="achats" element={<ErrorBoundary><AchatsModule /></ErrorBoundary>} />
-              <Route path="depenses" element={<ErrorBoundary><DepensesModule /></ErrorBoundary>} />
+              <Route path="achats" element={<Navigate to="/achats-depenses" replace />} />
+              <Route path="depenses" element={<Navigate to="/achats-depenses" replace />} />
+              <Route path="achats-depenses" element={<ErrorBoundary><AchatsDepensesModule /></ErrorBoundary>} />
 
               {/* OUTILS */}
               <Route path="import-export" element={<ImportExport />} />

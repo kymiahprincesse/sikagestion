@@ -24,7 +24,7 @@ export const useCaisseStore = create(
       mouvements: [],
       soldeCaisse: 0,
 
-      addMouvement: (mouvement) => {
+      addMouvement: async (mouvement) => {
         const nouveauMouvement = {
           ...mouvement,
           id: generateSecureId('CAIS'),
@@ -42,14 +42,27 @@ export const useCaisseStore = create(
           soldeCaisse: nouveauSolde,
         }));
 
-        supabase.from('mouvements_caisse').insert(toSupabaseRow(nouveauMouvement)).then(({ error }) => {
-          if (error) console.error('Supabase sync addMouvement:', error.message);
-        });
+        try {
+          const { data, error } = await supabase.from('mouvements_caisse').insert(toSupabaseRow(nouveauMouvement)).select().single();
+          if (error) {
+            logger.error('Supabase addMouvement:', error.message);
+          } else if (data) {
+            // Mettre à jour avec l'ID Supabase
+            set((state) => ({
+              mouvements: state.mouvements.map((m) =>
+                m.id === nouveauMouvement.id ? { ...m, supabaseId: data.id } : m
+              )
+            }));
+            return { ...nouveauMouvement, supabaseId: data.id };
+          }
+        } catch (err) {
+          logger.error('Erreur addMouvement:', err.message);
+        }
 
         return nouveauMouvement;
       },
 
-      updateMouvement: (id, modifications) => {
+      updateMouvement: async (id, modifications) => {
         const mouvementOriginal = get().getMouvementById(id);
         if (!mouvementOriginal) return;
 
@@ -71,18 +84,18 @@ export const useCaisseStore = create(
         }));
 
         if (mouvementOriginal.supabaseId) {
-          supabase.from('mouvements_caisse')
-            .update(toSupabaseRow(mouvementModifie))
-            .eq('id', mouvementOriginal.supabaseId)
-            .then(({ error }) => {
-              if (error) logger.error('Supabase sync updateMouvement:', error.message);
-            }).catch((err) => {
-              logger.error('Erreur sync updateMouvement:', err.message);
-            });
+          try {
+            const { error } = await supabase.from('mouvements_caisse')
+              .update(toSupabaseRow(mouvementModifie))
+              .eq('id', mouvementOriginal.supabaseId);
+            if (error) logger.error('Supabase updateMouvement:', error.message);
+          } catch (err) {
+            logger.error('Erreur updateMouvement:', err.message);
+          }
         }
       },
 
-      deleteMouvement: (id) => {
+      deleteMouvement: async (id) => {
         const mouvement = get().getMouvementById(id);
         if (!mouvement) return;
 
@@ -97,14 +110,14 @@ export const useCaisseStore = create(
         }));
 
         if (mouvement.supabaseId) {
-          supabase.from('mouvements_caisse')
-            .delete()
-            .eq('id', mouvement.supabaseId)
-            .then(({ error }) => {
-              if (error) logger.error('Supabase sync deleteMouvement:', error.message);
-            }).catch((err) => {
-              logger.error('Erreur sync deleteMouvement:', err.message);
-            });
+          try {
+            const { error } = await supabase.from('mouvements_caisse')
+              .delete()
+              .eq('id', mouvement.supabaseId);
+            if (error) logger.error('Supabase deleteMouvement:', error.message);
+          } catch (err) {
+            logger.error('Erreur deleteMouvement:', err.message);
+          }
         }
       },
 
@@ -174,7 +187,8 @@ export const useCaisseStore = create(
       }
     }),
     {
-      name: 'sika_caisse'
+      name: 'sika_caisse',
+      partialize: () => ({})
     }
   )
 );

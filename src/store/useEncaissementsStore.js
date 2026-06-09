@@ -204,7 +204,8 @@ export const useEncaissementsStore = create(
       }
     }),
     {
-      name: 'sika_encaissements'
+      name: 'sika_encaissements',
+      partialize: (state) => ({ soldeInitial: state.soldeInitial })
     }
   )
 );

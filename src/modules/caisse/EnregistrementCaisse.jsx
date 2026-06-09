@@ -418,6 +418,16 @@ export default function EnregistrementCaisse() {
     });
   }
 
+  const generateReference = () => {
+    const date = new Date()
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const count = mouvements.length + 1
+    const sequence = String(count).padStart(3, '0')
+    return `CAIS-${year}${month}${day}-${sequence}`
+  }
+
   const handleEntreeChange = (value) => {
     setFormData({
       ...formData,
@@ -549,6 +559,7 @@ export default function EnregistrementCaisse() {
               setCurrentMouvement(null)
               setFormData({ 
                 ...formData, 
+                reference: generateReference(),
                 entree: '', 
                 sortir: '', 
                 type: 'ENTREE' 
@@ -564,6 +575,7 @@ export default function EnregistrementCaisse() {
               setCurrentMouvement(null)
               setFormData({ 
                 ...formData, 
+                reference: generateReference(),
                 entree: '', 
                 sortir: '', 
                 type: 'SORTIE' 
@@ -754,13 +766,13 @@ export default function EnregistrementCaisse() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-navy mb-1">Référence</label>
+                  <label className="block text-sm font-semibold text-navy mb-1">Référence (auto)</label>
                   <input
                     type="text"
                     value={formData.reference}
-                    onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
-                    placeholder="Ex: REF-001"
+                    readOnly
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                    placeholder="Générée automatiquement"
                   />
                 </div>
 

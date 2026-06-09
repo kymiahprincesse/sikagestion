@@ -9,6 +9,7 @@ import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useUtilisateursStore } from '../store/useUtilisateursStore'
 import { useJournalStore } from '../store/useJournalStore'
+import { useCaisseStore } from '../store/useCaisseStore'
 import { checkSupabaseResponse, IS_DEV } from '../utils/supabaseErrors'
 
 export function useLoadSupabaseData() {
@@ -27,6 +28,7 @@ export function useLoadSupabaseData() {
   const setEncaissements = useEncaissementsStore(state => state.setEncaissements)
   const setUtilisateurs = useUtilisateursStore(state => state.setUtilisateurs)
   const setEcritures = useJournalStore(state => state.setEcritures)
+  const setMouvements = useCaisseStore(state => state.setMouvements)
 
   useEffect(() => {
     async function loadAllData() {
@@ -35,7 +37,9 @@ export function useLoadSupabaseData() {
 
         const [
           clientsRes, facturesRes, devisRes, aoRes, fournisseursRes,
-          projetsRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, ecrituresRes
+          projetsRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, ecrituresRes,
+          paiementsFacturesRes, lignesDevisRes, lignesFacturesRes,
+          mouvementsCaisseRes
         ] = await Promise.all([
           supabase.from('clients').select('*').order('id'),
           supabase.from('factures').select('*').order('id'),
@@ -48,6 +52,10 @@ export function useLoadSupabaseData() {
           supabase.from('encaissements').select('*').order('id'),
           supabase.from('utilisateurs').select('*').order('id'),
           supabase.from('ecritures_journal').select('*').order('id'),
+          supabase.from('paiements_factures').select('*').order('id'),
+          supabase.from('lignes_devis').select('*').order('devis_id'),
+          supabase.from('lignes_factures').select('*').order('facture_id'),
+          supabase.from('mouvements_caisse').select('*').order('id'),
         ])
 
         // Vérification standardisée des erreurs
@@ -62,6 +70,10 @@ export function useLoadSupabaseData() {
         checkSupabaseResponse(encaissementsRes, 'encaissements', { silent: true })
         checkSupabaseResponse(utilisateursRes, 'utilisateurs', { silent: true })
         checkSupabaseResponse(ecrituresRes, 'ecritures_journal', { silent: true })
+        checkSupabaseResponse(paiementsFacturesRes, 'paiements_factures', { silent: true })
+        checkSupabaseResponse(lignesDevisRes, 'lignes_devis', { silent: true })
+        checkSupabaseResponse(lignesFacturesRes, 'lignes_factures', { silent: true })
+        checkSupabaseResponse(mouvementsCaisseRes, 'mouvements_caisse', { silent: true })
 
         // Lancer les erreurs critiques
         if (!clientsCheck.success) throw new Error(clientsCheck.message)
@@ -79,13 +91,48 @@ export function useLoadSupabaseData() {
           type: c.type, isActif: c.is_actif, notes: c.notes, dateCreation: c.date_creation
         }))
 
+        // Grouper les lignes_devis par devis_id
+        const lignesParDevis = {}
+        ;(lignesDevisRes.data || []).forEach(l => {
+          if (!lignesParDevis[l.devis_id]) lignesParDevis[l.devis_id] = []
+          lignesParDevis[l.devis_id].push({
+            id: l.id, designation: l.designation, qte: parseFloat(l.quantite || 0),
+            quantite: parseFloat(l.quantite || 0), ml: parseFloat(l.ml || 0),
+            pt: parseFloat(l.pt || 0), unite: l.unite || '', pu: parseFloat(l.pu || 0),
+            montant: parseFloat(l.montant || 0), ordre: l.ordre || 0
+          })
+        })
+
+        // Grouper les lignes_factures par facture_id
+        const lignesParFacture = {}
+        ;(lignesFacturesRes.data || []).forEach(l => {
+          if (!lignesParFacture[l.facture_id]) lignesParFacture[l.facture_id] = []
+          lignesParFacture[l.facture_id].push({
+            id: l.id, designation: l.designation, qte: parseFloat(l.quantite || 0),
+            quantite: parseFloat(l.quantite || 0), unite: l.unite || '',
+            pu: parseFloat(l.pu || 0), montant: parseFloat(l.montant || 0), ordre: l.ordre || 0
+          })
+        })
+
+        // Grouper les paiements par facture_id
+        const paiementsParFacture = {}
+        ;(paiementsFacturesRes.data || []).forEach(p => {
+          if (!paiementsParFacture[p.facture_id]) paiementsParFacture[p.facture_id] = []
+          paiementsParFacture[p.facture_id].push({
+            id: p.id, date: p.date, montant: parseFloat(p.montant || 0),
+            mode: p.mode, reference: p.reference || '', notes: p.notes || ''
+          })
+        })
+
         const factures = (facturesRes.data || []).map(f => ({
           id: f.id, numero: f.numero, clientId: f.client_id, clientNom: f.client_nom,
           devisId: f.devis_id, objet: f.objet,
           montantHT: parseFloat(f.montant_ht || 0), montantTVA: parseFloat(f.montant_tva || 0),
           montantTTC: parseFloat(f.montant_ttc || 0), montantPaye: parseFloat(f.montant_paye || 0),
           dateDepot: f.date_depot, dateEcheance: f.date_echeance, datePayement: f.date_payement,
-          delaiReglement: f.delai_reglement, statut: f.statut, notes: f.notes, dateCreation: f.date_creation
+          delaiReglement: f.delai_reglement, statut: f.statut, notes: f.notes, dateCreation: f.date_creation,
+          paiements: paiementsParFacture[f.id] || [],
+          lignes: lignesParFacture[f.id] || []
         }))
 
         const devis = (devisRes.data || []).map(d => ({
@@ -95,7 +142,8 @@ export function useLoadSupabaseData() {
           montantTTC: parseFloat(d.montant_ttc || 0), montantTotal: parseFloat(d.montant_total || 0),
           dateDevis: d.date_devis, dateValidation: d.date_validation,
           dateAnnulation: d.date_annulation, dateTransformation: d.date_transformation,
-          statut: d.statut, notes: d.notes, dateCreation: d.date_creation
+          statut: d.statut, notes: d.notes, dateCreation: d.date_creation,
+          lignes: lignesParDevis[d.id] || []
         }))
 
         const ao = (aoRes.data || []).map(a => ({
@@ -157,7 +205,18 @@ export function useLoadSupabaseData() {
           montant: parseFloat(e.montant || 0), dateEncaissement: e.date_encaissement,
           modePaiement: e.mode_paiement, reference: e.reference,
           notes: e.notes, statut: e.statut, dateCreation: e.date_creation,
-          mouvementCaisseId: e.mouvement_caisse_id
+          mouvementCaisseId: e.mouvement_caisse_id || null
+        }))
+
+        const mouvements = (mouvementsCaisseRes.data || []).map(m => ({
+          id: m.id, date: m.date, type: m.type, categorie: m.categorie,
+          montant: parseFloat(m.montant || 0), description: m.description,
+          reference: m.reference, beneficiaire: m.beneficiaire,
+          modePaiement: m.mode_paiement, utilisateur: m.utilisateur,
+          caisse_nom: m.caisse_nom || 'Caisse Principale',
+          pieceJustificative: m.piece_justificative,
+          referenceProjet: m.reference_projet,
+          dateCreation: m.date_creation
         }))
 
         setClients(clients)
@@ -169,6 +228,7 @@ export function useLoadSupabaseData() {
         setTaches(taches)
         setRessourcesHebdo(ressourcesHebdo)
         setEncaissements(encaissements)
+        setMouvements(mouvements)
         if (utilisateursRes.data) setUtilisateurs(utilisateursRes.data)
 
         const ecritures = (ecrituresRes.data || []).map(e => ({
@@ -184,7 +244,11 @@ export function useLoadSupabaseData() {
           clients: clients.length, factures: factures.length, devis: devis.length,
           ao: ao.length, fournisseurs: fournisseurs.length, projets: projets.length,
           taches: taches.length, encaissements: encaissements.length,
-          ecritures: ecritures.length
+          ecritures: ecritures.length,
+          lignesDevis: (lignesDevisRes.data || []).length,
+          lignesFactures: (lignesFacturesRes.data || []).length,
+          paiementsFactures: (paiementsFacturesRes.data || []).length,
+          mouvementsCaisse: mouvements.length
         }
 
         setStats(loadedStats)
@@ -198,7 +262,7 @@ export function useLoadSupabaseData() {
     }
 
     loadAllData()
-  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setUtilisateurs, setEcritures])
+  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements, setUtilisateurs, setEcritures])
 
   return { loading, error, stats }
 }

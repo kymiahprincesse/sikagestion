@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import enteteImg from '../assets/ENTETE SIKApng1.png';
 import piedImg from '../assets/ENTETE SIKA pied 1.png';
+import { logger } from './logger.js';
 
 // ─── DIMENSIONS PAGE A4 ─────────────────────────────────────
 const PAGE_W = 210;   // mm
@@ -57,7 +58,7 @@ export async function createSikaPDF(titre = '') {
       loadImageAsBase64(piedImg),
     ]);
   } catch (error) {
-    console.error('Erreur chargement images SIKA:', error);
+    logger.error('Erreur chargement images SIKA:', error);
     // Fallback: bandeau de couleur
     entete = null;
     pied = null;

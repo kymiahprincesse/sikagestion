@@ -1,8 +1,10 @@
 // Système de notifications push navigateur
 
+import { logger } from './logger.js';
+
 export const requestNotificationPermission = async () => {
   if (!('Notification' in window)) {
-    console.warn('Ce navigateur ne supporte pas les notifications')
+    logger.warn('Ce navigateur ne supporte pas les notifications')
     return false
   }
 

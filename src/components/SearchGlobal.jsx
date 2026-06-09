@@ -66,11 +66,19 @@ export default function SearchGlobal() {
   const projets = usePlanificationStore((state) => state.projets);
   const clients = useClientsStore((state) => state.clients);
 
-  // Charger l'historique depuis localStorage
+  // Charger l'historique depuis sessionStorage (limité à la session, plus sécurisé)
   useEffect(() => {
-    const saved = localStorage.getItem('sika_search_history');
-    if (saved) {
-      setHistorique(JSON.parse(saved));
+    try {
+      const saved = sessionStorage.getItem('sika_search_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setHistorique(parsed.slice(0, 5)); // Max 5 éléments
+        }
+      }
+    } catch (e) {
+      // Corrompu ou inaccessible - ignorer silencieusement
+      sessionStorage.removeItem('sika_search_history');
     }
   }, []);
 
@@ -262,7 +270,11 @@ export default function SearchGlobal() {
     ].slice(0, 5);
     
     setHistorique(nouvelHistorique);
-    localStorage.setItem('sika_search_history', JSON.stringify(nouvelHistorique));
+    try {
+      sessionStorage.setItem('sika_search_history', JSON.stringify(nouvelHistorique));
+    } catch (e) {
+      // Storage plein ou inaccessible - ignorer
+    }
   };
 
   const handleSelectResult = (resultat) => {

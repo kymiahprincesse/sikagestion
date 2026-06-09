@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useJournalStore } from '../../store/useJournalStore';
 import { 
   Printer, 
   Lock, 
@@ -80,6 +81,8 @@ const JournalCaisse = () => {
   const [selectedOperation, setSelectedOperation] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [caissesList, setCaissesList] = useState(['Caisse Principale']);
+  const ecritures = useJournalStore(state => state.ecritures);
+  const [searchEcriture, setSearchEcriture] = useState('');
 
 
   /* ── Fetch Supabase ──────────────────────────────────────────── */
@@ -416,6 +419,7 @@ const JournalCaisse = () => {
             {[
               { id: 'journal', label: '📋 Journal par Semaine' },
               { id: 'historique', label: '📚 Historique Mensuel' },
+              { id: 'comptable', label: '📒 Journal Comptable' },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -613,6 +617,93 @@ const JournalCaisse = () => {
                     );
                   })
                 )}
+              </div>
+            )}
+
+            {/* ──────────────────── TAB: JOURNAL COMPTABLE ──── */}
+            {activeTab === 'comptable' && (
+              <div>
+                <div className="relative mb-5">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8C8D0]" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Rechercher pièce, libellé, compte..."
+                    value={searchEcriture}
+                    onChange={e => setSearchEcriture(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 border border-[#C8C8D0] rounded-lg text-sm focus:outline-none focus:border-[#E60000]"
+                  />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-[#1B2A4A] text-white">
+                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Date</th>
+                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Pièce</th>
+                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Type</th>
+                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Libellé</th>
+                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Cpte Débit</th>
+                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Cpte Crédit</th>
+                        <th className="border border-[#C8C8D0] px-4 py-3 text-right text-[#4ade80]">Débit</th>
+                        <th className="border border-[#C8C8D0] px-4 py-3 text-right text-[#fca5a5]">Crédit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ecritures
+                        .filter(e => {
+                          if (!searchEcriture) return true;
+                          const s = searchEcriture.toLowerCase();
+                          return (
+                            (e.libelle || '').toLowerCase().includes(s) ||
+                            (e.pieceComptable || '').toLowerCase().includes(s) ||
+                            (e.compteDebit || '').toLowerCase().includes(s) ||
+                            (e.compteCredit || '').toLowerCase().includes(s) ||
+                            (e.type || '').toLowerCase().includes(s)
+                          );
+                        })
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .map((e, idx) => (
+                          <tr key={e.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-[#E8ECF4]'} hover:bg-[#FFE6E6] transition-colors`}>
+                            <td className="border border-[#C8C8D0] px-4 py-2 whitespace-nowrap">{new Date(e.date).toLocaleDateString('fr-FR')}</td>
+                            <td className="border border-[#C8C8D0] px-4 py-2 font-mono text-xs text-[#1F5C99]">{e.pieceComptable || '—'}</td>
+                            <td className="border border-[#C8C8D0] px-4 py-2">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-[#E8ECF4] text-[#1B2A4A] font-semibold">{e.type || '—'}</span>
+                            </td>
+                            <td className="border border-[#C8C8D0] px-4 py-2 max-w-xs truncate">{e.libelle || '—'}</td>
+                            <td className="border border-[#C8C8D0] px-4 py-2 font-mono text-xs">{e.compteDebit || '—'}</td>
+                            <td className="border border-[#C8C8D0] px-4 py-2 font-mono text-xs">{e.compteCredit || '—'}</td>
+                            <td className="border border-[#C8C8D0] px-4 py-2 text-right font-semibold text-[#1A7A4A]">
+                              {e.montantDebit > 0 ? formatFCFA(e.montantDebit) : '—'}
+                            </td>
+                            <td className="border border-[#C8C8D0] px-4 py-2 text-right font-semibold text-[#E60000]">
+                              {e.montantCredit > 0 ? formatFCFA(e.montantCredit) : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      {ecritures.length === 0 && (
+                        <tr>
+                          <td colSpan={8} className="text-center py-12 text-[#C8C8D0]">
+                            <Lock size={36} className="mx-auto mb-2" />
+                            <p className="font-semibold">Aucune écriture comptable</p>
+                            <p className="text-xs mt-1">Les écritures générées automatiquement apparaîtront ici.</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    {ecritures.length > 0 && (
+                      <tfoot>
+                        <tr className="bg-[#1B2A4A] text-white font-bold text-sm">
+                          <td colSpan={6} className="px-4 py-2.5 text-right uppercase text-xs tracking-wide">TOTAUX</td>
+                          <td className="px-4 py-2.5 text-right text-[#4ade80]">
+                            {formatFCFA(ecritures.reduce((s, e) => s + (e.montantDebit || 0), 0))}
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-[#fca5a5]">
+                            {formatFCFA(ecritures.reduce((s, e) => s + (e.montantCredit || 0), 0))}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
               </div>
             )}
 

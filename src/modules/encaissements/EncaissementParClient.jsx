@@ -11,11 +11,18 @@ import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
 
 const MOYENS_REGLEMENT = ['ESPECES', 'CHEQUE', 'VIREMENT', 'CARTE', 'TRAITE', 'AUTRE']
-const CLIENTS_RAPIDES = [
-  { id: 1, nom: 'GMCI' },
-  { id: 2, nom: 'AMCC' },
-  { id: 3, nom: 'LDC' }
-]
+
+const genererReferenceEncaissement = (encaissements) => {
+  const annee = new Date().getFullYear()
+  const prefix = `ENC-${annee}-`
+  const numerosExistants = encaissements
+    .map(e => e.reference)
+    .filter(ref => ref && ref.startsWith(prefix))
+    .map(ref => parseInt(ref.replace(prefix, ''), 10))
+    .filter(n => !isNaN(n))
+  const prochain = numerosExistants.length > 0 ? Math.max(...numerosExistants) + 1 : 1
+  return `${prefix}${String(prochain).padStart(3, '0')}`
+}
 
 export default function EncaissementParClient() {
   const { encaissements, soldeInitial, addEncaissement, updateEncaissement, deleteEncaissement } = useEncaissementsStore()
@@ -40,10 +47,6 @@ export default function EncaissementParClient() {
     reference: '',
     observation: ''
   })
-
-  const handleClientRapide = (clientId) => {
-    setClientSelectionne(clientId)
-  }
 
   const encaissementsAvecDetails = useMemo(() => {
     return encaissements.map(enc => {
@@ -502,23 +505,6 @@ export default function EncaissementParClient() {
               onChange={setClientSelectionne}
               clients={clients}
             />
-            
-            <div className="flex gap-2 items-end">
-              <span className="text-sm font-semibold text-navy">Sélection rapide:</span>
-              {CLIENTS_RAPIDES.map(client => (
-                <button
-                  key={client.id}
-                  onClick={() => handleClientRapide(client.id)}
-                  className={`px-4 py-2 rounded-lg font-semibold transition ${
-                    clientSelectionne === client.id
-                      ? 'bg-orange text-white'
-                      : 'bg-white text-orange border-2 border-orange hover:bg-orange hover:text-white'
-                  }`}
-                >
-                  {client.nom}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -559,6 +545,7 @@ export default function EncaissementParClient() {
                 return
               }
               setCurrentEncaissement(null)
+              setFormData({ factureId: '', montant: '', modePaiement: '', dateEncaissement: new Date().toISOString().split('T')[0], reference: genererReferenceEncaissement(encaissements), observation: '' })
               setShowModal(true)
             }}
             className="px-4 py-2 bg-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition"

@@ -4,6 +4,7 @@
  */
 
 import { IS_DEV } from '../config/constants';
+import { logger } from './logger.js';
 
 /**
  * Niveaux de criticité des erreurs
@@ -52,14 +53,12 @@ export function handleSupabaseError(error, context = '') {
   };
 
   // Log conditionnel selon l'environnement
-  if (IS_DEV) {
-    console.error(`[Supabase Error${context ? ` - ${context}` : ''}]`, {
-      code: result.code,
-      message: result.message,
-      details: error.details,
-      hint: error.hint,
-    });
-  }
+  logger.error(`[Supabase Error${context ? ` - ${context}` : ''}]`, {
+    code: result.code,
+    message: result.message,
+    details: error.details,
+    hint: error.hint,
+  });
 
   return result;
 }
@@ -90,8 +89,8 @@ export function checkSupabaseResponse(response, context = '', options = {}) {
     };
   }
 
-  if (!silent && IS_DEV) {
-    console.log(`[Supabase Success${context ? ` - ${context}` : ''}]`, {
+  if (!silent) {
+    logger.log(`[Supabase Success${context ? ` - ${context}` : ''}]`, {
       count: Array.isArray(response.data) ? response.data.length : 1,
     });
   }
@@ -124,9 +123,7 @@ export async function withSupabaseRetry(operation, options = {}) {
       lastError = error;
 
       if (attempt < retries) {
-        if (IS_DEV) {
-          console.warn(`[Supabase Retry${context ? ` - ${context}` : ''}] Tentative ${attempt}/${retries} échouée, nouvelle tentative dans ${delay}ms...`);
-        }
+        logger.warn(`[Supabase Retry${context ? ` - ${context}` : ''}] Tentative ${attempt}/${retries} échouée, nouvelle tentative dans ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

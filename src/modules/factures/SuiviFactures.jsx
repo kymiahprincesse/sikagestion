@@ -11,6 +11,18 @@ import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as
 const MOYENS_REGLEMENT = ['ESPECES', 'CHEQUE', 'VIREMENT', 'CARTE', 'TRAITE', 'AUTRE']
 const TAUX_TVA = 18
 
+const genererReferenceFacture = (factures) => {
+  const annee = new Date().getFullYear()
+  const prefix = `FACT-${annee}-`
+  const numerosExistants = factures
+    .map(f => f.reference)
+    .filter(ref => ref && ref.startsWith(prefix))
+    .map(ref => parseInt(ref.replace(prefix, ''), 10))
+    .filter(n => !isNaN(n))
+  const prochain = numerosExistants.length > 0 ? Math.max(...numerosExistants) + 1 : 1
+  return `${prefix}${String(prochain).padStart(3, '0')}`
+}
+
 export default function SuiviFactures() {
   const { factures, addFacture, updateFacture, deleteFacture, addPaiement, deletePaiement } = useFacturesStore()
   const { addLog } = useAuditStore()
@@ -562,7 +574,7 @@ export default function SuiviFactures() {
 
         <div className="flex gap-2 mb-6 flex-wrap">
           <button
-            onClick={() => { setCurrentFacture(null); setShowModal(true); }}
+            onClick={() => { setCurrentFacture(null); setFormData({ clientId: '', montantHT: '', tva: '', montantTTC: '', dateDepot: '', delaiReglement: 30, dateReglement: '', moyenReglement: '', reference: genererReferenceFacture(factures), observation: '' }); setShowModal(true); }}
             className="px-4 py-2 bg-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
           >
             ➕ Nouvelle Facture

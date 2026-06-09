@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { syncService } from '../services/supabaseSync'
 import { useClientsStore } from '../store/useClientsStore'
 import { useFacturesStore } from '../store/useFacturesStore'
@@ -7,12 +7,13 @@ import { useAOStore } from '../store/useAOStore'
 import { useFournisseursStore } from '../store/useFournisseursStore'
 import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
-import { Upload, Download, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react'
+import { Upload, Download, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react'
 
 export default function SyncButton() {
   const [isSyncing, setIsSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null)
   const [showResult, setShowResult] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
 
   const clients = useClientsStore(state => state.clients)
   const factures = useFacturesStore(state => state.factures)
@@ -52,80 +53,53 @@ export default function SyncButton() {
     }
   }
 
+  // Synchronisation automatique toutes les 30 secondes (optimisé)
+  useEffect(() => {
+    handleSync()
+    const interval = setInterval(() => {
+      handleSync()
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [clients, factures, devis, appelsDoffres, fournisseurs, projets, mouvements])
+
+  // Mise à jour de l'heure toutes les secondes
+  useEffect(() => {
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+    return () => clearInterval(timeInterval)
+  }, [])
+
+  const formatDateTime = (date) => {
+    const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+    const jour = jours[date.getDay()]
+    const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const heureStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return { jour, dateStr, heureStr }
+  }
+
+  const { jour, dateStr, heureStr } = formatDateTime(currentTime)
+
   return (
     <div className="relative">
+      {/* Affichage Date et Heure */}
+      <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-[#1B2A4A] text-white shadow-xl border-2 border-[#E60000]">
+        <Clock className="w-8 h-8 text-[#E60000]" />
+        <div className="flex flex-col items-start">
+          <span className="text-sm font-semibold text-[#C8C8D0] uppercase tracking-wide">{jour} {dateStr}</span>
+          <span className="text-2xl font-bold text-white">{heureStr}</span>
+        </div>
+      </div>
+
+      {/* Bouton de synchronisation masqué mais fonctionnel */}
       <button
         onClick={handleSync}
         disabled={isSyncing}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
-        style={{ backgroundColor: '#E60000' }}
+        className="hidden"
       >
-        {isSyncing ? (
-          <>
-            <RefreshCw className="w-5 h-5 animate-spin" />
-            <span>Synchronisation...</span>
-          </>
-        ) : (
-          <>
-            <Upload className="w-5 h-5" />
-            <span>Synchroniser avec Supabase</span>
-          </>
-        )}
+        Sync
       </button>
 
-      {showResult && syncResult && (
-        <div
-          className={`absolute top-full mt-2 right-0 w-80 p-4 rounded-lg shadow-lg border-2 ${
-            syncResult.success ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {syncResult.success ? (
-              <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-            ) : (
-              <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-            )}
-            <div className="flex-1">
-              <h4 className={`font-bold ${syncResult.success ? 'text-green-800' : 'text-red-800'}`}>
-                {syncResult.success ? 'Synchronisation réussie !' : 'Erreur de synchronisation'}
-              </h4>
-              {syncResult.success && (
-                <p className="text-sm text-green-700 mt-1">
-                  {syncResult.totalSynced} enregistrement(s) synchronisé(s)
-                </p>
-              )}
-              {syncResult.error && (
-                <p className="text-sm text-red-700 mt-1">{syncResult.error}</p>
-              )}
-              {syncResult.results && (
-                <div className="mt-2 text-xs space-y-1">
-                  {syncResult.results.clients?.success && (
-                    <div className="text-green-700">✓ Clients: {syncResult.results.clients.count}</div>
-                  )}
-                  {syncResult.results.factures?.success && (
-                    <div className="text-green-700">✓ Factures: {syncResult.results.factures.count}</div>
-                  )}
-                  {syncResult.results.devis?.success && (
-                    <div className="text-green-700">✓ Devis: {syncResult.results.devis.count}</div>
-                  )}
-                  {syncResult.results.ao?.success && (
-                    <div className="text-green-700">✓ Appels d'offres: {syncResult.results.ao.count}</div>
-                  )}
-                  {syncResult.results.fournisseurs?.success && (
-                    <div className="text-green-700">✓ Fournisseurs: {syncResult.results.fournisseurs.count}</div>
-                  )}
-                  {syncResult.results.projets?.success && (
-                    <div className="text-green-700">✓ Projets: {syncResult.results.projets.count}</div>
-                  )}
-                  {syncResult.results.caisse?.success && (
-                    <div className="text-green-700">✓ Caisse: {syncResult.results.caisse.count}</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
