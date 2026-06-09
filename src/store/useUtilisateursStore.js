@@ -26,10 +26,13 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 async function callManageUsers(action, payload) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/manage-users`, {
     method: 'POST',
+    cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
       'apikey': SUPABASE_ANON_KEY,
       'x-sika-admin': MGMT_SECRET,
+      'Cache-Control': 'no-cache, no-store',
+      'Pragma': 'no-cache',
     },
     body: JSON.stringify({ action, ...payload }),
   });

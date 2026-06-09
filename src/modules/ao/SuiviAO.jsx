@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNotifications } from '../../components/NotificationProvider';
 import { useAOStore, STATUTS_AO } from '../../store/useAOStore';
 import { useClientsStore } from '../../store/useClientsStore';
 import { useAuditStore } from '../../store/useAuditStore';
@@ -15,6 +16,7 @@ export default function SuiviAO() {
   const { appelsDoffres, deleteAO, getStatistiques, getAOUrgents } = useAOStore();
   const { clients } = useClientsStore();
   const { addLog } = useAuditStore();
+  const { confirmDelete } = useNotifications();
 
   const [showModalAO, setShowModalAO] = useState(false);
   const [showModalConversion, setShowModalConversion] = useState(false);
@@ -95,17 +97,17 @@ export default function SuiviAO() {
     setShowModalConversion(true);
   };
 
-  const handleSupprimer = (ao) => {
-    if (confirm(`Confirmer la suppression de l'AO ${ao.numeroDevis} ?`)) {
-      deleteAO(ao.id);
-      addLog({
-        module: 'Appels d\'offres',
-        action: 'Suppression AO',
-        utilisateur: 'Admin',
-        avant: ao,
-        apres: null
-      });
-    }
+  const handleSupprimer = async (ao) => {
+    const ok = await confirmDelete(`l'AO ${ao.numeroDevis || ao.id}`);
+    if (!ok) return;
+    deleteAO(ao.id);
+    addLog({
+      module: 'Appels d\'offres',
+      action: 'Suppression AO',
+      utilisateur: 'Admin',
+      avant: ao,
+      apres: null
+    });
   };
 
   const handleImprimer = (ao) => {

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
+import { useNotifications } from '../../components/NotificationProvider'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { useAuditStore } from '../../store/useAuditStore'
@@ -22,6 +23,7 @@ export default function ListeDevis() {
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
+  const { confirm, confirmDelete } = useNotifications()
 
   const [recherche, setRecherche] = useState('')
   const [filtreType, setFiltreType] = useState('')
@@ -39,8 +41,15 @@ export default function ListeDevis() {
   useEscapeKey(showModalVoir, () => setShowModalVoir(false))
 
   // Défini avant les colonnes pour éviter les dépendances circulaires
-  const handleChangerStatut = useCallback((devis, nouveauStatut) => {
-    if (!confirm(`Changer le statut du devis ${devis.numero} en "${nouveauStatut}" ?`)) return
+  const handleChangerStatut = useCallback(async (devis, nouveauStatut) => {
+    const ok = await confirm({
+      title: 'Changer le statut',
+      message: `Changer le statut du devis ${devis.numero} en "${nouveauStatut}" ?`,
+      type: 'warning',
+      confirmText: 'Confirmer',
+      cancelText: 'Annuler'
+    })
+    if (!ok) return
 
     updateDevis(devis.id, { statut: nouveauStatut })
 
@@ -62,7 +71,7 @@ export default function ListeDevis() {
         lien: '/devis/liste'
       })
     })
-  }, [updateDevis, addLog])
+  }, [updateDevis, addLog, confirm])
 
   const devisAvecClients = useMemo(() => {
     return devis.map(d => {
@@ -343,8 +352,9 @@ export default function ListeDevis() {
     addLog({ module: 'LISTE_DEVIS', action: 'MODIFIER', utilisateur: 'Utilisateur', apres: { numero: devis.numero, type: typeDevis, id: devis.id } })
   }
 
-  const handleSupprimer = (devis) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le devis ${devis.numero} ?\n\nCette action est irréversible.`)) return
+  const handleSupprimer = async (devis) => {
+    const ok = await confirmDelete(`le devis ${devis.numero}`)
+    if (!ok) return
 
     deleteDevis(devis.id)
 
@@ -419,7 +429,14 @@ export default function ListeDevis() {
   }
 
   const handleConvertirEnFacture = async (devis) => {
-    if (!confirm(`Convertir le devis ${devis.numero} en facture ?`)) return
+    const ok = await confirm({
+      title: 'Convertir en facture',
+      message: `Convertir le devis ${devis.numero} en facture ? Cette action créera une nouvelle facture.`,
+      type: 'info',
+      confirmText: 'Convertir',
+      cancelText: 'Annuler'
+    })
+    if (!ok) return
 
     const client = clients.find(c => c.id === devis.clientId)
 

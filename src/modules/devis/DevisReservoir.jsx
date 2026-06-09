@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNotifications } from '../../components/NotificationProvider'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
@@ -48,6 +49,7 @@ export default function DevisReservoir() {
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
+  const { confirm } = useNotifications()
 
   const [devisData, setDevisData] = useState(() => ({
     numero: '',
@@ -219,8 +221,15 @@ export default function DevisReservoir() {
   }
 
   // Actions principales
-  const handleNouveau = () => {
-    if (confirm('Créer un nouveau devis ? Les modifications non enregistrées seront perdues.')) {
+  const handleNouveau = async () => {
+    const ok = await confirm({
+      title: 'Nouveau devis',
+      message: 'Créer un nouveau devis ? Les modifications non enregistrées seront perdues.',
+      type: 'warning',
+      confirmText: 'Créer',
+      cancelText: 'Annuler'
+    })
+    if (ok) {
       setDevisData({
         numero: getNextNumero(),
         date: new Date().toISOString().split('T')[0],
@@ -265,7 +274,7 @@ export default function DevisReservoir() {
     }
   }
 
-  const handleEnregistrer = () => {
+  const handleEnregistrer = async () => {
     if (!devisData.clientId) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -275,6 +284,15 @@ export default function DevisReservoir() {
       })
       return
     }
+
+    const saveOk = await confirm({
+      title: 'Enregistrer le devis',
+      message: `Confirmer l'enregistrement du devis ${devisData.numero || ''} ?`,
+      type: 'info',
+      confirmText: 'Enregistrer',
+      cancelText: 'Annuler'
+    })
+    if (!saveOk) return
 
     const totaux = calculerTotaux()
     const devisComplet = {

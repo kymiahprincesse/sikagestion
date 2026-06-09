@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNotifications } from '../../components/NotificationProvider'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
@@ -28,6 +29,7 @@ export default function SuiviFactures() {
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
+  const { confirmDelete } = useNotifications()
   const [showPaiementsHistory, setShowPaiementsHistory] = useState(false)
 
   const [recherche, setRecherche] = useState('')
@@ -217,16 +219,16 @@ export default function SuiviFactures() {
     resetForm()
   }
 
-  const handleDeletePaiement = (facture, paiementId) => {
-    if (confirm('Supprimer ce paiement ?')) {
-      deletePaiement(facture.id, paiementId)
-      addLog({
-        module: 'FACTURE',
-        action: 'DELETE_PAIEMENT',
-        utilisateur: 'Utilisateur',
-        apres: { factureId: facture.id, paiementId }
-      })
-    }
+  const handleDeletePaiement = async (facture, paiementId) => {
+    const ok = await confirmDelete('ce paiement')
+    if (!ok) return
+    deletePaiement(facture.id, paiementId)
+    addLog({
+      module: 'FACTURE',
+      action: 'DELETE_PAIEMENT',
+      utilisateur: 'Utilisateur',
+      apres: { factureId: facture.id, paiementId }
+    })
   }
 
   const handleViewPaiements = (facture) => {
@@ -234,11 +236,11 @@ export default function SuiviFactures() {
     setShowPaiementsHistory(true)
   }
 
-  const handleDelete = (facture) => {
-    if (confirm(`Supprimer la facture ${facture.reference} ?`)) {
-      deleteFacture(facture.id)
-      addLog({ module: 'FACTURE', action: 'DELETE', utilisateur: 'Utilisateur', avant: facture })
-    }
+  const handleDelete = async (facture) => {
+    const ok = await confirmDelete(`la facture ${facture.reference}`)
+    if (!ok) return
+    deleteFacture(facture.id)
+    addLog({ module: 'FACTURE', action: 'DELETE', utilisateur: 'Utilisateur', avant: facture })
   }
 
   const handleEdit = (facture) => {

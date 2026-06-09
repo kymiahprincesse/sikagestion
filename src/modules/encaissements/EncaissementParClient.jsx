@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNotifications } from '../../components/NotificationProvider'
 import { useEncaissementsStore } from '../../store/useEncaissementsStore'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { useAuditStore } from '../../store/useAuditStore'
@@ -30,6 +31,7 @@ export default function EncaissementParClient() {
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
+  const { confirmDelete } = useNotifications()
 
   const [clientSelectionne, setClientSelectionne] = useState(null)
   const [sorting, setSorting] = useState([])
@@ -151,17 +153,17 @@ export default function EncaissementParClient() {
     resetForm()
   }
 
-  const handleDelete = (encaissement) => {
-    if (confirm(`Supprimer l'encaissement de ${formatFCFA(encaissement.montant)} ?`)) {
-      deleteEncaissement(encaissement.id)
-      addLog({
-        module: 'ENCAISSEMENT',
-        action: 'DELETE',
-        utilisateur: 'Gérant',
-        avant: encaissement,
-        impactFinancier: -encaissement.montant
-      })
-    }
+  const handleDelete = async (encaissement) => {
+    const ok = await confirmDelete(`l'encaissement de ${formatFCFA(encaissement.montant)}`)
+    if (!ok) return
+    deleteEncaissement(encaissement.id)
+    addLog({
+      module: 'ENCAISSEMENT',
+      action: 'DELETE',
+      utilisateur: 'Gérant',
+      avant: encaissement,
+      impactFinancier: -encaissement.montant
+    })
   }
 
   const handleEdit = (encaissement) => {

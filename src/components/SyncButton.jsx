@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { syncService } from '../services/supabaseSync'
 import { useClientsStore } from '../store/useClientsStore'
 import { useFacturesStore } from '../store/useFacturesStore'
@@ -23,21 +23,19 @@ export default function SyncButton() {
   const projets = usePlanificationStore(state => state.projets)
   const mouvements = useCaisseStore(state => state.mouvements)
 
-  const handleSync = async () => {
+  // Ref toujours à jour — évite de mettre les tableaux dans les deps de l'effet
+  const storeDataRef = useRef({ clients, factures, devis, appelsDoffres, fournisseurs, projets, mouvements })
+  useEffect(() => {
+    storeDataRef.current = { clients, factures, devis, appelsDoffres, fournisseurs, projets, mouvements }
+  }, [clients, factures, devis, appelsDoffres, fournisseurs, projets, mouvements])
+
+  const handleSync = useCallback(async () => {
     setIsSyncing(true)
     setSyncResult(null)
     setShowResult(false)
 
     try {
-      const result = await syncService.syncAll({
-        clients,
-        factures,
-        devis,
-        appelsDoffres,
-        fournisseurs,
-        projets,
-        mouvements
-      })
+      const result = await syncService.syncAll(storeDataRef.current)
 
       setSyncResult(result)
       setShowResult(true)
@@ -51,16 +49,14 @@ export default function SyncButton() {
     } finally {
       setIsSyncing(false)
     }
-  }
+  }, [])
 
-  // Synchronisation automatique toutes les 30 secondes (optimisé)
+  // Synchronisation automatique toutes les 30 secondes — stable, ne se re-déclenche pas sur chaque changement de données
   useEffect(() => {
     handleSync()
-    const interval = setInterval(() => {
-      handleSync()
-    }, 30000)
+    const interval = setInterval(handleSync, 30000)
     return () => clearInterval(interval)
-  }, [clients, factures, devis, appelsDoffres, fournisseurs, projets, mouvements])
+  }, [handleSync])
 
   // Mise à jour de l'heure toutes les secondes
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNotifications } from '../../components/NotificationProvider'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
@@ -30,6 +31,7 @@ export default function DevisCharpente() {
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
+  const { confirm } = useNotifications()
 
   const [devisData, setDevisData] = useState(() => ({
     numero: '',
@@ -146,28 +148,34 @@ export default function DevisCharpente() {
     }))
   }
 
-  const handleNouveau = () => {
-    if (confirm('Créer un nouveau devis ? Les modifications non enregistrées seront perdues.')) {
-      setDevisData({
-        numero: getNextNumero(),
-        date: new Date().toISOString().split('T')[0],
-        clientId: null,
-        type: 'CHARPENTE',
-        objet: '',
-        portee: 0,
-        hauteur: 0,
-        traitement: 'Peinture antirouille',
-        lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
-        tauxRemise: 0,
-        tvaActive: true,
-        statut: 'BROUILLON'
-      })
-      setDevisId(null)
-      addLog({ module: 'DEVIS_CHARPENTE', action: 'NOUVEAU', utilisateur: 'Utilisateur' })
-    }
+  const handleNouveau = async () => {
+    const ok = await confirm({
+      title: 'Nouveau devis',
+      message: 'Créer un nouveau devis ? Les modifications non enregistrées seront perdues.',
+      type: 'warning',
+      confirmText: 'Créer',
+      cancelText: 'Annuler'
+    })
+    if (!ok) return
+    setDevisData({
+      numero: getNextNumero(),
+      date: new Date().toISOString().split('T')[0],
+      clientId: null,
+      type: 'CHARPENTE',
+      objet: '',
+      portee: 0,
+      hauteur: 0,
+      traitement: 'Peinture antirouille',
+      lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+      tauxRemise: 0,
+      tvaActive: true,
+      statut: 'BROUILLON'
+    })
+    setDevisId(null)
+    addLog({ module: 'DEVIS_CHARPENTE', action: 'NOUVEAU', utilisateur: 'Utilisateur' })
   }
 
-  const handleEnregistrer = () => {
+  const handleEnregistrer = async () => {
     if (!devisData.clientId) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -177,6 +185,15 @@ export default function DevisCharpente() {
       })
       return
     }
+
+    const ok = await confirm({
+      title: 'Enregistrer le devis',
+      message: `Confirmer l'enregistrement du devis ${devisData.numero || ''} ?`,
+      type: 'info',
+      confirmText: 'Enregistrer',
+      cancelText: 'Annuler'
+    })
+    if (!ok) return
 
     const totaux = calculerTotaux()
     const devisComplet = { ...devisData, ...totaux, dateModification: new Date().toISOString().split('T')[0] }

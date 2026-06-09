@@ -168,6 +168,16 @@ export const useFournisseursStore = create(
         if (!existing) {
           set({ fournisseurs: [...fournisseurs, fournisseur] });
         }
+      },
+
+      updateFournisseurFromRealtime: (fournisseur) => {
+        set((state) => ({
+          fournisseurs: state.fournisseurs.map((f) => f.id === fournisseur.id ? { ...f, ...fournisseur } : f)
+        }));
+      },
+
+      deleteFournisseurFromRealtime: (id) => {
+        set((state) => ({ fournisseurs: state.fournisseurs.filter((f) => f.id !== id) }));
       }
     }),
     {

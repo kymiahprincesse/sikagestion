@@ -28,8 +28,6 @@ const EncaissementParClient = lazy(() => import('./modules/encaissements/Encaiss
 const Clients               = lazy(() => import('./modules/clients/Clients'))
 const Utilisateurs          = lazy(() => import('./modules/auth/Utilisateurs'))
 const FournisseursModule    = lazy(() => import('./modules/fournisseurs').then(m => ({ default: m.Fournisseurs })))
-const AchatsModule          = lazy(() => import('./modules/achats/Achats'))
-const DepensesModule        = lazy(() => import('./modules/depenses/Depenses'))
 const AchatsDepensesModule  = lazy(() => import('./modules/achats/AchatsDepenses'))
 const TourDeControle        = lazy(() => import('./components/TourDeControle'))
 const Parametres            = lazy(() => import('./components/Parametres'))

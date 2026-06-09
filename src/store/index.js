@@ -15,13 +15,11 @@ import { useJournalStore } from './useJournalStore';
 import { useNotificationsStore } from './useNotificationsStore';
 import { useParametresStore } from './useParametresStore';
 import { useAuditStore } from './useAuditStore';
-import { useAppStore } from './useAppStore';
 import { useConditionsPaiementStore } from './useConditionsPaiementStore';
 
 // ── STORES LÉGERS (chargés immédiatement) ─────────────────
 export {
   useAuthStore,
-  useAppStore,
   useClientsStore,
   useFacturesStore,
   useDevisStore,

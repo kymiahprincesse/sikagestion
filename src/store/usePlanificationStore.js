@@ -565,6 +565,16 @@ export const usePlanificationStore = create(
         }
       },
 
+      updateProjetFromRealtime: (projet) => {
+        set((state) => ({
+          projets: state.projets.map((p) => p.id === projet.id ? { ...p, ...projet } : p)
+        }));
+      },
+
+      deleteProjetFromRealtime: (id) => {
+        set((state) => ({ projets: state.projets.filter((p) => p.id !== id) }));
+      },
+
       addTacheFromRealtime: (tache) => {
         const { taches } = get();
         const existing = taches.find(t => t.id === tache.id);
@@ -573,12 +583,32 @@ export const usePlanificationStore = create(
         }
       },
 
+      updateTacheFromRealtime: (tache) => {
+        set((state) => ({
+          taches: state.taches.map((t) => t.id === tache.id ? { ...t, ...tache } : t)
+        }));
+      },
+
+      deleteTacheFromRealtime: (id) => {
+        set((state) => ({ taches: state.taches.filter((t) => t.id !== id) }));
+      },
+
       addRessourceFromRealtime: (ressource) => {
         const { ressourcesHebdo } = get();
         const existing = ressourcesHebdo.find(r => r.id === ressource.id);
         if (!existing) {
           set({ ressourcesHebdo: [...ressourcesHebdo, ressource] });
         }
+      },
+
+      updateRessourceFromRealtime: (ressource) => {
+        set((state) => ({
+          ressourcesHebdo: state.ressourcesHebdo.map((r) => r.id === ressource.id ? { ...r, ...ressource } : r)
+        }));
+      },
+
+      deleteRessourceFromRealtime: (id) => {
+        set((state) => ({ ressourcesHebdo: state.ressourcesHebdo.filter((r) => r.id !== id) }));
       }
     }),
     {

@@ -201,6 +201,16 @@ export const useEncaissementsStore = create(
         if (!existing) {
           set({ encaissements: [...encaissements, encaissement] });
         }
+      },
+
+      updateEncaissementFromRealtime: (encaissement) => {
+        set((state) => ({
+          encaissements: state.encaissements.map((e) => e.id === encaissement.id ? { ...e, ...encaissement } : e)
+        }));
+      },
+
+      deleteEncaissementFromRealtime: (id) => {
+        set((state) => ({ encaissements: state.encaissements.filter((e) => e.id !== id) }));
       }
     }),
     {

@@ -22,44 +22,44 @@ export function useSupabaseRealtimeEnhanced() {
   if (!actionsRef.current) {
     actionsRef.current = {
       clients: {
-        update: (...args) => useClientsStore.getState().updateClient(...args),
+        update: (...args) => useClientsStore.getState().updateClientFromRealtime(...args),
         add: (...args) => useClientsStore.getState().addClientFromRealtime(...args),
-        remove: (...args) => useClientsStore.getState().deleteClient(...args)
+        remove: (...args) => useClientsStore.getState().deleteClientFromRealtime(...args)
       },
       factures: {
-        update: (...args) => useFacturesStore.getState().updateFacture(...args),
+        update: (...args) => useFacturesStore.getState().updateFactureFromRealtime(...args),
         add: (...args) => useFacturesStore.getState().addFactureFromRealtime(...args),
-        remove: (...args) => useFacturesStore.getState().deleteFacture(...args)
+        remove: (...args) => useFacturesStore.getState().deleteFactureFromRealtime(...args)
       },
       devis: {
-        update: (...args) => useDevisStore.getState().updateDevis(...args),
+        update: (...args) => useDevisStore.getState().updateDevisFromRealtime(...args),
         add: (...args) => useDevisStore.getState().addDevisFromRealtime(...args),
-        remove: (...args) => useDevisStore.getState().deleteDevis(...args)
+        remove: (...args) => useDevisStore.getState().deleteDevisFromRealtime(...args)
       },
       ao: {
-        update: (...args) => useAOStore.getState().updateAO(...args),
+        update: (...args) => useAOStore.getState().updateAOFromRealtime(...args),
         add: (...args) => useAOStore.getState().addAOFromRealtime(...args),
-        remove: (...args) => useAOStore.getState().deleteAO(...args)
+        remove: (...args) => useAOStore.getState().deleteAOFromRealtime(...args)
       },
       fournisseurs: {
-        update: (...args) => useFournisseursStore.getState().updateFournisseur(...args),
+        update: (...args) => useFournisseursStore.getState().updateFournisseurFromRealtime(...args),
         add: (...args) => useFournisseursStore.getState().addFournisseurFromRealtime(...args),
-        remove: (...args) => useFournisseursStore.getState().deleteFournisseur(...args)
+        remove: (...args) => useFournisseursStore.getState().deleteFournisseurFromRealtime(...args)
       },
       projets: {
-        update: (...args) => usePlanificationStore.getState().updateProjet(...args),
+        update: (...args) => usePlanificationStore.getState().updateProjetFromRealtime(...args),
         add: (...args) => usePlanificationStore.getState().addProjetFromRealtime(...args),
-        remove: (...args) => usePlanificationStore.getState().deleteProjet(...args)
+        remove: (...args) => usePlanificationStore.getState().deleteProjetFromRealtime(...args)
       },
       caisse: {
-        update: (...args) => useCaisseStore.getState().updateMouvement(...args),
+        update: (...args) => useCaisseStore.getState().updateMouvementFromRealtime(...args),
         add: (...args) => useCaisseStore.getState().addMouvementFromRealtime(...args),
-        remove: (...args) => useCaisseStore.getState().deleteMouvement(...args)
+        remove: (...args) => useCaisseStore.getState().deleteMouvementFromRealtime(...args)
       },
       encaissements: {
-        update: (...args) => useEncaissementsStore.getState().updateEncaissement(...args),
+        update: (...args) => useEncaissementsStore.getState().updateEncaissementFromRealtime(...args),
         add: (...args) => useEncaissementsStore.getState().addEncaissementFromRealtime(...args),
-        remove: (...args) => useEncaissementsStore.getState().deleteEncaissement(...args)
+        remove: (...args) => useEncaissementsStore.getState().deleteEncaissementFromRealtime(...args)
       }
     }
   }
@@ -179,7 +179,7 @@ export function useSupabaseRealtimeEnhanced() {
           setTimeout(() => {
             const currentActions = actionsRef.current[config.store]
             if (currentActions?.update) {
-              currentActions.update(data.id, data)
+              currentActions.update(data)
             }
           }, 0)
         },

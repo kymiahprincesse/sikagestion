@@ -14,9 +14,8 @@ const GenerateExampleFile = () => {
     
     const clientsData = [
       ['code', 'nom', 'contact', 'telephone', 'email', 'adresse', 'ville', 'pays', 'typeClient', 'conditionsPaiement', 'delaiPaiement', 'plafondCredit', 'solde', 'statut'],
-      ['CLI001', 'GMCI', 'M. Hassan BENALI', '+225 27 21 25 36 48', 'contact@gmci.ci', 'Zone Industrielle Yopougon', 'Abidjan', 'Côte d\'Ivoire', 'Entreprise', 'Net 30', '30', '500000', '0', 'Actif'],
-      ['CLI002', 'AMCC', 'Mme. Fatou DIALLO', '+225 27 21 35 47 89', 'f.diallo@amcc.ci', 'Boulevard VGE, Marcory', 'Abidjan', 'Côte d\'Ivoire', 'Entreprise', 'Net 45', '45', '750000', '0', 'Actif'],
-      ['CLI003', 'LDC', 'M. Kouassi KOFFI', '+225 07 12 34 56 78', 'k.koffi@ldc.ci', 'Rue du Commerce, Plateau', 'Abidjan', 'Côte d\'Ivoire', 'Distribution', 'Net 30', '30', '300000', '0', 'Actif']
+      ['CLI001', 'SOLIBRA', 'M. Jean KOUASSI', '+225 27 21 25 36 48', 'contact@solibra.ci', 'Zone Industrielle Yopougon', 'Abidjan', 'Côte d\'Ivoire', 'Entreprise', 'Net 30', '30', '500000', '0', 'Actif'],
+      ['CLI002', 'SOBEBRA', 'Mme. Awa KONE', '+225 27 21 35 47 89', 'contact@sobebra.ci', 'Boulevard VGE, Marcory', 'Abidjan', 'Côte d\'Ivoire', 'Entreprise', 'Net 45', '45', '750000', '0', 'Actif']
     ];
     
     const fournisseursData = [
@@ -27,33 +26,33 @@ const GenerateExampleFile = () => {
     
     const devisData = [
       ['numero', 'date', 'clientId', 'clientNom', 'montantHT', 'tva', 'montantTTC', 'validiteJours', 'statut', 'lignes'],
-      ['DEV-2026-001', '2026-01-15', '1', 'GMCI', '1000000', '180000', '1180000', '30', 'En attente', '[]'],
-      ['DEV-2026-002', '2026-01-20', '2', 'AMCC', '750000', '135000', '885000', '30', 'Accepté', '[]']
+      ['DEV-2026-001', '2026-01-15', '1', 'SOLIBRA', '1000000', '180000', '1180000', '30', 'En attente', '[]'],
+      ['DEV-2026-002', '2026-01-20', '2', 'SOBEBRA', '750000', '135000', '885000', '30', 'Accepté', '[]']
     ];
     
     const facturesData = [
       ['numero', 'date', 'dateEcheance', 'clientId', 'clientNom', 'montantHT', 'tva', 'montantTTC', 'montantPaye', 'solde', 'statut', 'lignes'],
-      ['FAC-2026-001', '2026-01-20', '2026-02-20', '1', 'GMCI', '1000000', '180000', '1180000', '500000', '680000', 'Partiel', '[]'],
-      ['FAC-2026-002', '2026-01-25', '2026-02-25', '2', 'AMCC', '750000', '135000', '885000', '885000', '0', 'Payé', '[]']
+      ['FAC-2026-001', '2026-01-20', '2026-02-20', '1', 'SOLIBRA', '1000000', '180000', '1180000', '500000', '680000', 'Partiel', '[]'],
+      ['FAC-2026-002', '2026-01-25', '2026-02-25', '2', 'SOBEBRA', '750000', '135000', '885000', '885000', '0', 'Payé', '[]']
     ];
     
     const encaissementsData = [
       ['numero', 'date', 'factureId', 'factureNumero', 'clientId', 'clientNom', 'montant', 'modePaiement', 'reference', 'notes'],
-      ['ENC-2026-001', '2026-01-22', '1', 'FAC-2026-001', '1', 'GMCI', '500000', 'Virement', 'VIR-001', 'Acompte 50%'],
-      ['ENC-2026-002', '2026-01-26', '2', 'FAC-2026-002', '2', 'AMCC', '885000', 'Chèque', 'CHQ-001', 'Paiement complet']
+      ['ENC-2026-001', '2026-01-22', '1', 'FAC-2026-001', '1', 'SOLIBRA', '500000', 'Virement', 'VIR-001', 'Acompte 50%'],
+      ['ENC-2026-002', '2026-01-26', '2', 'FAC-2026-002', '2', 'SOBEBRA', '885000', 'Chèque', 'CHQ-001', 'Paiement complet']
     ];
     
     const aoData = [
       ['numero', 'reference', 'titre', 'client', 'datePublication', 'dateLimite', 'montantEstime', 'statut', 'priorite'],
-      ['AO-2026-001', 'REF-AO-001', 'Construction hangar métallique', 'GMCI', '2026-01-10', '2026-02-10', '5000000', 'En cours', 'Haute'],
-      ['AO-2026-002', 'REF-AO-002', 'Fourniture équipements industriels', 'AMCC', '2026-01-15', '2026-02-15', '3000000', 'Soumis', 'Moyenne']
+      ['AO-2026-001', 'REF-AO-001', 'Construction hangar métallique', 'SOLIBRA', '2026-01-10', '2026-02-10', '5000000', 'En cours', 'Haute'],
+      ['AO-2026-002', 'REF-AO-002', 'Fourniture équipements industriels', 'SOBEBRA', '2026-01-15', '2026-02-15', '3000000', 'Soumis', 'Moyenne']
     ];
     
     const caisseData = [
       ['date', 'type', 'categorie', 'montant', 'modePaiement', 'reference', 'description', 'beneficiaire'],
-      ['2026-01-15', 'Entrée', 'Vente', '500000', 'Espèces', 'REF-001', 'Vente produit A', 'GMCI'],
+      ['2026-01-15', 'Entrée', 'Vente', '500000', 'Espèces', 'REF-001', 'Vente produit A', 'SOLIBRA'],
       ['2026-01-16', 'Sortie', 'Achat', '200000', 'Virement', 'REF-002', 'Achat matières premières', 'ACIER CI'],
-      ['2026-01-17', 'Entrée', 'Vente', '750000', 'Chèque', 'REF-003', 'Vente produit B', 'AMCC']
+      ['2026-01-17', 'Entrée', 'Vente', '750000', 'Chèque', 'REF-003', 'Vente produit B', 'SOBEBRA']
     ];
     
     const journalData = [
@@ -65,8 +64,8 @@ const GenerateExampleFile = () => {
     
     const planificationData = [
       ['titre', 'description', 'dateDebut', 'dateFin', 'statut', 'priorite', 'responsable', 'progression'],
-      ['Projet GMCI', 'Construction hangar métallique', '2026-02-01', '2026-04-30', 'En cours', 'Haute', 'M. AMEMATCHRON', '25'],
-      ['Livraison AMCC', 'Fourniture équipements', '2026-02-15', '2026-03-15', 'Planifié', 'Moyenne', 'M. KOUASSI', '0']
+      ['Projet SOLIBRA', 'Installation équipements industriels', '2026-02-01', '2026-04-30', 'En cours', 'Haute', 'M. AMEMATCHRON', '25'],
+      ['Livraison SOBEBRA', 'Fourniture équipements brasserie', '2026-02-15', '2026-03-15', 'Planifié', 'Moyenne', 'M. KOUASSI', '0']
     ];
     
     const wsClients = XLSX.utils.aoa_to_sheet(clientsData);

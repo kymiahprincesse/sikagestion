@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'
+import { supabase, checkConnection } from './supabaseClient'
 import { logger } from '../utils/logger'
 
 /**
@@ -14,11 +14,13 @@ class ConnectionManager {
     this.isOnline = navigator.onLine
     this.isSupabaseConnected = false
     this.reconnectAttempts = 0
-    this.maxReconnectAttempts = 10
-    this.baseDelay = 1000 // 1 seconde
-    this.maxDelay = 30000 // 30 secondes
+    this.baseDelay = 2000 // 2 secondes
+    this.maxDelay = 60000 // 60 secondes max entre deux tentatives
+    this.maxReconnectAttempts = 10 // Limite les tentatives infinies
     this.heartbeatInterval = null
     this.reconnectTimeout = null
+    this.isReconnecting = false
+    this.isCheckingConnection = false
     this.listeners = []
     this.pendingOperations = []
     this.channels = new Map()
@@ -60,44 +62,49 @@ class ConnectionManager {
   }
 
   async checkConnection() {
-    if (!this.isOnline) {
-      this.isSupabaseConnected = false
-      this.notifyListeners()
-      return false
-    }
+    if (!this.isOnline || this.isCheckingConnection) return this.isSupabaseConnected
+    this.isCheckingConnection = true
 
     try {
-      const { error } = await supabase.from('clients').select('count', { count: 'exact', head: true })
-      
-      if (error) throw error
+      const status = await checkConnection()
       
       const wasConnected = this.isSupabaseConnected
-      this.isSupabaseConnected = true
-      this.reconnectAttempts = 0
+      this.isSupabaseConnected = status.connected
       
-      if (!wasConnected) {
-        logger.info('✅ Connexion Supabase rétablie')
-        this.reconnectAllChannels()
+      if (status.connected) {
+        this.reconnectAttempts = 0
+        this.isReconnecting = false
+        if (!wasConnected) {
+          logger.info('✅ Connexion Supabase rétablie')
+          this.reconnectAllChannels()
+        }
+      } else {
+        this.isSupabaseConnected = false
+        this.scheduleReconnect()
       }
       
       this.notifyListeners()
-      return true
+      return this.isSupabaseConnected
     } catch (err) {
       this.isSupabaseConnected = false
       this.notifyListeners()
       this.scheduleReconnect()
       return false
+    } finally {
+      this.isCheckingConnection = false
     }
   }
 
   scheduleReconnect() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      logger.error('❌ Nombre maximal de tentatives de reconnexion atteint')
-      return
-    }
-
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout)
+    }
+
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      logger.info('⚠️ Limite de reconnexion atteinte. Vérifiez votre connexion réseau.')
+      this.isReconnecting = false
+      this.notifyListeners()
+      return
     }
 
     const delay = Math.min(
@@ -106,7 +113,8 @@ class ConnectionManager {
     )
 
     this.reconnectAttempts++
-    logger.info(`⏳ Tentative de reconnexion ${this.reconnectAttempts}/${this.maxReconnectAttempts} dans ${delay}ms`)
+    this.isReconnecting = true
+    logger.info(`⏳ Tentative de reconnexion #${this.reconnectAttempts} dans ${delay}ms`)
 
     this.reconnectTimeout = setTimeout(() => {
       this.checkConnection()
@@ -114,12 +122,12 @@ class ConnectionManager {
   }
 
   startHeartbeat() {
-    // Vérification toutes les 15 secondes
+    // Vérification toutes les 60 secondes (page visible uniquement)
     this.heartbeatInterval = setInterval(() => {
-      if (document.visibilityState === 'visible' && this.isOnline) {
+      if (this.isOnline && document.visibilityState === 'visible') {
         this.checkConnection()
       }
-    }, 15000)
+    }, 60000)
   }
 
   stopHeartbeat() {
@@ -274,7 +282,8 @@ class ConnectionManager {
       isOnline: this.isOnline,
       isSupabaseConnected: this.isSupabaseConnected,
       pendingOperations: this.pendingOperations.length,
-      reconnectAttempts: this.reconnectAttempts
+      reconnectAttempts: this.reconnectAttempts,
+      isReconnecting: this.isReconnecting
     })
     return () => {
       this.listeners = this.listeners.filter(l => l !== callback)
@@ -286,7 +295,8 @@ class ConnectionManager {
       isOnline: this.isOnline,
       isSupabaseConnected: this.isSupabaseConnected,
       pendingOperations: this.pendingOperations.length,
-      reconnectAttempts: this.reconnectAttempts
+      reconnectAttempts: this.reconnectAttempts,
+      isReconnecting: this.isReconnecting
     }
     this.listeners.forEach(cb => cb(state))
   }
@@ -296,12 +306,19 @@ class ConnectionManager {
       isOnline: this.isOnline,
       isSupabaseConnected: this.isSupabaseConnected,
       pendingOperations: this.pendingOperations.length,
-      reconnectAttempts: this.reconnectAttempts
+      reconnectAttempts: this.reconnectAttempts,
+      isReconnecting: this.isReconnecting
     }
   }
 
   forceReconnect() {
     this.reconnectAttempts = 0
+    this.isReconnecting = false
+    this.isCheckingConnection = false
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout)
+      this.reconnectTimeout = null
+    }
     this.checkConnection()
   }
 }

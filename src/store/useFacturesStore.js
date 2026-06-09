@@ -332,6 +332,16 @@ export const useFacturesStore = create(
         if (!existing) {
           set({ factures: [...factures, facture] });
         }
+      },
+
+      updateFactureFromRealtime: (facture) => {
+        set((state) => ({
+          factures: state.factures.map((f) => f.id === facture.id ? { ...f, ...facture } : f)
+        }));
+      },
+
+      deleteFactureFromRealtime: (id) => {
+        set((state) => ({ factures: state.factures.filter((f) => f.id !== id) }));
       }
     }),
     {

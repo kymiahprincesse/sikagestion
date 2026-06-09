@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useNotifications } from '../../components/NotificationProvider'
 import { useCaisseStore } from '../../store/useCaisseStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
@@ -12,6 +13,7 @@ export default function EnregistrementCaisse() {
   const { mouvements, soldeCaisse, addMouvement, updateMouvement, deleteMouvement, setMouvements } = useCaisseStore()
   const { addLog } = useAuditStore()
   const { ajouterNotification } = useNotificationsStore()
+  const { confirmDelete } = useNotifications()
 
   // Fonction pour vider toutes les données de caisse
   const viderDonneesCaisse = () => {
@@ -210,17 +212,17 @@ export default function EnregistrementCaisse() {
     resetForm()
   }
 
-  const handleDelete = (mouvement) => {
-    if (confirm(`Supprimer le mouvement "${mouvement.libelles}" de ${formatFCFA(mouvement.montant)} ?`)) {
-      deleteMouvement(mouvement.id)
-      addLog({
-        module: 'CAISSE',
-        action: 'DELETE',
-        utilisateur: 'Gérant',
-        avant: mouvement,
-        impactFinancier: mouvement.type === 'ENTREE' ? -mouvement.montant : mouvement.montant
-      })
-    }
+  const handleDelete = async (mouvement) => {
+    const ok = await confirmDelete(`le mouvement "${mouvement.libelles}" de ${formatFCFA(mouvement.montant)}`)
+    if (!ok) return
+    deleteMouvement(mouvement.id)
+    addLog({
+      module: 'CAISSE',
+      action: 'DELETE',
+      utilisateur: 'Gérant',
+      avant: mouvement,
+      impactFinancier: mouvement.type === 'ENTREE' ? -mouvement.montant : mouvement.montant
+    })
   }
 
   const handleEdit = (mouvement) => {

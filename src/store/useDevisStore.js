@@ -283,6 +283,16 @@ export const useDevisStore = create(
         }
       },
 
+      updateDevisFromRealtime: (devis) => {
+        set((state) => ({
+          devis: state.devis.map((d) => d.id === devis.id ? { ...d, ...devis } : d)
+        }));
+      },
+
+      deleteDevisFromRealtime: (id) => {
+        set((state) => ({ devis: state.devis.filter((d) => d.id !== id) }));
+      },
+
       // ═══ NOUVELLES FONCTIONS DE GESTION DES DOUBLONS ═══
       
       /**

@@ -10,7 +10,8 @@ export const useSupabaseSync = () => {
     error: null,
     isOnline: navigator.onLine,
     pendingOperations: 0,
-    reconnectAttempts: 0
+    reconnectAttempts: 0,
+    isReconnecting: false
   })
 
   const verifyConnection = async () => {
@@ -48,6 +49,7 @@ export const useSupabaseSync = () => {
         isOnline: managerState.isOnline,
         pendingOperations: managerState.pendingOperations,
         reconnectAttempts: managerState.reconnectAttempts,
+        isReconnecting: managerState.isReconnecting,
         lastCheck: new Date().toISOString()
       }))
     })

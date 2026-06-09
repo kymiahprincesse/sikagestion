@@ -273,7 +273,7 @@ export default function DashboardEnhanced() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
               <XAxis dataKey="mois" stroke="#06006E" />
-              <YAxis stroke="#06006E" tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
+              <YAxis stroke="#06006E" tickFormatter={(value) => (typeof value === 'number' && isFinite(value)) ? `${(value / 1000000).toFixed(0)}M` : '0M'} domain={[0, 'auto']} />
               <Tooltip formatter={(value) => formatFCFA(value)} />
               <Legend />
               <Area type="monotone" dataKey="CA" stroke="#06006E" fillOpacity={1} fill="url(#colorCA)" />
@@ -312,7 +312,7 @@ export default function DashboardEnhanced() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topClients} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
-              <XAxis type="number" stroke="#06006E" tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`} />
+              <XAxis type="number" stroke="#06006E" tickFormatter={(value) => (typeof value === 'number' && isFinite(value)) ? `${(value / 1000000).toFixed(0)}M` : '0M'} domain={[0, 'auto']} />
               <YAxis type="category" dataKey="nom" stroke="#06006E" width={100} />
               <Tooltip formatter={(value) => formatFCFA(value)} />
               <Bar dataKey="ca" fill="#E60000" radius={[0, 8, 8, 0]} />
@@ -327,7 +327,7 @@ export default function DashboardEnhanced() {
             <BarChart data={repartitionAO}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
               <XAxis dataKey="name" stroke="#06006E" />
-              <YAxis stroke="#06006E" />
+              <YAxis stroke="#06006E" domain={[0, 'auto']} allowDecimals={false} />
               <Tooltip />
               <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                 {repartitionAO.map((entry, index) => (

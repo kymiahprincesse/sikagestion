@@ -2,7 +2,7 @@ import { useSupabaseSync } from '../hooks/useSupabaseSync'
 import { Database, Wifi, WifiOff, RefreshCw, AlertCircle } from 'lucide-react'
 
 export default function BackendStatusIndicator({ variant = 'full' }) {
-  const { isConnected, isChecking, lastCheck, error, refresh } = useSupabaseSync()
+  const { isConnected, isChecking, lastCheck, error, refresh, isReconnecting, reconnectAttempts } = useSupabaseSync()
 
   if (variant === 'compact') {
     return (
@@ -20,7 +20,13 @@ export default function BackendStatusIndicator({ variant = 'full' }) {
           />
         </div>
         <span className="text-xs font-medium text-[#06006E]">
-          {isChecking ? 'Vérification...' : isConnected ? 'Backend actif' : 'Déconnecté'}
+          {isChecking
+            ? 'Vérification...'
+            : isConnected
+              ? 'Backend actif'
+              : isReconnecting
+                ? `Reconnexion #${reconnectAttempts}...`
+                : 'Déconnecté'}
         </span>
       </div>
     )
@@ -52,17 +58,21 @@ export default function BackendStatusIndicator({ variant = 'full' }) {
               )}
             </div>
             <p className={`text-sm font-medium ${
-              isChecking 
-                ? 'text-orange-600' 
-                : isConnected 
-                  ? 'text-[#1A7A4A]' 
-                  : 'text-[#E60000]'
+              isChecking
+                ? 'text-orange-600'
+                : isConnected
+                  ? 'text-[#1A7A4A]'
+                  : isReconnecting
+                    ? 'text-orange-500'
+                    : 'text-[#E60000]'
             }`}>
-              {isChecking 
-                ? 'Vérification de la connexion...' 
-                : isConnected 
-                  ? '✓ Connecté et synchronisé' 
-                  : '✗ Déconnecté'}
+              {isChecking
+                ? 'Vérification de la connexion...'
+                : isConnected
+                  ? '✓ Connecté et synchronisé'
+                  : isReconnecting
+                    ? `↻ Reconnexion automatique (tentative #${reconnectAttempts})...`
+                    : '✗ Déconnecté'}
             </p>
             {lastCheck && (
               <p className="text-xs text-gray-500 mt-1">
@@ -79,11 +89,11 @@ export default function BackendStatusIndicator({ variant = 'full' }) {
         </div>
         <button
           onClick={refresh}
-          disabled={isChecking}
+          disabled={isChecking || isReconnecting}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-          title="Actualiser la connexion"
+          title={isReconnecting ? `Reconnexion en cours (#${reconnectAttempts})` : 'Actualiser la connexion'}
         >
-          <RefreshCw className={`w-5 h-5 text-[#06006E] ${isChecking ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-5 h-5 text-[#06006E] ${isChecking || isReconnecting ? 'animate-spin' : ''}`} />
         </button>
       </div>
 

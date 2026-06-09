@@ -170,6 +170,16 @@ export const useAOStore = create(
         if (!existing) {
           set({ appelsDoffres: [...appelsDoffres, ao] });
         }
+      },
+
+      updateAOFromRealtime: (ao) => {
+        set((state) => ({
+          appelsDoffres: state.appelsDoffres.map((a) => a.id === ao.id ? { ...a, ...ao } : a)
+        }));
+      },
+
+      deleteAOFromRealtime: (id) => {
+        set((state) => ({ appelsDoffres: state.appelsDoffres.filter((a) => a.id !== id) }));
       }
     }),
     {

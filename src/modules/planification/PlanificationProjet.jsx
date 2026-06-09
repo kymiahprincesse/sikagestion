@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNotifications } from '../../components/NotificationProvider';
 import { usePlanificationStore, STATUTS_PROJET, STATUTS_TACHE } from '../../store/usePlanificationStore';
 import { useClientsStore } from '../../store/useClientsStore';
 import { useParametresStore } from '../../store/useParametresStore';
@@ -68,6 +69,7 @@ export default function PlanificationProjet() {
   const importerTaches = usePlanificationStore(state => state.importerTaches);
 
   const { ajouterNotification } = useNotificationsStore();
+  const { confirmDelete } = useNotifications();
 
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [projetSelectionne, setProjetSelectionne] = useState(null);
@@ -209,13 +211,13 @@ export default function PlanificationProjet() {
     setShowFormProjet(true);
   };
 
-  const handleSupprimerProjet = () => {
+  const handleSupprimerProjet = async () => {
     if (!projetSelectionne) return;
-    if (confirm(`Êtes-vous sûr de vouloir supprimer le projet "${projetSelectionne.nom}" ?`)) {
-      deleteProjet(projetSelectionne.id);
-      setProjetSelectionne(null);
-      setVue('liste');
-    }
+    const ok = await confirmDelete(`le projet "${projetSelectionne.nom}"`);
+    if (!ok) return;
+    deleteProjet(projetSelectionne.id);
+    setProjetSelectionne(null);
+    setVue('liste');
   };
 
   const handleNouvelleTache = () => {
@@ -269,10 +271,10 @@ export default function PlanificationProjet() {
     setShowFormTache(true);
   };
 
-  const handleSupprimerTache = (tacheId) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
-      deleteTache(tacheId);
-    }
+  const handleSupprimerTache = async (tacheId) => {
+    const ok = await confirmDelete('cette tâche');
+    if (!ok) return;
+    deleteTache(tacheId);
   };
 
   const handleImportPlanning = (tachesImportees) => {

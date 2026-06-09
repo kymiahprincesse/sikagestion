@@ -121,6 +121,16 @@ export const useClientsStore = create(
             compteurId: Math.max(compteurId, client.id + 1)
           });
         }
+      },
+
+      updateClientFromRealtime: (client) => {
+        set((state) => ({
+          clients: state.clients.map((c) => c.id === client.id ? { ...c, ...client } : c)
+        }));
+      },
+
+      deleteClientFromRealtime: (id) => {
+        set((state) => ({ clients: state.clients.filter((c) => c.id !== id) }));
       }
     }),
     {

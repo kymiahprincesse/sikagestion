@@ -184,6 +184,18 @@ export const useCaisseStore = create(
             soldeCaisse: nouveauSolde
           });
         }
+      },
+
+      updateMouvementFromRealtime: (mouvement) => {
+        set((state) => ({
+          mouvements: state.mouvements.map((m) => m.id === mouvement.id ? { ...m, ...mouvement } : m)
+        }));
+        get().recalculerSoldeAvecMouvements(get().mouvements);
+      },
+
+      deleteMouvementFromRealtime: (id) => {
+        set((state) => ({ mouvements: state.mouvements.filter((m) => m.id !== id) }));
+        get().recalculerSoldeAvecMouvements(get().mouvements);
       }
     }),
     {
