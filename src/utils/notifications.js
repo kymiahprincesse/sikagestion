@@ -21,7 +21,7 @@ export const requestNotificationPermission = async () => {
 }
 
 export const sendBrowserNotification = (title, options = {}) => {
-  if (Notification.permission === 'granted') {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     const notification = new Notification(title, {
       icon: '/favicon.png',
       badge: '/favicon.png',

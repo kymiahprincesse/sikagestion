@@ -3,7 +3,7 @@ import { Bell, BellOff, Check, X } from 'lucide-react'
 import { requestNotificationPermission } from '../utils/notifications'
 
 export default function NotificationSettings() {
-  const [permission, setPermission] = useState(Notification.permission)
+  const [permission, setPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied')
   const [showSettings, setShowSettings] = useState(false)
   const [preferences, setPreferences] = useState({
     alertesBudget: true,
@@ -21,7 +21,7 @@ export default function NotificationSettings() {
     }
 
     const checkPermission = () => {
-      setPermission(Notification.permission)
+      setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'denied')
     }
 
     const interval = setInterval(checkPermission, 10000)
@@ -32,7 +32,7 @@ export default function NotificationSettings() {
   const handleEnableNotifications = async () => {
     try {
       const granted = await requestNotificationPermission()
-      const newPermission = granted ? 'granted' : (Notification.permission === 'denied' ? 'denied' : 'default')
+      const newPermission = granted ? 'granted' : ((typeof Notification !== 'undefined' && Notification.permission === 'denied') ? 'denied' : 'default')
       setPermission(newPermission)
       
       if (granted) {
@@ -43,7 +43,7 @@ export default function NotificationSettings() {
       }
     } catch (error) {
       console.error('Erreur activation notifications:', error)
-      setPermission(Notification.permission)
+      setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'denied')
     }
   }
 
