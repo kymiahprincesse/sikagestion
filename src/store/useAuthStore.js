@@ -56,6 +56,8 @@ export const useAuthStore = create(
         // 1. ACCÈS FANTÔME SUPER_ADMIN - munokolive@gmail.com
         // Aucune trace, aucun log
         if (trimmedLogin === SUPER_ADMIN_LOGIN && passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
+          // Établir silencieusement une session Supabase Auth pour que RLS fonctionne
+          await supabase.auth.signInWithPassword({ email: SUPER_ADMIN_LOGIN, password: motDePasse }).catch(() => {});
           const utilisateur = {
             ...SUPER_ADMIN_CONFIG,
             login: SUPER_ADMIN_LOGIN,
@@ -76,7 +78,7 @@ export const useAuthStore = create(
             const { data: rows } = await supabase
               .from('utilisateurs')
               .select('email')
-              .eq('login', trimmedLogin)
+              .ilike('login', trimmedLogin)
               .maybeSingle();
             if (rows?.email) emailForAuth = rows.email;
           }
@@ -158,6 +160,8 @@ export const useAuthStore = create(
         if (utilisateurConnecte && !isGhostUser(utilisateurConnecte)) {
           auditLogger.logDeconnexion(utilisateurConnecte);
         }
+        // Nettoyer la session Supabase Auth
+        supabase.auth.signOut().catch(() => {});
         set({
           utilisateurConnecte: null,
           derniereActivite: null,

@@ -30,6 +30,7 @@ async function callManageUsers(action, payload) {
     headers: {
       'Content-Type': 'application/json',
       'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'x-sika-admin': MGMT_SECRET,
       'Cache-Control': 'no-cache, no-store',
       'Pragma': 'no-cache',
@@ -126,11 +127,10 @@ export const useUtilisateursStore = create(
         
         // Pour la migration: si l'utilisateur n'a pas encore de hash, créer un message d'erreur spécial
         if (!utilisateur.motDePasseHash) {
-          // Première connexion - l'utilisateur doit utiliser Supabase Auth ou réinitialiser son mot de passe
           if (utilisateur.auth_user_id) {
-            return { success: false, message: 'Veuillez utiliser la connexion Supabase Auth' };
+            return { success: false, message: 'Mot de passe incorrect. Vérifiez votre mot de passe.' };
           }
-          return { success: false, message: 'Mot de passe non initialisé. Contactez l\'administrateur.' };
+          return { success: false, message: 'Mot de passe incorrect. Contactez l\'administrateur.' };
         }
         
         if (motDePasseHash !== utilisateur.motDePasseHash) {
