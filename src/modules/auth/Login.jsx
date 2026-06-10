@@ -129,6 +129,7 @@ const Login = () => {
   const handleDemandeCode = async (e) => {
     e.preventDefault();
     setErreurRecup('');
+    await fetchUtilisateurs();
     const emailNorm = emailRecup.trim().toLowerCase();
     const res = genererCodeRecuperation(emailNorm);
     if (!res.success) { setErreurRecup(res.message); return; }
