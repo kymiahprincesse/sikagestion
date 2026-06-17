@@ -56,7 +56,7 @@ export default function CreateUser() {
           <select value={role} onChange={e => setRole(e.target.value)}>
             <option value="USER">USER</option>
             <option value="ADMIN">ADMIN</option>
-            <option value="SUPERADMIN">SUPERADMIN</option>
+            <option value="SUPER_ADMIN">SUPER_ADMIN</option>
           </select>
         </div>
         <button type="submit" disabled={loading}>{loading ? 'Création...' : 'Créer'}</button>

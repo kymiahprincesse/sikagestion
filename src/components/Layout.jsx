@@ -2,6 +2,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronRight, LogOut } from 'lucide-react'
 import { useAuthStore } from '../store/useAuthStore'
+import { isSuperAdmin, normalizeRole } from '../utils/filterSuperAdmin'
 import Breadcrumb from './Breadcrumb'
 import NotificationSettings from './NotificationSettings'
 import ShortcutsHelp from './ShortcutsHelp'
@@ -51,10 +52,10 @@ export default function Layout() {
 
   const canAccess = (module) => {
     if (!utilisateurConnecte) return false
-    const role = utilisateurConnecte.role
+    const role = normalizeRole(utilisateurConnecte.role)
     
     // SUPER_ADMIN a accès absolu à tout (fantôme)
-    if (role === 'SUPER_ADMIN') return true
+    if (isSuperAdmin(utilisateurConnecte)) return true
     
     // UTILISATEURS : uniquement ADMIN et SUPER_ADMIN
     if (module === 'UTILISATEURS') {

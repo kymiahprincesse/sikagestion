@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { auditLogger } from '../utils/auditLogger';
 import { AUTH_CONFIG, ROLES } from '../config/constants';
-import { SUPER_ADMIN_EMAIL, SUPER_ADMIN_ID } from '../config/auditConfig';
+import { SUPER_ADMIN_EMAIL, SUPER_ADMIN_ID, SUPER_ADMIN_LOGIN as DEFAULT_SUPER_ADMIN_LOGIN } from '../config/auditConfig';
+import { isSuperAdmin as isSuperAdminUser, normalizeRole } from '../utils/filterSuperAdmin';
 import { useUtilisateursStore } from './useUtilisateursStore';
 
 // Hashage local pour le Super Admin - Salt depuis variable d'environnement
@@ -17,7 +18,7 @@ async function hashLocal(password) {
 }
 
 // Configuration Super Admin - depuis variables d'environnement
-const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN || SUPER_ADMIN_EMAIL;
+const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN || DEFAULT_SUPER_ADMIN_LOGIN;
 const SUPER_ADMIN_PASSWORD_HASH = import.meta.env.VITE_SUPER_ADMIN_PASSWORD_HASH || '';
 
 // Configuration Super Admin - utilisateur fantôme (aucune trace)
@@ -38,7 +39,12 @@ const { TIMEOUT_INACTIVITE, AVERTISSEMENT_INACTIVITE } = AUTH_CONFIG;
 
 // Vérifie si l'utilisateur est le fantôme SUPER_ADMIN
 const isGhostUser = (utilisateur) => {
-  return utilisateur?.isFantome === true || utilisateur?.login === SUPER_ADMIN_LOGIN || utilisateur?.email === SUPER_ADMIN_EMAIL;
+  if (!utilisateur) return false;
+  const login = utilisateur.login?.toLowerCase();
+  const email = utilisateur.email?.toLowerCase();
+  return utilisateur?.isFantome === true ||
+         login === SUPER_ADMIN_LOGIN.toLowerCase() ||
+         email === SUPER_ADMIN_EMAIL.toLowerCase();
 };
 
 export const useAuthStore = create(
@@ -132,7 +138,7 @@ export const useAuthStore = create(
                   nom: userRow.nom,
                   login: userRow.login,
                   email: userRow.email,
-                  role: userRow.role,
+                  role: normalizeRole(userRow.role),
                   actif: userRow.is_actif,
                   auth_user_id: userRow.auth_user_id || authUserId,
                 };
@@ -180,14 +186,14 @@ export const useAuthStore = create(
       // Fonction pour vérifier si l'utilisateur est super admin
       isSuperAdmin: () => {
         const { utilisateurConnecte } = get();
-        return utilisateurConnecte?.role === ROLES.SUPER_ADMIN;
+        return isSuperAdminUser(utilisateurConnecte);
       },
 
       // Fonction pour vérifier si l'utilisateur est admin (SUPER_ADMIN ou ADMIN)
       isAdmin: () => {
         const { utilisateurConnecte } = get();
-        return utilisateurConnecte?.role === ROLES.SUPER_ADMIN ||
-               utilisateurConnecte?.role === ROLES.ADMIN;
+        return isSuperAdminUser(utilisateurConnecte) ||
+               normalizeRole(utilisateurConnecte?.role) === ROLES.ADMIN;
       },
 
       logout: () => {

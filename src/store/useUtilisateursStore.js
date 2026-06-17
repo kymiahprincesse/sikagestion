@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { hashPassword, verifyPassword } from '../utils/passwordHash';
 import { logger } from '../utils/logger';
+import { normalizeRole } from '../utils/filterSuperAdmin';
 
 // OBLIGATOIRE: Variable d'environnement - pas de fallback pour la sécurité
 const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET;
@@ -53,7 +54,7 @@ function rowToUtilisateur(row, localUser = null) {
     nom: row.nom,
     login: row.login,
     email: row.email || '',
-    role: row.role,
+    role: normalizeRole(row.role) || row.role,
     actif: row.is_actif,
     auth_user_id: row.auth_user_id || null,
     // NOTE: Les mots de passe et hash ne sont JAMAIS exposés ici
@@ -194,7 +195,7 @@ export const useUtilisateursStore = create(
 
         // Validation du rôle
         const validRoles = ['ADMIN', 'COMPTABLE', 'SECRETAIRE', 'TECHNICIEN', 'USER', 'VIEWER', 'SUPER_ADMIN'];
-        const roleToSend = utilisateur.role || 'TECHNICIEN';
+        const roleToSend = normalizeRole(utilisateur.role) || 'TECHNICIEN';
         if (!validRoles.includes(roleToSend)) {
           return { success: false, message: `Rôle invalide : ${roleToSend}. Rôles acceptés : ${validRoles.join(', ')}` };
         }

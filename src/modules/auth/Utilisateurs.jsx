@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useUtilisateursStore } from '../../store/useUtilisateursStore';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAudit } from '../../hooks/useAudit';
-import { filtrerSuperAdmin } from '../../utils/filterSuperAdmin';
+import { filtrerSuperAdmin, isSuperAdmin, normalizeRole } from '../../utils/filterSuperAdmin';
 
 const ROLE_CONFIG = {
   ADMIN:      { couleur: '#E60000', fond: '#FFE6E6', label: 'Administrateur', icone: '👑', desc: 'Accès complet à tous les modules. Gère les utilisateurs et les paramètres système.' },
@@ -128,13 +128,16 @@ const Utilisateurs = () => {
     fetchUtilisateurs();
   }, []);
 
-  if (!utilisateurConnecte || (utilisateurConnecte.role !== 'ADMIN' && utilisateurConnecte.role !== 'SUPER_ADMIN')) {
+  const connectedRole = normalizeRole(utilisateurConnecte?.role);
+  const isAdminUser = utilisateurConnecte && (connectedRole === 'ADMIN' || isSuperAdmin(utilisateurConnecte));
+
+  if (!utilisateurConnecte || !isAdminUser) {
     return <Navigate to="/dashboard" replace />;
   }
 
   // SUPER_ADMIN voit TOUS les utilisateurs (y compris lui-même)
   // Les autres admins ne voient pas le SUPER_ADMIN
-  const tousUtilisateurs = utilisateurConnecte.role === 'SUPER_ADMIN'
+  const tousUtilisateurs = isSuperAdmin(utilisateurConnecte)
     ? utilisateurs
     : filtrerSuperAdmin(utilisateurs);
 
@@ -221,7 +224,7 @@ const Utilisateurs = () => {
     if (formData.motDePasse.length < 6) { afficherMessage('error', 'Minimum 6 caractères pour le mot de passe'); return; }
 
     // Vérifier que l'utilisateur est connecté et a un rôle
-    const currentRole = utilisateurConnecte?.role;
+    const currentRole = normalizeRole(utilisateurConnecte?.role);
 
     if (!currentRole) {
       afficherMessage('error', 'Erreur: Votre session semble expirée. Reconnectez-vous.');
