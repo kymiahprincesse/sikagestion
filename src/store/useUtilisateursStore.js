@@ -22,27 +22,28 @@ function generateSecureCode(length = 6) {
 }
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE = import.meta.env.VITE_SUPABASE_SERVICE_ROLE;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('[SIKA SECURITY] VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY sont requis pour la gestion des utilisateurs.')
 }
 
 async function callManageUsers(action, payload) {
+  const keyToUse = (import.meta.env.DEV && SUPABASE_SERVICE_ROLE) ? SUPABASE_SERVICE_ROLE : SUPABASE_ANON_KEY;
   const res = await fetch(`${SUPABASE_URL}/functions/v1/manage-users`, {
     method: 'POST',
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': keyToUse,
+      'Authorization': `Bearer ${keyToUse}`,
       'x-sika-admin': MGMT_SECRET,
-      'Cache-Control': 'no-cache, no-store',
-      'Pragma': 'no-cache',
     },
     body: JSON.stringify({ action, ...payload }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+  const contentType = res.headers.get('content-type') || '';
+  const data = contentType.includes('application/json') ? await res.json() : { raw: await res.text() };
+  if (!res.ok) throw new Error(data?.error || data?.message || 'Erreur serveur');
   return data;
 }
 
