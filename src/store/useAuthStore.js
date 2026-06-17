@@ -91,13 +91,42 @@ export const useAuthStore = create(
             });
 
             if (!authError && authData?.user) {
-              const { data: userRow } = await supabase
+              const authUserId = authData.user.id;
+              const authEmail = authData.user.email?.toLowerCase();
+
+              let { data: userRow, error: rowError } = await supabase
                 .from('utilisateurs')
                 .select('*')
-                .eq('auth_user_id', authData.user.id)
+                .eq('auth_user_id', authUserId)
                 .maybeSingle();
 
+              if (!userRow && authEmail) {
+                const { data: emailRow, error: emailError } = await supabase
+                  .from('utilisateurs')
+                  .select('*')
+                  .ilike('email', authEmail)
+                  .maybeSingle();
+                if (emailError) {
+                  rowError = emailError;
+                } else {
+                  userRow = emailRow;
+                }
+              }
+
               if (userRow && userRow.is_actif) {
+                if (!userRow.auth_user_id) {
+                  // Restaurer le lien automatique avec Supabase Auth si l'utilisateur existe déjà dans la table
+                  supabase.from('utilisateurs')
+                    .update({ auth_user_id: authUserId })
+                    .eq('id', userRow.id)
+                    .then(({ error: updateError }) => {
+                      if (updateError) {
+                        console.warn('Impossible de mettre à jour auth_user_id:', updateError.message);
+                      }
+                    })
+                    .catch(() => {});
+                }
+
                 const utilisateur = {
                   id: userRow.id,
                   nom: userRow.nom,
@@ -105,13 +134,21 @@ export const useAuthStore = create(
                   email: userRow.email,
                   role: userRow.role,
                   actif: userRow.is_actif,
-                  auth_user_id: userRow.auth_user_id,
+                  auth_user_id: userRow.auth_user_id || authUserId,
                 };
                 set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
                 get().demarrerTimeout();
                 // LOGS normaux pour les autres utilisateurs
                 auditLogger.logConnexion(utilisateur);
                 return { success: true, utilisateur };
+              }
+
+              if (userRow && !userRow.is_actif) {
+                return { success: false, message: 'Votre compte est désactivé. Contactez l\'administrateur.' };
+              }
+
+              if (!userRow) {
+                return { success: false, message: 'Compte Auth trouvé mais aucun utilisateur lié dans la table. Contactez l\'administrateur.' };
               }
             }
           }

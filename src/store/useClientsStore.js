@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { logger } from '../utils/logger';
+import { checkSupabaseResponse } from '../utils/supabaseErrors';
 
 function toSupabaseRow(c) {
   return {
@@ -30,7 +31,7 @@ export const useClientsStore = create(
       compteurId: 1,
 
       addClient: async (client) => {
-        const { compteurId } = get();
+        const { compteurId, clients } = get();
         const nouveauClient = {
           ...client,
           id: compteurId,
@@ -38,19 +39,29 @@ export const useClientsStore = create(
           isActif: client.isActif !== undefined ? client.isActif : true
         };
 
-        set((state) => ({ clients: [...state.clients, nouveauClient], compteurId: compteurId + 1 }));
+        try {
+          const response = await supabase.from('clients').insert(toSupabaseRow(nouveauClient)).select().single();
+          const result = checkSupabaseResponse(response, 'addClient');
+          if (!result.success) {
+            return { success: false, message: result.message || 'Erreur lors de l\'enregistrement du client' };
+          }
 
-        const { data, error } = await supabase.from('clients').insert(toSupabaseRow(nouveauClient)).select().single();
-        if (error) {
-          console.error('Supabase addClient:', error.message);
-        } else if (data) {
-          set((state) => ({
-            clients: state.clients.map((c) => c.id === nouveauClient.id ? { ...c, id: data.id } : c)
-          }));
-          return { ...nouveauClient, id: data.id };
+          const createdClient = {
+            ...nouveauClient,
+            id: result.data.id,
+            dateCreation: result.data.date_creation || nouveauClient.dateCreation,
+          };
+
+          set({
+            clients: [...clients, createdClient],
+            compteurId: compteurId + 1,
+          });
+
+          return { success: true, client: createdClient };
+        } catch (err) {
+          console.error('Supabase addClient exception:', err.message || err);
+          return { success: false, message: err.message || 'Erreur lors de la création du client' };
         }
-
-        return nouveauClient;
       },
 
       updateClient: (id, modifications) => {

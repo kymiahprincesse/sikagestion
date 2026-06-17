@@ -199,18 +199,11 @@ export default function Clients() {
         })
         success(`Client "${formData.nom}" modifié avec succès`)
       } else {
-        const { data: inserted, error: supaErr } = await supabase
-          .from('clients')
-          .insert(payload)
-          .select()
-          .single()
-        if (supaErr) throw supaErr
-        const newClient = {
-          ...formData,
-          id: inserted.id,
-          dateCreation: inserted.date_creation
+        const result = await addClient(formData)
+        if (!result.success) {
+          throw new Error(result.message || 'Impossible de créer le client')
         }
-        setClients([...clients, newClient])
+        const newClient = result.client
         addLog({
           module: 'clients',
           action: 'Création client',
