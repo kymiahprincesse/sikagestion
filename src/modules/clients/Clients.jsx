@@ -5,7 +5,7 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { usePlanificationStore } from '../../store/usePlanificationStore'
-import { Breadcrumb, ActionButtons } from '../../components'
+import { Breadcrumb, ActionButtons, useNotifications } from '../../components'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ConditionsPaiementSelector from '../../components/ConditionsPaiementSelector'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
@@ -19,7 +19,7 @@ export default function Clients() {
   const { devis } = useDevisStore()
   const { factures } = useFacturesStore()
   const { projets } = usePlanificationStore()
-  const { ajouterNotification } = useNotificationsStore()
+  const { success, error: notifError, warning, confirmDelete } = useNotifications()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSecteur, setFilterSecteur] = useState('')
@@ -394,14 +394,9 @@ export default function Clients() {
         utilisateur: 'Admin',
         apres: { nbClients: filteredClients.length }
       })
-    } catch (error) {
-      console.error('Erreur lors de l\'impression:', error)
-      ajouterNotification({
-        type: 'URGENT',
-        icone: '❌',
-        titre: 'ERREUR',
-        message: `Erreur lors de l'impression: ${error.message || 'Erreur inconnue'}`
-      })
+    } catch (err) {
+      console.error('Erreur lors de l\'impression:', err)
+      notifError(`Erreur lors de l'impression: ${err.message || 'Erreur inconnue'}`)
     }
   }
 
@@ -502,14 +497,9 @@ export default function Clients() {
         utilisateur: 'Admin',
         apres: { clientId: client.id, clientNom: client.nom }
       })
-    } catch (error) {
-      console.error('Erreur lors de la génération de la fiche:', error)
-      ajouterNotification({
-        type: 'URGENT',
-        icone: '❌',
-        titre: 'ERREUR',
-        message: `Erreur lors de l'impression de la fiche: ${error.message || 'Erreur inconnue'}`
-      })
+    } catch (err) {
+      console.error('Erreur lors de la génération de la fiche:', err)
+      notifError(`Erreur lors de l'impression de la fiche: ${err.message || 'Erreur inconnue'}`)
     }
   }
 
