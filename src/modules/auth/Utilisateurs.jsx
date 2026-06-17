@@ -69,7 +69,7 @@ const BTN = ({ onClick, color, bg, border, children, title }) => (
   </button>
 );
 
-const InputField = ({ label, type = 'text', value, onChange, placeholder, required }) => (
+const InputField = ({ label, type = 'text', value, onChange, placeholder, required, autoComplete = 'on' }) => (
   <div>
     <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
       {label}{required && <span style={{ color: '#E60000' }}> *</span>}
@@ -79,6 +79,7 @@ const InputField = ({ label, type = 'text', value, onChange, placeholder, requir
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      autoComplete={autoComplete}
       style={{
         width: '100%', padding: '8px 12px', border: '1.5px solid #C8C8D0',
         borderRadius: '6px', fontSize: '13px', outline: 'none',
@@ -417,9 +418,9 @@ const Utilisateurs = () => {
                   🔗 Un compte Supabase Auth sera créé — l'utilisateur pourra se connecter et récupérer son mot de passe par email.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                  <InputField label="Nom complet" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} placeholder="Ex: KOUASSI Jean" required />
-                  <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} placeholder="Ex: kouassi.j" required />
-                  <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Ex: nom@sikaindustrie.ci" required />
+                  <InputField label="Nom complet" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} placeholder="Ex: KOUASSI Jean" required autoComplete="off" />
+                  <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} placeholder="Ex: kouassi.j" required autoComplete="off" />
+                  <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Ex: nom@sikaindustrie.ci" required autoComplete="off" />
                   <div>
                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
                       Mot de passe <span style={{ color: '#E60000' }}>*</span>
@@ -490,9 +491,9 @@ const Utilisateurs = () => {
                         /* ── Formulaire édition inline ── */
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '10px' }}>
-                            <InputField label="Nom" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} required />
-                            <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} required />
-                            <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="adresse@sikaindustrie.ci" />
+                            <InputField label="Nom" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} required autoComplete="off" />
+                            <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} required autoComplete="off" />
+                            <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="adresse@sikaindustrie.ci" autoComplete="off" />
                             <div>
                               <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>Rôle</label>
                               <select value={formData.role || ''} onChange={e => setFormData({ ...formData, role: e.target.value })}

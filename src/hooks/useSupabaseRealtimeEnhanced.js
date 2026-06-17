@@ -8,6 +8,7 @@ import { useFournisseursStore } from '../store/useFournisseursStore'
 import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
+import { useUtilisateursStore } from '../store/useUtilisateursStore'
 
 /**
  * Hook amélioré pour la synchronisation temps réel Supabase
@@ -60,6 +61,11 @@ export function useSupabaseRealtimeEnhanced() {
         update: (...args) => useEncaissementsStore.getState().updateEncaissementFromRealtime(...args),
         add: (...args) => useEncaissementsStore.getState().addEncaissementFromRealtime(...args),
         remove: (...args) => useEncaissementsStore.getState().deleteEncaissementFromRealtime(...args)
+      },
+      utilisateurs: {
+        update: (...args) => useUtilisateursStore.getState().updateUtilisateurFromRealtime(...args),
+        add: (...args) => useUtilisateursStore.getState().addUtilisateurFromRealtime(...args),
+        remove: (...args) => useUtilisateursStore.getState().deleteUtilisateurFromRealtime(...args)
       }
     }
   }
@@ -134,6 +140,12 @@ export function useSupabaseRealtimeEnhanced() {
           modePaiement: row.mode_paiement, reference: row.reference,
           notes: row.notes, statut: row.statut, dateCreation: row.date_creation
         }
+      case 'utilisateurs':
+        return {
+          id: row.id, nom: row.nom, login: row.login, email: row.email || '',
+          role: row.role, actif: row.is_actif, auth_user_id: row.auth_user_id || null,
+          permissions: row.permissions || null
+        }
       default:
         return row
     }
@@ -148,7 +160,8 @@ export function useSupabaseRealtimeEnhanced() {
     { name: 'fournisseurs', store: 'fournisseurs', idField: 'id' },
     { name: 'projets', store: 'projets', idField: 'id' },
     { name: 'mouvements_caisse', store: 'caisse', idField: 'id', stateField: 'mouvements' },
-    { name: 'encaissements', store: 'encaissements', idField: 'id' }
+    { name: 'encaissements', store: 'encaissements', idField: 'id' },
+    { name: 'utilisateurs', store: 'utilisateurs', idField: 'id' }
   ])
 
   useEffect(() => {

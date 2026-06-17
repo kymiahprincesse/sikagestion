@@ -20,8 +20,12 @@ function generateSecureCode(length = 6) {
   }
   return code;
 }
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('[SIKA SECURITY] VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY sont requis pour la gestion des utilisateurs.')
+}
 
 async function callManageUsers(action, payload) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/manage-users`, {
@@ -195,17 +199,47 @@ export const useUtilisateursStore = create(
         }
 
         try {
-          const result = await callManageUsers('create', {
-            email: utilisateur.email,
-            password: utilisateur.motDePasse,
-            nom: utilisateur.nom,
-            login: utilisateur.login,
-            role: roleToSend,
-          });
+          // Si la fonction manage-users est disponible (MGMT_SECRET fourni), l'utiliser
+          if (MGMT_SECRET) {
+            const result = await callManageUsers('create', {
+              email: utilisateur.email,
+              password: utilisateur.motDePasse,
+              nom: utilisateur.nom,
+              login: utilisateur.login,
+              role: roleToSend,
+            });
+            const nouvelUtilisateur = rowToUtilisateur(result.user);
+            set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
+            return { success: true, utilisateur: nouvelUtilisateur };
+          }
 
-          const nouvelUtilisateur = rowToUtilisateur(result.user);
-          set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
-          return { success: true, utilisateur: nouvelUtilisateur };
+          // Sinon, en DEV seulement, si nous avons le service_role, créer directement via Supabase Admin API
+          if (import.meta.env.DEV && import.meta.env.VITE_SUPABASE_SERVICE_ROLE) {
+            // Créer l'utilisateur dans Supabase Auth (admin)
+            const adminResult = await supabase.auth.admin.createUser({
+              email: utilisateur.email,
+              password: utilisateur.motDePasse,
+              user_metadata: { nom: utilisateur.nom, login: utilisateur.login, role: roleToSend }
+            });
+            if (adminResult.error) throw adminResult.error;
+
+            // Insérer la ligne dans la table `utilisateurs`
+            const { data: userRow, error: rowError } = await supabase.from('utilisateurs').insert({
+              nom: utilisateur.nom,
+              login: utilisateur.login,
+              email: utilisateur.email,
+              role: roleToSend,
+              is_actif: true,
+              auth_user_id: adminResult.data.user.id
+            }).select().single();
+            if (rowError) throw rowError;
+
+            const nouvelUtilisateur = rowToUtilisateur(userRow);
+            set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
+            return { success: true, utilisateur: nouvelUtilisateur };
+          }
+
+          return { success: false, message: 'Gestion des utilisateurs non configurée sur ce serveur' };
         } catch (err) {
           logger.error('ajouterUtilisateur error:', err);
           return { success: false, message: err.message || 'Erreur lors de la création de l\'utilisateur' };
@@ -385,6 +419,33 @@ export const useUtilisateursStore = create(
         } catch (err) {
           return { success: false, message: err.message };
         }
+      },
+
+      // ─── SYNCHRONISATION TEMPS RÉEL SUPABASE ───
+      addUtilisateurFromRealtime: (row) => {
+        const nouvelUtilisateur = rowToUtilisateur(row);
+        const { utilisateurs } = get();
+        if (!utilisateurs.find(u => u.id === nouvelUtilisateur.id)) {
+          set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
+        }
+      },
+
+      updateUtilisateurFromRealtime: (row) => {
+        const utilisateurMaj = rowToUtilisateur(row);
+        const { utilisateurs } = get();
+        const index = utilisateurs.findIndex(u => u.id === utilisateurMaj.id);
+        if (index !== -1) {
+          const updated = [...utilisateurs];
+          updated[index] = { ...updated[index], ...utilisateurMaj };
+          set({ utilisateurs: updated });
+        } else {
+          set({ utilisateurs: [...utilisateurs, utilisateurMaj] });
+        }
+      },
+
+      deleteUtilisateurFromRealtime: (id) => {
+        const { utilisateurs } = get();
+        set({ utilisateurs: utilisateurs.filter(u => u.id !== id) });
       },
     }),
     {

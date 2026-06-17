@@ -1,0 +1,40 @@
+[
+  {
+    "id": 11,
+    "nom": "SOBEBRA",
+    "raison_sociale": "SOBEBRA",
+    "ncc": "3200800384214",
+    "secteur": "BRASSERIE",
+    "adresse": null,
+    "ville": "ABIDJAN",
+    "pays": "Côte d'Ivoire",
+    "contact_nom": null,
+    "contact_telephone": "229 21330148",
+    "contact_email": "sobebra.contact@castel-afrique.com",
+    "conditions_paiement": 30,
+    "type": "CLIENT",
+    "is_actif": true,
+    "notes": null,
+    "date_creation": "2026-06-03",
+    "updated_at": "2026-06-09T17:43:03.715902+00:00"
+  },
+  {
+    "id": 10,
+    "nom": "SOLIBRA",
+    "raison_sociale": "SOLIBRA",
+    "ncc": "0101168L",
+    "secteur": "BRASSERIE",
+    "adresse": null,
+    "ville": "ABIDJAN",
+    "pays": "Côte d'Ivoire",
+    "contact_nom": null,
+    "contact_telephone": "225 2721211200",
+    "contact_email": null,
+    "conditions_paiement": 60,
+    "type": "CLIENT",
+    "is_actif": true,
+    "notes": null,
+    "date_creation": "2026-06-03",
+    "updated_at": "2026-06-09T17:43:03.715902+00:00"
+  }
+]

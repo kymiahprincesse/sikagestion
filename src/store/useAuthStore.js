@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { auditLogger } from '../utils/auditLogger';
 import { AUTH_CONFIG, ROLES } from '../config/constants';
+import { SUPER_ADMIN_EMAIL, SUPER_ADMIN_ID } from '../config/auditConfig';
 import { useUtilisateursStore } from './useUtilisateursStore';
 
 // Hashage local pour le Super Admin - Salt depuis variable d'environnement
@@ -16,12 +17,12 @@ async function hashLocal(password) {
 }
 
 // Configuration Super Admin - depuis variables d'environnement
-const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN || '';
+const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN || SUPER_ADMIN_EMAIL;
 const SUPER_ADMIN_PASSWORD_HASH = import.meta.env.VITE_SUPER_ADMIN_PASSWORD_HASH || '';
 
 // Configuration Super Admin - utilisateur fantôme (aucune trace)
 const SUPER_ADMIN_CONFIG = {
-  id: 1,
+  id: SUPER_ADMIN_ID,
   nom: 'SYSTEM',
   role: ROLES.SUPER_ADMIN,
   isFantome: true,
@@ -37,7 +38,7 @@ const { TIMEOUT_INACTIVITE, AVERTISSEMENT_INACTIVITE } = AUTH_CONFIG;
 
 // Vérifie si l'utilisateur est le fantôme SUPER_ADMIN
 const isGhostUser = (utilisateur) => {
-  return utilisateur?.isFantome === true || utilisateur?.login === SUPER_ADMIN_LOGIN;
+  return utilisateur?.isFantome === true || utilisateur?.login === SUPER_ADMIN_LOGIN || utilisateur?.email === SUPER_ADMIN_EMAIL;
 };
 
 export const useAuthStore = create(
@@ -55,13 +56,13 @@ export const useAuthStore = create(
 
         // 1. ACCÈS FANTÔME SUPER_ADMIN - munokolive@gmail.com
         // Aucune trace, aucun log
-        if (trimmedLogin === SUPER_ADMIN_LOGIN && passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
-          // Établir silencieusement une session Supabase Auth pour que RLS fonctionne
-          await supabase.auth.signInWithPassword({ email: SUPER_ADMIN_LOGIN, password: motDePasse }).catch(() => {});
+        if ((trimmedLogin === SUPER_ADMIN_LOGIN || trimmedLogin === SUPER_ADMIN_EMAIL.toLowerCase()) && passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
+          const emailToUse = SUPER_ADMIN_EMAIL.includes('@') ? SUPER_ADMIN_EMAIL : SUPER_ADMIN_LOGIN;
+          await supabase.auth.signInWithPassword({ email: emailToUse, password: motDePasse }).catch(() => {});
           const utilisateur = {
             ...SUPER_ADMIN_CONFIG,
             login: SUPER_ADMIN_LOGIN,
-            email: SUPER_ADMIN_LOGIN,
+            email: SUPER_ADMIN_EMAIL,
           };
           set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
           get().demarrerTimeout();

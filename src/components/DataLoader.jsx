@@ -8,8 +8,10 @@ import { useFournisseursStore } from '../store/useFournisseursStore'
 import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
+import { useUtilisateursStore } from '../store/useUtilisateursStore'
 import { useNotificationsStore } from '../store/useNotificationsStore'
 import { useSupabaseRealtimeEnhanced } from '../hooks/useSupabaseRealtimeEnhanced'
+import { useRealtimeSync } from '../hooks/useRealtimeSync'
 import { offlineQueue } from '../services/offlineQueue'
 import { logger } from '../utils/logger'
 
@@ -34,6 +36,9 @@ function validateDocument(d) {
 export default function DataLoader() {
   // Activer la sync temps réel améliorée avec reconnexion auto
   useSupabaseRealtimeEnhanced()
+  
+  // Activer la synchronisation temps réel des utilisateurs et autres tables
+  useRealtimeSync()
 
   const setClients = useClientsStore(state => state.setClients)
   const setFactures = useFacturesStore(state => state.setFactures)
@@ -45,6 +50,7 @@ export default function DataLoader() {
   const setRessourcesHebdo = usePlanificationStore(state => state.setRessourcesHebdo)
   const setEncaissements = useEncaissementsStore(state => state.setEncaissements)
   const setMouvements = useCaisseStore(state => state.setMouvements)
+  const setUtilisateurs = useUtilisateursStore(state => state.fetchUtilisateurs)
   const genererNotifications = useNotificationsStore(state => state.genererNotifications)
 
   useEffect(() => {
@@ -52,7 +58,7 @@ export default function DataLoader() {
       try {
         
         // Charger toutes les données en parallèle
-        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes] = await Promise.all([
+        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes] = await Promise.all([
           supabase.from('clients').select('*').order('id'),
           supabase.from('factures').select('*').order('id'),
           supabase.from('devis').select('*').order('id'),
@@ -63,6 +69,7 @@ export default function DataLoader() {
           supabase.from('taches').select('*').order('id'),
           supabase.from('ressources_hebdo').select('*').order('id'),
           supabase.from('encaissements').select('*').order('id'),
+          supabase.from('utilisateurs').select('*').order('id'),
         ])
         
         // CLIENTS
@@ -244,6 +251,22 @@ export default function DataLoader() {
             notes: e.notes, statut: e.statut, dateCreation: e.date_creation
           }))
           setEncaissements(encaissements)
+        }
+
+        // UTILISATEURS
+        if (!utilisateursRes.error && utilisateursRes.data?.length > 0) {
+          // Utiliser le store pour gérer les utilisateurs
+          const utilisateurs = utilisateursRes.data.map(u => ({
+            id: u.id,
+            nom: u.nom,
+            login: u.login,
+            email: u.email || '',
+            role: u.role,
+            actif: u.is_actif,
+            auth_user_id: u.auth_user_id || null,
+            permissions: u.permissions || null,
+          }))
+          useUtilisateursStore.setState({ utilisateurs })
         }
 
         // MOUVEMENTS CAISSE

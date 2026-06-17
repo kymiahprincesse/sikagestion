@@ -1,10 +1,27 @@
 import { createClient } from '@supabase/supabase-js'
 import { logger } from '../utils/logger'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseServiceRole = import.meta.env.VITE_SUPABASE_SERVICE_ROLE
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (!supabaseUrl || (!supabaseAnonKey && !supabaseServiceRole)) {
+  throw new Error('Variables VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY ou VITE_SUPABASE_SERVICE_ROLE obligatoires')
+}
+
+// In development only, prefer service_role token if available (allows full read/write during local testing).
+const useKey = (import.meta.env.DEV && supabaseServiceRole) ? supabaseServiceRole : supabaseAnonKey
+
+// Debug: indicate which key type is used (do NOT log the key itself)
+if (import.meta.env.DEV) {
+  try {
+    /* eslint-disable no-console */
+    console.info('[SUPABASE DEBUG] Using', (import.meta.env.DEV && supabaseServiceRole) ? 'service_role (DEV)' : 'anon key');
+    /* eslint-enable no-console */
+  } catch (e) { /* ignore */ }
+}
+
+export const supabase = createClient(supabaseUrl, useKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -15,22 +32,23 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     }
   },
   global: {
-    fetch: (url, options = {}) => fetch(url, {
-      ...options,
-      cache: 'no-store',
-      headers: {
-        ...options.headers,
-        'Cache-Control': 'no-cache, no-store',
-        'Pragma': 'no-cache',
-      },
-    }),
+    fetch: (url, options = {}) => {
+      const headers = new Headers(options.headers || {})
+      headers.set('Cache-Control', 'no-cache, no-store')
+      headers.set('Pragma', 'no-cache')
+      return fetch(url, {
+        ...options,
+        cache: 'no-store',
+        headers,
+      })
+    },
   },
 })
 
-const isPlaceholder = supabaseUrl.includes('placeholder') || supabaseAnonKey === 'placeholder-key'
+const isPlaceholder = false
 
 export const checkConnection = async () => {
-  if (isPlaceholder) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     return { connected: false, error: 'Variables VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY non configurées', timestamp: new Date().toISOString() }
   }
   try {
