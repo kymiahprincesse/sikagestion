@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { generateSecureId } from '../utils/format';
+import { crudSuccess, crudError } from '../utils/crudNotify';
 
 function toSupabaseRow(ao) {
   return {
@@ -62,7 +63,9 @@ export const useAOStore = create(
         const { data, error } = await supabase.from('appels_offres').insert(toSupabaseRow(nouvelAO)).select().single();
         if (error) {
           console.error('Supabase addAO:', error.message);
+          crudError(`Impossible de créer l'appel d'offres : ${error.message}`);
         } else if (data) {
+          crudSuccess(`Appel d'offres ${nouvelAO.numeroDevis} créé avec succès`);
           set((state) => ({
             appelsDoffres: state.appelsDoffres.map((a) => a.id === nouvelAO.id ? { ...a, id: data.id } : a)
           }));
@@ -83,20 +86,33 @@ export const useAOStore = create(
             const { error } = await supabase.from('appels_offres')
               .update(toSupabaseRow({ ...aoMaj, ...modifications }))
               .eq('id', id);
-            if (error) console.error('Supabase updateAO:', error.message);
+            if (error) {
+              console.error('Supabase updateAO:', error.message);
+              crudError(`Impossible de modifier l'appel d'offres : ${error.message}`);
+            } else {
+              crudSuccess(`Appel d'offres ${aoMaj.numeroDevis} modifié avec succès`);
+            }
           } catch (err) {
             console.error('Erreur updateAO:', err.message);
+            crudError(`Impossible de modifier l'appel d'offres : ${err.message}`);
           }
         }
       },
 
       deleteAO: async (id) => {
+        const aoSupprime = get().appelsDoffres.find((ao) => ao.id === id);
         set((state) => ({ appelsDoffres: state.appelsDoffres.filter((ao) => ao.id !== id) }));
         try {
           const { error } = await supabase.from('appels_offres').delete().eq('id', id);
-          if (error) console.error('Supabase deleteAO:', error.message);
+          if (error) {
+            console.error('Supabase deleteAO:', error.message);
+            crudError(`Impossible de supprimer l'appel d'offres : ${error.message}`);
+          } else {
+            crudSuccess(`Appel d'offres ${aoSupprime?.numeroDevis || ''} supprimé avec succès`);
+          }
         } catch (err) {
           console.error('Erreur deleteAO:', err.message);
+          crudError(`Impossible de supprimer l'appel d'offres : ${err.message}`);
         }
       },
 

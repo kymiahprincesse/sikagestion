@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { logger } from '../utils/logger';
 import { checkSupabaseResponse } from '../utils/supabaseErrors';
+import { crudSuccess, crudError } from '../utils/crudNotify';
 
 function toSupabaseRow(c) {
   return {
@@ -43,6 +44,7 @@ export const useClientsStore = create(
           const response = await supabase.from('clients').insert(toSupabaseRow(nouveauClient)).select().single();
           const result = checkSupabaseResponse(response, 'addClient');
           if (!result.success) {
+            crudError(`Impossible de créer le client : ${result.message || 'erreur Supabase'}`);
             return { success: false, message: result.message || 'Erreur lors de l\'enregistrement du client' };
           }
 
@@ -57,9 +59,11 @@ export const useClientsStore = create(
             compteurId: compteurId + 1,
           });
 
+          crudSuccess(`Client "${createdClient.nom}" créé avec succès`);
           return { success: true, client: createdClient };
         } catch (err) {
           console.error('Supabase addClient exception:', err.message || err);
+          crudError(`Impossible de créer le client : ${err.message || 'erreur inconnue'}`);
           return { success: false, message: err.message || 'Erreur lors de la création du client' };
         }
       },
@@ -72,19 +76,32 @@ export const useClientsStore = create(
         const clientMaj = get().clients.find((c) => c.id === id);
         if (clientMaj) {
           supabase.from('clients').update(toSupabaseRow({ ...clientMaj, ...modifications })).eq('id', id).then(({ error }) => {
-            if (error) logger.error('Supabase updateClient:', error.message);
+            if (error) {
+              logger.error('Supabase updateClient:', error.message);
+              crudError(`Impossible de modifier le client : ${error.message}`);
+            } else {
+              crudSuccess(`Client "${clientMaj.nom}" modifié avec succès`);
+            }
           }).catch((err) => {
             logger.error('Erreur updateClient:', err.message);
+            crudError(`Impossible de modifier le client : ${err.message}`);
           });
         }
       },
 
       deleteClient: (id) => {
+        const clientSupprime = get().clients.find((c) => c.id === id);
         set((state) => ({ clients: state.clients.filter((client) => client.id !== id) }));
         supabase.from('clients').delete().eq('id', id).then(({ error }) => {
-          if (error) logger.error('Supabase deleteClient:', error.message);
+          if (error) {
+            logger.error('Supabase deleteClient:', error.message);
+            crudError(`Impossible de supprimer le client : ${error.message}`);
+          } else {
+            crudSuccess(`Client "${clientSupprime?.nom || ''}" supprimé avec succès`);
+          }
         }).catch((err) => {
           logger.error('Erreur deleteClient:', err.message);
+          crudError(`Impossible de supprimer le client : ${err.message}`);
         });
       },
 

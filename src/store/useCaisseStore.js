@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { logger } from '../utils/logger';
+import { generateSecureId } from '../utils/format';
+import { crudSuccess, crudError } from '../utils/crudNotify';
 
 function toSupabaseRow(mouvement) {
   return {
@@ -46,7 +48,9 @@ export const useCaisseStore = create(
           const { data, error } = await supabase.from('mouvements_caisse').insert(toSupabaseRow(nouveauMouvement)).select().single();
           if (error) {
             logger.error('Supabase addMouvement:', error.message);
+            crudError(`Impossible d'enregistrer le mouvement : ${error.message}`);
           } else if (data) {
+            crudSuccess(`Mouvement de caisse (${nouveauMouvement.type === 'ENTREE' ? 'entrée' : 'sortie'}) enregistré`);
             // Mettre à jour avec l'ID Supabase
             set((state) => ({
               mouvements: state.mouvements.map((m) =>
@@ -57,6 +61,7 @@ export const useCaisseStore = create(
           }
         } catch (err) {
           logger.error('Erreur addMouvement:', err.message);
+          crudError(`Impossible d'enregistrer le mouvement : ${err.message}`);
         }
 
         return nouveauMouvement;
@@ -88,9 +93,15 @@ export const useCaisseStore = create(
             const { error } = await supabase.from('mouvements_caisse')
               .update(toSupabaseRow(mouvementModifie))
               .eq('id', mouvementOriginal.supabaseId);
-            if (error) logger.error('Supabase updateMouvement:', error.message);
+            if (error) {
+              logger.error('Supabase updateMouvement:', error.message);
+              crudError(`Impossible de modifier le mouvement : ${error.message}`);
+            } else {
+              crudSuccess('Mouvement de caisse modifié');
+            }
           } catch (err) {
             logger.error('Erreur updateMouvement:', err.message);
+            crudError(`Impossible de modifier le mouvement : ${err.message}`);
           }
         }
       },
@@ -114,9 +125,15 @@ export const useCaisseStore = create(
             const { error } = await supabase.from('mouvements_caisse')
               .delete()
               .eq('id', mouvement.supabaseId);
-            if (error) logger.error('Supabase deleteMouvement:', error.message);
+            if (error) {
+              logger.error('Supabase deleteMouvement:', error.message);
+              crudError(`Impossible de supprimer le mouvement : ${error.message}`);
+            } else {
+              crudSuccess('Mouvement de caisse supprimé');
+            }
           } catch (err) {
             logger.error('Erreur deleteMouvement:', err.message);
+            crudError(`Impossible de supprimer le mouvement : ${err.message}`);
           }
         }
       },

@@ -208,7 +208,6 @@ export default function Fournisseurs() {
           .select()
           .single()
         if (supaErr) throw supaErr
-        addFournisseur({ ...formData, id: inserted.id, dateCreation: inserted.date_creation })
         addLog({ module: 'Fournisseurs', action: 'Création fournisseur', utilisateur: utilisateur?.nom, details: `Nouveau fournisseur ${formData.nom}` })
         success(`Fournisseur "${formData.nom}" créé avec succès`)
       }
@@ -232,7 +231,6 @@ export default function Fournisseurs() {
           .delete()
           .eq('id', fournisseur.id)
         if (supaErr) throw supaErr
-        deleteFournisseur(fournisseur.id)
         addLog({ module: 'Fournisseurs', action: 'Suppression fournisseur', utilisateur: utilisateur?.nom, details: `Fournisseur ${fournisseur.nom} supprimé` })
         success(`Fournisseur "${fournisseur.nom}" supprimé avec succès`)
         await reloadFournisseurs()
@@ -441,8 +439,8 @@ export default function Fournisseurs() {
         .update({ is_actif: !fournisseur.isActif })
         .eq('id', fournisseur.id)
       if (supaErr) throw supaErr
-      updateFournisseur(fournisseur.id, { isActif: !fournisseur.isActif })
       addLog({ module: 'Fournisseurs', action: fournisseur.isActif ? 'Désactivation fournisseur' : 'Activation fournisseur', utilisateur: utilisateur?.nom, details: `Fournisseur ${fournisseur.nom}` })
+      await reloadFournisseurs()
       success(`Fournisseur ${fournisseur.isActif ? 'désactivé' : 'activé'}`)
     } catch (err) {
       console.error(err)

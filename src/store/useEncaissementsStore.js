@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
-import { notifyError } from '../utils/notifications';
+import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
 import { generateSecureId } from '../utils/format';
 
@@ -38,11 +38,12 @@ export const useEncaissementsStore = create(
         const { data, error } = await supabase.from('encaissements').insert(toSupabaseRow(nouvelEncaissement)).select().single();
         if (error) {
           logger.error('Supabase addEncaissement:', error.message);
-          notifyError('Erreur de sauvegarde', `Impossible de créer l'encaissement: ${error.message}`);
+          crudError(`Impossible de créer l'encaissement : ${error.message}`);
           return nouvelEncaissement;
         }
 
         if (data) {
+          crudSuccess(`Encaissement de ${(nouvelEncaissement.montant || 0).toLocaleString()} FCFA enregistré`);
           const encaissementAvecId = { ...nouvelEncaissement, id: data.id };
           set((state) => ({
             encaissements: state.encaissements.map((e) => e.id === nouvelEncaissement.id ? encaissementAvecId : e)
@@ -93,7 +94,7 @@ export const useEncaissementsStore = create(
 
           if (mvtError) {
             logger.error('Erreur sync journal:', mvtError.message);
-            notifyError('Erreur synchronisation', 'Impossible de synchroniser avec le journal de caisse');
+            crudError('Impossible de synchroniser avec le journal de caisse');
             return;
           }
 
@@ -129,10 +130,13 @@ export const useEncaissementsStore = create(
           supabase.from('encaissements').update(toSupabaseRow({ ...encMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
               logger.error('Supabase updateEncaissement:', error.message);
-              notifyError('Erreur de mise à jour', `Impossible de modifier l'encaissement: ${error.message}`);
+              crudError(`Impossible de modifier l'encaissement : ${error.message}`);
+            } else {
+              crudSuccess('Encaissement modifié avec succès');
             }
           }).catch((err) => {
             logger.error('Erreur updateEncaissement:', err.message);
+            crudError(`Impossible de modifier l'encaissement : ${err.message}`);
           });
         }
       },
@@ -142,10 +146,13 @@ export const useEncaissementsStore = create(
         supabase.from('encaissements').delete().eq('id', id).then(({ error }) => {
           if (error) {
             logger.error('Supabase deleteEncaissement:', error.message);
-            notifyError('Erreur de suppression', `Impossible de supprimer l'encaissement: ${error.message}`);
+            crudError(`Impossible de supprimer l'encaissement : ${error.message}`);
+          } else {
+            crudSuccess('Encaissement supprimé avec succès');
           }
         }).catch((err) => {
           logger.error('Erreur deleteEncaissement:', err.message);
+          crudError(`Impossible de supprimer l'encaissement : ${err.message}`);
         });
       },
 

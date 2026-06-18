@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { formatFCFA, getTodayISO, generateSecureId } from '../utils/format';
 import { quickCheck, findAllDuplicates, mergeDuplicates } from '../utils/duplicateDetector';
 import { logger } from '../utils/logger';
+import { crudSuccess, crudError } from '../utils/crudNotify';
 
 function toSupabaseRow(devis) {
   return {
@@ -131,7 +132,9 @@ export const useDevisStore = create(
         const { data, error } = await supabase.from('devis').insert(toSupabaseRow(nouveauDevis)).select().single();
         if (error) {
           logger.error('Supabase addDevis:', error.message);
+          crudError(`Impossible de créer le devis : ${error.message}`);
         } else if (data) {
+          crudSuccess(`Devis ${nouveauDevis.numero} créé avec succès`);
           set((state) => ({
             devis: state.devis.map((d) => d.id === nouveauDevis.id ? { ...d, id: data.id } : d)
           }));
@@ -161,7 +164,7 @@ export const useDevisStore = create(
         return nouveauDevis;
       },
 
-      updateDevis: async (id, modifications) => {
+      updateDevis: async (id, modifications, options = {}) => {
         set((state) => ({
           devis: state.devis.map((d) => d.id === id ? { ...d, ...modifications } : d)
         }));
@@ -187,6 +190,9 @@ export const useDevisStore = create(
         const { error } = await supabase.from('devis').update(toSupabaseRow({ ...devisMaj, ...modifications })).eq('id', id);
         if (error) {
           logger.error('Supabase updateDevis:', error.message);
+          crudError(`Impossible de modifier le devis : ${error.message}`);
+        } else if (!options.silent) {
+          crudSuccess(`Devis ${devisMaj?.numero || ''} modifié avec succès`);
         }
         // Resynchroniser les lignes si modifiées
         const lignesMaj = modifications.lignes || (devisMaj && devisMaj.lignes);
@@ -235,9 +241,15 @@ export const useDevisStore = create(
         }
 
         supabase.from('devis').delete().eq('id', id).then(({ error }) => {
-          if (error) logger.error('Supabase deleteDevis:', error.message);
+          if (error) {
+            logger.error('Supabase deleteDevis:', error.message);
+            crudError(`Impossible de supprimer le devis : ${error.message}`);
+          } else {
+            crudSuccess(`Devis ${devisSupprime?.numero || ''} supprimé avec succès`);
+          }
         }).catch((err) => {
           logger.error('Erreur deleteDevis:', err.message);
+          crudError(`Impossible de supprimer le devis : ${err.message}`);
         });
       },
 
@@ -247,16 +259,21 @@ export const useDevisStore = create(
       getDevisByStatut: (statut) => get().devis.filter((d) => d.statut === statut),
 
       validerDevis: (id) => {
-        get().updateDevis(id, { statut: 'VALIDE', dateValidation: getTodayISO() });
+        const devis = get().getDevisById(id);
+        get().updateDevis(id, { statut: 'VALIDE', dateValidation: getTodayISO() }, { silent: true });
+        crudSuccess(`Devis ${devis?.numero || ''} validé`);
       },
 
       annulerDevis: (id) => {
-        get().updateDevis(id, { statut: 'ANNULE', dateAnnulation: getTodayISO() });
+        const devis = get().getDevisById(id);
+        get().updateDevis(id, { statut: 'ANNULE', dateAnnulation: getTodayISO() }, { silent: true });
+        crudSuccess(`Devis ${devis?.numero || ''} annulé`);
       },
 
       transformerEnFacture: (id) => {
         const devis = get().getDevisById(id);
-        get().updateDevis(id, { statut: 'FACTURE', dateTransformation: getTodayISO() });
+        get().updateDevis(id, { statut: 'FACTURE', dateTransformation: getTodayISO() }, { silent: true });
+        crudSuccess(`Devis ${devis?.numero || ''} transformé en facture`);
         if (typeof window !== 'undefined' && devis) {
           import('./useNotificationsStore').then(({ useNotificationsStore }) => {
             useNotificationsStore.getState().notifierDevisConverti(devis.numero);

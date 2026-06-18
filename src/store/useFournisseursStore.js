@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
-import { notifyError } from '../utils/notifications';
+import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
 import { generateSecureId } from '../utils/format';
 
@@ -45,8 +45,9 @@ export const useFournisseursStore = create(
         const { data, error } = await supabase.from('fournisseurs').insert(fournisseurToRow(nouveauFournisseur)).select().single();
         if (error) {
           console.error('Supabase addFournisseur:', error.message);
-          notifyError('Erreur de sauvegarde', `Impossible de créer le fournisseur: ${error.message}`);
+          crudError(`Impossible de créer le fournisseur : ${error.message}`);
         } else if (data) {
+          crudSuccess(`Fournisseur "${nouveauFournisseur.nom}" créé avec succès`);
           set((state) => ({
             fournisseurs: state.fournisseurs.map((f) => f.id === nouveauFournisseur.id ? { ...f, id: data.id } : f)
           }));
@@ -66,23 +67,30 @@ export const useFournisseursStore = create(
           supabase.from('fournisseurs').update(fournisseurToRow({ ...fMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
               logger.error('Supabase updateFournisseur:', error.message);
-              notifyError('Erreur de mise à jour', `Impossible de modifier le fournisseur: ${error.message}`);
+              crudError(`Impossible de modifier le fournisseur : ${error.message}`);
+            } else {
+              crudSuccess(`Fournisseur "${fMaj.nom}" modifié avec succès`);
             }
           }).catch((err) => {
             logger.error('Erreur updateFournisseur:', err.message);
+            crudError(`Impossible de modifier le fournisseur : ${err.message}`);
           });
         }
       },
 
       deleteFournisseur: (id) => {
+        const fournisseurSupprime = get().fournisseurs.find((f) => f.id === id);
         set((state) => ({ fournisseurs: state.fournisseurs.filter((f) => f.id !== id) }));
         supabase.from('fournisseurs').delete().eq('id', id).then(({ error }) => {
           if (error) {
             logger.error('Supabase deleteFournisseur:', error.message);
-            notifyError('Erreur de suppression', `Impossible de supprimer le fournisseur: ${error.message}`);
+            crudError(`Impossible de supprimer le fournisseur : ${error.message}`);
+          } else {
+            crudSuccess(`Fournisseur "${fournisseurSupprime?.nom || ''}" supprimé avec succès`);
           }
         }).catch((err) => {
           logger.error('Erreur deleteFournisseur:', err.message);
+          crudError(`Impossible de supprimer le fournisseur : ${err.message}`);
         });
       },
 

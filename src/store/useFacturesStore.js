@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { getTodayISO, generateSecureId } from '../utils/format';
-import { notifyError } from '../utils/notifications';
+import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
 
 function toSupabaseRow(f) {
@@ -63,8 +63,9 @@ export const useFacturesStore = create(
         const { data, error } = await supabase.from('factures').insert(toSupabaseRow(nouvelleFacture)).select().single();
         if (error) {
           console.error('Supabase addFacture:', error.message);
-          notifyError('Erreur de sauvegarde', `Impossible de créer la facture: ${error.message}`);
+          crudError(`Impossible de créer la facture : ${error.message}`);
         } else if (data) {
+          crudSuccess(`Facture ${nouvelleFacture.numero} créée avec succès`);
           set((state) => ({
             factures: state.factures.map((f) => f.id === nouvelleFacture.id ? { ...f, id: data.id } : f)
           }));
@@ -92,7 +93,7 @@ export const useFacturesStore = create(
         return nouvelleFacture;
       },
 
-      updateFacture: async (id, modifications) => {
+      updateFacture: async (id, modifications, options = {}) => {
         set((state) => ({
           factures: state.factures.map((f) => {
             if (f.id !== id) return f;
@@ -114,10 +115,13 @@ export const useFacturesStore = create(
               .eq('id', id);
             if (error) {
               logger.error('Supabase updateFacture:', error.message);
-              notifyError('Erreur de mise à jour', `Impossible de modifier la facture: ${error.message}`);
+              crudError(`Impossible de modifier la facture : ${error.message}`);
+            } else if (!options.silent) {
+              crudSuccess(`Facture ${factureMaj.numero} modifiée avec succès`);
             }
           } catch (err) {
             logger.error('Erreur updateFacture:', err.message);
+            crudError(`Impossible de modifier la facture : ${err.message}`);
           }
 
           // Resynchroniser les lignes si modifiées
@@ -146,15 +150,19 @@ export const useFacturesStore = create(
       },
 
       deleteFacture: async (id) => {
+        const factureASupprimer = get().factures.find((f) => f.id === id);
         set((state) => ({ factures: state.factures.filter((f) => f.id !== id) }));
         try {
           const { error } = await supabase.from('factures').delete().eq('id', id);
           if (error) {
             logger.error('Supabase deleteFacture:', error.message);
-            notifyError('Erreur de suppression', `Impossible de supprimer la facture: ${error.message}`);
+            crudError(`Impossible de supprimer la facture : ${error.message}`);
+          } else {
+            crudSuccess(`Facture ${factureASupprimer?.numero || ''} supprimée avec succès`);
           }
         } catch (err) {
           logger.error('Erreur deleteFacture:', err.message);
+          crudError(`Impossible de supprimer la facture : ${err.message}`);
         }
       },
 
@@ -188,7 +196,7 @@ export const useFacturesStore = create(
         get().updateFacture(id, {
           statut: 'PAYEE',
           datePayement: datePayement || getTodayISO()
-        });
+        }, { silent: true });
         
         if (typeof window !== 'undefined' && facture) {
           import('./useNotificationsStore').then(({ useNotificationsStore }) => {
@@ -204,7 +212,7 @@ export const useFacturesStore = create(
         get().updateFacture(id, {
           statut: 'PARTIELLE',
           montantPaye: montantPaye
-        });
+        }, { silent: true });
       },
 
       addPaiement: async (factureId, paiement) => {
@@ -237,7 +245,7 @@ export const useFacturesStore = create(
           montantPaye: montantTotalPaye,
           statut: nouveauStatut,
           datePayement: nouveauStatut === 'PAYEE' ? (paiement.date || getTodayISO()) : facture.datePayement
-        });
+        }, { silent: true });
 
         // Persister dans paiements_factures
         const { data, error } = await supabase.from('paiements_factures').insert({
@@ -250,13 +258,14 @@ export const useFacturesStore = create(
         }).select().single();
         if (error) {
           logger.error('Supabase addPaiement:', error.message);
-          notifyError('Erreur de sauvegarde', `Impossible d'enregistrer le paiement: ${error.message}`);
+          crudError(`Impossible d'enregistrer le paiement : ${error.message}`);
         } else if (data) {
+          crudSuccess(`Paiement de ${nouveauPaiement.montant.toLocaleString()} FCFA enregistré sur ${facture.numero}`);
           // Mettre à jour l'id local avec l'id Supabase
           const paiementsMaj = tousPaiements.map(p =>
             p.id === nouveauPaiement.id ? { ...p, id: data.id, supabaseId: data.id } : p
           );
-          get().updateFacture(factureId, { paiements: paiementsMaj });
+          get().updateFacture(factureId, { paiements: paiementsMaj }, { silent: true });
           return { ...nouveauPaiement, id: data.id };
         }
 
@@ -293,7 +302,7 @@ export const useFacturesStore = create(
           montantPaye: montantTotalPaye,
           statut: nouveauStatut,
           datePayement: nouveauStatut === 'PAYEE' ? paiementsFiltres[paiementsFiltres.length - 1]?.date : null
-        });
+        }, { silent: true });
 
         // Supprimer dans paiements_factures (l'id peut être numérique Supabase)
         supabase.from('paiements_factures').delete().eq('id', paiementId).then(({ error }) => {
@@ -305,7 +314,8 @@ export const useFacturesStore = create(
         get().updateFacture(id, {
           statut: 'ANNULEE',
           dateAnnulation: getTodayISO()
-        });
+        }, { silent: true });
+        crudSuccess('Facture annulée');
       },
 
       getFacturesImpayees: () => {

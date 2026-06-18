@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
-import { notifyError } from '../utils/notifications';
+import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
 import { generateSecureId } from '../utils/format';
 import { useCaisseStore } from './useCaisseStore';
@@ -99,8 +99,9 @@ export const usePlanificationStore = create(
         const { data, error } = await supabase.from('projets').insert(projetToRow(nouveauProjet)).select().single();
         if (error) {
           logger.error('Supabase addProjet:', error.message);
-          notifyError('Erreur de sauvegarde', `Impossible de créer le projet: ${error.message}`);
+          crudError(`Impossible de créer le projet : ${error.message}`);
         } else if (data) {
+          crudSuccess(`Projet "${nouveauProjet.nom || ''}" créé avec succès`);
           set((state) => ({
             projets: state.projets.map((p) => p.id === nouveauProjet.id ? { ...p, id: data.id } : p)
           }));
@@ -125,7 +126,9 @@ export const usePlanificationStore = create(
         supabase.from('projets').update(projetToRow({ ...projet, ...modifications })).eq('id', id).then(({ error }) => {
           if (error) {
             logger.error('Supabase updateProjet:', error.message);
-            notifyError('Erreur de mise à jour', `Impossible de modifier le projet: ${error.message}`);
+            crudError(`Impossible de modifier le projet : ${error.message}`);
+          } else {
+            crudSuccess(`Projet "${(projet && projet.nom) || ''}" modifié avec succès`);
           }
         });
 
@@ -163,7 +166,9 @@ export const usePlanificationStore = create(
         supabase.from('projets').delete().eq('id', id).then(({ error }) => {
           if (error) {
             logger.error('Supabase deleteProjet:', error.message);
-            notifyError('Erreur de suppression', `Impossible de supprimer le projet: ${error.message}`);
+            crudError(`Impossible de supprimer le projet : ${error.message}`);
+          } else {
+            crudSuccess('Projet supprimé avec succès');
           }
         });
       },
@@ -197,8 +202,9 @@ export const usePlanificationStore = create(
         const { data, error } = await supabase.from('taches').insert(tacheToRow(nouvelleTache)).select().single();
         if (error) {
           logger.error('Supabase addTache:', error.message);
-          notifyError('Erreur de sauvegarde', `Impossible de créer la tâche: ${error.message}`);
+          crudError(`Impossible de créer la tâche : ${error.message}`);
         } else if (data) {
+          crudSuccess(`Tâche "${nouvelleTache.nom || ''}" créée avec succès`);
           set((state) => ({
             taches: state.taches.map((t) => t.id === nouvelleTache.id ? { ...t, id: data.id } : t)
           }));
@@ -218,7 +224,9 @@ export const usePlanificationStore = create(
           supabase.from('taches').update(tacheToRow({ ...tacheMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
               logger.error('Supabase updateTache:', error.message);
-              notifyError('Erreur de mise à jour', `Impossible de modifier la tâche: ${error.message}`);
+              crudError(`Impossible de modifier la tâche : ${error.message}`);
+            } else {
+              crudSuccess('Tâche modifiée avec succès');
             }
           });
         }
@@ -232,7 +240,9 @@ export const usePlanificationStore = create(
         supabase.from('taches').delete().eq('id', id).then(({ error }) => {
           if (error) {
             logger.error('Supabase deleteTache:', error.message);
-            notifyError('Erreur de suppression', `Impossible de supprimer la tâche: ${error.message}`);
+            crudError(`Impossible de supprimer la tâche : ${error.message}`);
+          } else {
+            crudSuccess('Tâche supprimée avec succès');
           }
         });
       },
@@ -261,8 +271,9 @@ export const usePlanificationStore = create(
         const { data, error } = await supabase.from('ressources_hebdo').insert(ressourceToRow(nouvelleRessource)).select().single();
         if (error) {
           logger.error('Supabase addRessource:', error.message);
-          notifyError('Erreur de sauvegarde', `Impossible de créer la ressource: ${error.message}`);
+          crudError(`Impossible de créer la ressource : ${error.message}`);
         } else if (data) {
+          crudSuccess('Ressource ajoutée avec succès');
           set((state) => ({
             ressourcesHebdo: state.ressourcesHebdo.map((r) => r.id === nouvelleRessource.id ? { ...r, id: data.id } : r)
           }));
@@ -282,7 +293,9 @@ export const usePlanificationStore = create(
           supabase.from('ressources_hebdo').update(ressourceToRow({ ...rMaj, ...modifications })).eq('id', id).then(({ error }) => {
             if (error) {
               logger.error('Supabase updateRessource:', error.message);
-              notifyError('Erreur de mise à jour', `Impossible de modifier la ressource: ${error.message}`);
+              crudError(`Impossible de modifier la ressource : ${error.message}`);
+            } else {
+              crudSuccess('Ressource modifiée avec succès');
             }
           });
         }
@@ -293,7 +306,9 @@ export const usePlanificationStore = create(
         supabase.from('ressources_hebdo').delete().eq('id', id).then(({ error }) => {
           if (error) {
             logger.error('Supabase deleteRessource:', error.message);
-            notifyError('Erreur de suppression', `Impossible de supprimer la ressource: ${error.message}`);
+            crudError(`Impossible de supprimer la ressource : ${error.message}`);
+          } else {
+            crudSuccess('Ressource supprimée avec succès');
           }
         });
       },
