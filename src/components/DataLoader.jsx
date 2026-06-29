@@ -10,6 +10,8 @@ import { useCaisseStore } from '../store/useCaisseStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useUtilisateursStore } from '../store/useUtilisateursStore'
 import { useNotificationsStore } from '../store/useNotificationsStore'
+import { useAchatsStore } from '../store/useAchatsStore'
+import { useJournalStore } from '../store/useJournalStore'
 import { useSupabaseRealtimeEnhanced } from '../hooks/useSupabaseRealtimeEnhanced'
 import { offlineQueue } from '../services/offlineQueue'
 import { logger } from '../utils/logger'
@@ -46,6 +48,8 @@ export default function DataLoader() {
   const setRessourcesHebdo = usePlanificationStore(state => state.setRessourcesHebdo)
   const setEncaissements = useEncaissementsStore(state => state.setEncaissements)
   const setMouvements = useCaisseStore(state => state.setMouvements)
+  const setAchats = useAchatsStore(state => state.setAchats)
+  const setEcritures = useJournalStore(state => state.setEcritures)
   // Utilisateurs : mis à jour directement via useUtilisateursStore.setState dans loadAllData
   const genererNotifications = useNotificationsStore(state => state.genererNotifications)
 
@@ -54,7 +58,7 @@ export default function DataLoader() {
       try {
         
         // Charger toutes les données en parallèle
-        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, lignesDevisRes] = await Promise.all([
+        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, lignesDevisRes, achatsRes, ecrituresRes] = await Promise.all([
           supabase.from('clients').select('*').order('id'),
           supabase.from('factures').select('*').order('id'),
           supabase.from('devis').select('*').order('id'),
@@ -67,6 +71,8 @@ export default function DataLoader() {
           supabase.from('encaissements').select('*').order('id'),
           supabase.from('utilisateurs').select('*').order('id'),
           supabase.from('lignes_devis').select('*').order('ordre'),
+          supabase.from('achats').select('*, fournisseurs(nom)').order('date_achat', { ascending: false }),
+          supabase.from('ecritures_journal').select('*').order('date', { ascending: false }),
         ])
         
         // CLIENTS
@@ -315,6 +321,49 @@ export default function DataLoader() {
           setMouvements(mouvements)
         }
 
+        // ACHATS
+        if (!achatsRes.error && achatsRes.data?.length > 0) {
+          const achats = achatsRes.data.map(a => ({
+            id: a.id,
+            fournisseurId: a.fournisseur_id,
+            fournisseurNom: a.fournisseurs?.nom || null,
+            numeroFacture: a.numero_facture,
+            reference: a.reference,
+            dateAchat: a.date_achat,
+            categorie: a.categorie,
+            typeAchat: a.type_achat,
+            montantHT: parseFloat(a.montant_ht || 0),
+            montantTVA: parseFloat(a.montant_tva || 0),
+            montantTTC: parseFloat(a.montant_ttc || 0),
+            montantPaye: parseFloat(a.montant_paye || 0),
+            modePaiement: a.mode_paiement,
+            statut: a.statut,
+            projetId: a.projet_id,
+            description: a.description,
+            notes: a.notes,
+            dateCreation: a.date_creation,
+          }))
+          setAchats(achats)
+        }
+
+        // ECRITURES JOURNAL
+        if (!ecrituresRes.error && ecrituresRes.data?.length > 0) {
+          const ecritures = ecrituresRes.data.map(e => ({
+            id: e.id,
+            date: e.date,
+            pieceComptable: e.piece_comptable,
+            type: e.type,
+            compteDebit: e.compte_debit,
+            compteCredit: e.compte_credit,
+            montantDebit: parseFloat(e.montant_debit || 0),
+            montantCredit: parseFloat(e.montant_credit || 0),
+            libelle: e.libelle,
+            notes: e.notes,
+            dateCreation: e.date_creation,
+          }))
+          setEcritures(ecritures)
+        }
+
         // Relances automatiques : générer notifications après chargement complet
         const factures = useFacturesStore.getState().factures
         const devis = useDevisStore.getState().devis
@@ -381,7 +430,7 @@ export default function DataLoader() {
     }
 
     loadAllData()
-  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements, genererNotifications]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements, setAchats, setEcritures, genererNotifications]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return null // Composant invisible
 }

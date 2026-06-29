@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
 import { generateSecureId } from '../utils/format';
+import { useAchatsStore } from './useAchatsStore';
 
 function fournisseurToRow(f) {
   return {
@@ -30,7 +31,6 @@ export const useFournisseursStore = create(
   persist(
     (set, get) => ({
       fournisseurs: [],
-      achats: [],
 
       addFournisseur: async (fournisseur) => {
         const nouveauFournisseur = {
@@ -104,62 +104,35 @@ export const useFournisseursStore = create(
         return fournisseurs.filter((f) => f.isActif === true);
       },
 
-      addAchat: (achat) => {
-        const nouvelAchat = {
-          ...achat,
-          id: generateSecureId('FRN'),
-          dateAchat: achat.dateAchat || new Date().toISOString().split('T')[0],
-          statut: achat.statut || 'EN_ATTENTE'
-        };
-
-        set((state) => ({
-          achats: [...state.achats, nouvelAchat]
-        }));
-
-        return nouvelAchat;
+      addAchat: async (achat) => {
+        return useAchatsStore.getState().addAchat(achat);
       },
 
-      updateAchat: (id, modifications) => {
-        set((state) => ({
-          achats: state.achats.map((a) =>
-            a.id === id ? { ...a, ...modifications } : a
-          )
-        }));
+      updateAchat: async (id, modifications) => {
+        return useAchatsStore.getState().updateAchat(id, modifications);
       },
 
-      deleteAchat: (id) => {
-        set((state) => ({
-          achats: state.achats.filter((a) => a.id !== id)
-        }));
+      deleteAchat: async (id) => {
+        return useAchatsStore.getState().deleteAchat(id);
       },
 
-      getAchatById: (id) => {
-        const { achats } = get();
-        return achats.find((a) => a.id === id);
-      },
+      getAchatById: (id) => useAchatsStore.getState().getAchatById(id),
 
-      getAchatsByFournisseur: (fournisseurId) => {
-        const { achats } = get();
-        return achats.filter((a) => a.fournisseurId === fournisseurId);
-      },
+      getAchatsByFournisseur: (fournisseurId) =>
+        useAchatsStore.getState().getAchatsByFournisseur(fournisseurId),
 
-      getAchatsByStatut: (statut) => {
-        const { achats } = get();
-        return achats.filter((a) => a.statut === statut);
-      },
+      getAchatsByStatut: (statut) =>
+        useAchatsStore.getState().getAchatsByStatut(statut),
 
-      getTotalAchats: () => {
-        const { achats } = get();
-        return achats.reduce((total, a) => total + (a.montantTTC || 0), 0);
-      },
+      getTotalAchats: () => useAchatsStore.getState().getTotalAchats(),
 
       getTotalImpayeFournisseur: (fournisseurId) => {
-        const achats = get().getAchatsByFournisseur(fournisseurId);
+        const achats = useAchatsStore.getState().getAchatsByFournisseur(fournisseurId);
         return achats
           .filter((a) => a.statut === 'EN_ATTENTE' || a.statut === 'PARTIEL')
           .reduce((total, a) => total + (a.montantTTC - (a.montantPaye || 0)), 0);
-      }
-,
+      },
+
 
       setFournisseurs: (fournisseurs) => {
         get().updateFournisseursWithCompteur(fournisseurs);

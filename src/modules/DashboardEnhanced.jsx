@@ -54,25 +54,23 @@ export default function DashboardEnhanced() {
     }
   }, [factures, devis, appelsDoffres, projets, clients, soldeCaisse])
 
-  // Évolution CA par mois (6 derniers mois)
+  // Évolution CA par mois (6 derniers mois glissants)
   const evolutionCA = useMemo(() => {
-    const mois = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin']
-    const anneeCourante = new Date().getFullYear()
-    
-    return mois.map((m, i) => {
-      const moisNum = String(i + 1).padStart(2, '0')
-      const prefixeMois = `${anneeCourante}-${moisNum}`
-      
-      // Calculer CA et encaissement réels pour ce mois
-      const facturesMois = factures.filter(f => f.date?.startsWith(prefixeMois) || f.dateDepot?.startsWith(prefixeMois))
+    const NOMS_MOIS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
+    const now = new Date()
+    const derniersMois = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1)
+      return {
+        label: NOMS_MOIS[d.getMonth()],
+        prefixe: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      }
+    })
+
+    return derniersMois.map(({ label, prefixe }) => {
+      const facturesMois = factures.filter(f => f.date?.startsWith(prefixe) || f.dateDepot?.startsWith(prefixe))
       const ca = facturesMois.reduce((sum, f) => sum + (f.montantTTC || 0), 0)
       const encaisse = facturesMois.reduce((sum, f) => sum + (f.montantPaye || 0), 0)
-      
-      return {
-        mois: m,
-        CA: ca,
-        Encaissé: encaisse
-      }
+      return { mois: label, CA: ca, Encaissé: encaisse }
     })
   }, [factures])
 

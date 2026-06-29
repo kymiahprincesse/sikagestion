@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { logger } from './utils/logger'
+import './config/envValidation'
 
 // ── PURGE CACHE LOCAL DONNÉES FICTIVES (production reset) ──────────
 const CACHE_VERSION = 'sika_prod_v1'

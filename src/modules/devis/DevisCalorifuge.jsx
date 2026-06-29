@@ -366,6 +366,7 @@ export default function DevisCalorifuge() {
         message: `Devis ${devisData.numero} modifié avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
         lien: '/devis/liste'
       })
+      navigate('/devis/liste')
     } else {
       const nouveau = await addDevis(devisComplet)
       setDevisId(nouveau.id)
@@ -382,6 +383,7 @@ export default function DevisCalorifuge() {
         message: `Devis ${nouveau.numero} enregistré avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
         lien: '/devis/liste'
       })
+      navigate('/devis/liste')
     }
   }
 
@@ -826,6 +828,32 @@ export default function DevisCalorifuge() {
                 <span className="text-xl font-bold text-navy">{formatFCFA(totaux.ttc)}</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* BARRE ACTIONS BAS */}
+      <div className="bg-white border-t-4 border-orange shadow-lg rounded-lg mt-6 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={nouveauDevis} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+              ➕ Nouveau
+            </button>
+            <button
+              onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${devisData.tvaActive ? 'bg-vert text-white hover:bg-opacity-90' : 'bg-argent text-navy hover:bg-opacity-80'}`}
+            >
+              🔄 TVA : {devisData.tvaActive ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-navy font-bold text-sm hidden sm:block">TTC : {formatFCFA(totaux.ttc)}</span>
+            <button onClick={genererPDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+              📄 PDF
+            </button>
+            <button onClick={enregistrerDevis} className="flex items-center gap-2 px-5 py-3 bg-vert text-white rounded-lg hover:bg-opacity-90 transition font-bold text-base shadow-lg">
+              💾 Enregistrer
+            </button>
           </div>
         </div>
       </div>

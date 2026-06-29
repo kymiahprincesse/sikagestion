@@ -9,6 +9,8 @@ import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useUtilisateursStore } from '../store/useUtilisateursStore'
+import { useAchatsStore } from '../store/useAchatsStore'
+import { useJournalStore } from '../store/useJournalStore'
 
 /**
  * Hook amélioré pour la synchronisation temps réel Supabase
@@ -66,6 +68,16 @@ export function useSupabaseRealtimeEnhanced() {
         update: (...args) => useUtilisateursStore.getState().updateUtilisateurFromRealtime(...args),
         add: (...args) => useUtilisateursStore.getState().addUtilisateurFromRealtime(...args),
         remove: (...args) => useUtilisateursStore.getState().deleteUtilisateurFromRealtime(...args)
+      },
+      achats: {
+        update: (...args) => useAchatsStore.getState().updateAchatFromRealtime(...args),
+        add: (...args) => useAchatsStore.getState().addAchatFromRealtime(...args),
+        remove: (...args) => useAchatsStore.getState().deleteAchatFromRealtime(...args)
+      },
+      journal: {
+        update: (...args) => useJournalStore.getState().updateEcritureFromRealtime(...args),
+        add: (...args) => useJournalStore.getState().addEcritureFromRealtime(...args),
+        remove: (...args) => useJournalStore.getState().deleteEcritureFromRealtime(...args)
       }
     }
   }
@@ -146,6 +158,40 @@ export function useSupabaseRealtimeEnhanced() {
           role: row.role, actif: row.is_actif, auth_user_id: row.auth_user_id || null,
           permissions: row.permissions || null
         }
+      case 'achats':
+        return {
+          id: row.id,
+          fournisseurId: row.fournisseur_id,
+          numeroFacture: row.numero_facture,
+          reference: row.reference,
+          dateAchat: row.date_achat,
+          categorie: row.categorie,
+          typeAchat: row.type_achat,
+          montantHT: parseFloat(row.montant_ht || 0),
+          montantTVA: parseFloat(row.montant_tva || 0),
+          montantTTC: parseFloat(row.montant_ttc || 0),
+          montantPaye: parseFloat(row.montant_paye || 0),
+          modePaiement: row.mode_paiement,
+          statut: row.statut,
+          projetId: row.projet_id,
+          description: row.description,
+          notes: row.notes,
+          dateCreation: row.date_creation,
+        }
+      case 'ecritures_journal':
+        return {
+          id: row.id,
+          date: row.date,
+          pieceComptable: row.piece_comptable,
+          type: row.type,
+          compteDebit: row.compte_debit,
+          compteCredit: row.compte_credit,
+          montantDebit: parseFloat(row.montant_debit || 0),
+          montantCredit: parseFloat(row.montant_credit || 0),
+          libelle: row.libelle,
+          notes: row.notes,
+          dateCreation: row.date_creation,
+        }
       default:
         return row
     }
@@ -161,7 +207,9 @@ export function useSupabaseRealtimeEnhanced() {
     { name: 'projets', store: 'projets', idField: 'id' },
     { name: 'mouvements_caisse', store: 'caisse', idField: 'id', stateField: 'mouvements' },
     { name: 'encaissements', store: 'encaissements', idField: 'id' },
-    { name: 'utilisateurs', store: 'utilisateurs', idField: 'id' }
+    { name: 'utilisateurs', store: 'utilisateurs', idField: 'id' },
+    { name: 'achats', store: 'achats', idField: 'id' },
+    { name: 'ecritures_journal', store: 'journal', idField: 'id' }
   ])
 
   useEffect(() => {

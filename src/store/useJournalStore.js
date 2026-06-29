@@ -139,6 +139,24 @@ export const useJournalStore = create(
 
       setEcritures: (ecritures) => {
         set({ ecritures });
+      },
+
+      // Realtime handlers (sans appel Supabase pour éviter boucle)
+      addEcritureFromRealtime: (ecriture) => {
+        const { ecritures } = get();
+        if (!ecritures.find((e) => e.id === ecriture.id)) {
+          set({ ecritures: [ecriture, ...ecritures] });
+        }
+      },
+
+      updateEcritureFromRealtime: (ecriture) => {
+        set((state) => ({
+          ecritures: state.ecritures.map((e) => e.id === ecriture.id ? { ...e, ...ecriture } : e),
+        }));
+      },
+
+      deleteEcritureFromRealtime: (id) => {
+        set((state) => ({ ecritures: state.ecritures.filter((e) => e.id !== id) }));
       }
     }),
     {
