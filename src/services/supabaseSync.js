@@ -23,7 +23,7 @@ export const syncService = {
         date_creation: c.dateCreation
       }))
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('clients')
         .upsert(clientsData, { onConflict: 'id' })
 
@@ -58,7 +58,7 @@ export const syncService = {
         date_creation: f.dateCreation
       }))
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('factures')
         .upsert(facturesData, { onConflict: 'id' })
 
@@ -92,7 +92,7 @@ export const syncService = {
         date_creation: d.dateCreation
       }))
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('devis')
         .upsert(devisData, { onConflict: 'id' })
 
@@ -121,7 +121,7 @@ export const syncService = {
         date_creation: a.dateCreation
       }))
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('appels_offres')
         .upsert(aoData, { onConflict: 'id' })
 
@@ -155,7 +155,7 @@ export const syncService = {
         date_creation: f.dateCreation
       }))
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('fournisseurs')
         .upsert(fournisseursData, { onConflict: 'id' })
 
@@ -186,7 +186,7 @@ export const syncService = {
         date_creation: p.dateCreation
       }))
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('projets')
         .upsert(projetsData, { onConflict: 'id' })
 
@@ -214,7 +214,7 @@ export const syncService = {
         utilisateur: m.utilisateur
       }))
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('mouvements_caisse')
         .upsert(mouvementsData, { onConflict: 'id' })
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuditStore } from '../store/useAuditStore';
 import { useAuthStore }  from '../store/useAuthStore';
-import { AUDIT_MODULES, AUDIT_ACTIONS, ACTION_COLORS } from '../config/auditConfig';
+import { AUDIT_MODULES, ACTION_COLORS, AUDIT_ACTIONS } from '../config/auditConfig';
 
 const PAGE_SIZE = 50;
 

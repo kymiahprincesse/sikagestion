@@ -5,7 +5,7 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
-import { formatDateLong, formatFCFA } from '../../utils/format'
+import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
 import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -15,7 +15,6 @@ const MATERIAUX = ['Acier carbone', 'Inox 304', 'Inox 316', 'Aluminium', 'Galvan
 const EPAISSEURS_STANDARD = [1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20]
 
 const LIGNE_VIDE = {
-  id: Date.now(),
   designation: '',
   typeTravail: 'Découpe',
   materiau: 'Acier carbone',
@@ -23,6 +22,7 @@ const LIGNE_VIDE = {
   surface: 0,
   pu: 0
 }
+const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisChaudronnerie() {
   const pdfRef = useRef(null)
@@ -40,9 +40,10 @@ export default function DevisChaudronnerie() {
     clientId: null,
     type: 'CHAUDRONNERIE',
     objet: '',
+    notes: '',
     lieuInstallation: '',
 
-    lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    lignes: [nouvelleLigne()],
     tauxRemise: 0,
     tvaActive: true,
     statut: 'BROUILLON'
@@ -69,8 +70,9 @@ export default function DevisChaudronnerie() {
             clientId: devisExist.clientId,
             type: devisExist.type || 'CHAUDRONNERIE',
             objet: devisExist.objet || '',
+            notes: devisExist.notes || '',
             lieuInstallation: devisExist.lieuInstallation || '',
-            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [nouvelleLigne()],
             tauxRemise: devisExist.tauxRemise || 0,
             tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
             statut: devisExist.statut || 'BROUILLON'
@@ -109,7 +111,7 @@ export default function DevisChaudronnerie() {
   const ajouterLigne = () => {
     setDevisData(prev => ({
       ...prev,
-      lignes: [...prev.lignes, { ...LIGNE_VIDE, id: Date.now() }]
+      lignes: [...prev.lignes, nouvelleLigne()]
     }))
   }
 
@@ -154,8 +156,9 @@ export default function DevisChaudronnerie() {
         clientId: null,
         type: 'CHAUDRONNERIE',
         objet: '',
+        notes: '',
         lieuInstallation: '',
-        lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+        lignes: [nouvelleLigne()],
         tauxRemise: 0,
         tvaActive: true,
         statut: 'BROUILLON'
@@ -243,6 +246,8 @@ export default function DevisChaudronnerie() {
       reference: devisData.numero,
       objet: devisData.objet || 'Chaudronnerie',
       type: 'CHAUDRONNERIE',
+      notes: devisData.notes || '',
+      statut: devisData.statut || 'BROUILLON',
       client: {
         nom: client?.nom || '—',
         interlocuteur: client?.contactNom || '—',
@@ -336,6 +341,17 @@ export default function DevisChaudronnerie() {
           <div className="mb-4">
             <label className="block text-sm font-semibold text-navy mb-2">Lieu d'installation</label>
             <input type="text" value={devisData.lieuInstallation} onChange={(e) => setDevisData(prev => ({ ...prev, lieuInstallation: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" placeholder="Ex: Zone industrielle..." />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-navy mb-2">Notes / Observations</label>
+            <textarea
+              value={devisData.notes || ''}
+              onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={3}
+              placeholder="Informations complémentaires, conditions particulières, remarques client..."
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange resize-vertical"
+            />
           </div>
           
           {clientSelectionne && (

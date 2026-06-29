@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'fs'
+import { fileURLToPath } from 'url'
+import path from 'path'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const BUILD_TIMESTAMP = Date.now().toString()
 
 // Plugin : injecte le timestamp de build dans le cache name du Service Worker (dist/sw.js)
@@ -10,7 +13,7 @@ function stampServiceWorker() {
     name: 'stamp-service-worker',
     apply: 'build',
     closeBundle() {
-      const swPath = `${process.cwd()}/dist/sw.js`
+      const swPath = `${__dirname}/dist/sw.js`
       try {
         if (fs.existsSync(swPath)) {
           let content = fs.readFileSync(swPath, 'utf8')

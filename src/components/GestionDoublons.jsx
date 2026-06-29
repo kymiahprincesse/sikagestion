@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDevisStore } from '../store/useDevisStore';
 import { useClientsStore } from '../store/useClientsStore';
 import { X, Merge, Trash2, AlertTriangle, CheckCircle, Search, Filter } from 'lucide-react';
@@ -19,14 +19,14 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
   const [filtreClient, setFiltreClient] = useState('');
   const [modeFusion, setModeFusion] = useState(false);
 
-  useEffect(() => {
-    rechargerDoublons();
-  }, [devis]);
-
-  const rechargerDoublons = () => {
+  const rechargerDoublons = useCallback(() => {
     const résultat = analyserDoublons();
     setDoublons(résultat);
-  };
+  }, [analyserDoublons]);
+
+  useEffect(() => {
+    rechargerDoublons();
+  }, [devis, rechargerDoublons]);
 
   const getClientNom = (clientId) => {
     const client = clients.find(c => c.id === clientId);

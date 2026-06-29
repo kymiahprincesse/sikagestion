@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { RefreshCw, Cloud, CloudOff, AlertCircle, CheckCircle2, Wifi, WifiOff } from 'lucide-react'
 import { useSupabaseSync } from '../hooks/useSupabaseSync'
 
@@ -10,18 +10,25 @@ export default function SyncStatusIndicator() {
   const { isConnected, isChecking, lastCheck, error, isOnline, pendingOperations, reconnectAttempts, forceReconnect } = useSupabaseSync()
   const [showDetails, setShowDetails] = useState(false)
   const [lastSync, setLastSync] = useState(null)
+  const [now, setNow] = useState(Date.now())
 
-  // Mettre à jour l'heure de dernière sync
+  // Mise à jour du timestamp de dernière sync lorsque la connexion est confirmée
   useEffect(() => {
     if (isConnected && lastCheck) {
       setLastSync(new Date())
     }
   }, [isConnected, lastCheck])
 
+  // Rafraîchir l'affichage "il y a Xs" toutes les 10 secondes
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 10000)
+    return () => clearInterval(interval)
+  }, [])
+
   // Formater le temps écoulé
   const getTimeAgo = () => {
     if (!lastSync) return 'Jamais'
-    const seconds = Math.floor((Date.now() - lastSync.getTime()) / 1000)
+    const seconds = Math.floor((now - lastSync.getTime()) / 1000)
     if (seconds < 60) return `${seconds}s`
     const minutes = Math.floor(seconds / 60)
     if (minutes < 60) return `${minutes}min`

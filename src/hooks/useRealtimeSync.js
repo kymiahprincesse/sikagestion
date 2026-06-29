@@ -84,6 +84,42 @@ export function useRealtimeSync() {
               },
               (payload) => {
                 logger.log(`📡 Changement ${tableName} détecté:`, payload.eventType)
+                
+                // Gérer les mises à jour par table (imports dynamiques pour éviter dépendances circulaires)
+                if (tableName === 'devis') {
+                  import('../store/useDevisStore.js').then(m => {
+                    const store = m.useDevisStore.getState()
+                    if (payload.eventType === 'INSERT') {
+                      store.addDevisFromRealtime(payload.new)
+                    } else if (payload.eventType === 'UPDATE') {
+                      store.updateDevisFromRealtime(payload.new)
+                    } else if (payload.eventType === 'DELETE') {
+                      store.deleteDevisFromRealtime(payload.old.id)
+                    }
+                  }).catch(err => logger.error('Erreur import useDevisStore:', err))
+                } else if (tableName === 'factures') {
+                  import('../store/useFacturesStore.js').then(m => {
+                    const store = m.useFacturesStore.getState()
+                    if (payload.eventType === 'INSERT') {
+                      store.addFactureFromRealtime(payload.new)
+                    } else if (payload.eventType === 'UPDATE') {
+                      store.updateFactureFromRealtime(payload.new)
+                    } else if (payload.eventType === 'DELETE') {
+                      store.deleteFactureFromRealtime(payload.old.id)
+                    }
+                  }).catch(err => logger.error('Erreur import useFacturesStore:', err))
+                } else if (tableName === 'clients') {
+                  import('../store/useClientsStore.js').then(m => {
+                    const store = m.useClientsStore.getState()
+                    if (payload.eventType === 'INSERT') {
+                      store.addClientFromRealtime(payload.new)
+                    } else if (payload.eventType === 'UPDATE') {
+                      store.updateClientFromRealtime(payload.new)
+                    } else if (payload.eventType === 'DELETE') {
+                      store.deleteClientFromRealtime(payload.old.id)
+                    }
+                  }).catch(err => logger.error('Erreur import useClientsStore:', err))
+                }
               }
             )
             .subscribe((status) => {

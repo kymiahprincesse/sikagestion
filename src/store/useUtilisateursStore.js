@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
-import { hashPassword, verifyPassword } from '../utils/passwordHash';
 import { logger } from '../utils/logger';
 import { normalizeRole } from '../utils/filterSuperAdmin';
 
@@ -65,7 +64,7 @@ function rowToUtilisateur(row, localUser = null) {
 
 // NOTE: Les mots de passe sont maintenant stockés comme des hash SHA-256
 // Les mots de passe par défaut doivent être changés après la première connexion
-const SALT_LOCAL = 'sika_local_auth_salt_2024';
+const SALT_LOCAL = import.meta.env.VITE_SIKA_SALT || 'sika_local_auth_salt_2024';
 
 // Fonction pour hasher un mot de passe localement
 async function hashLocal(password) {
@@ -77,7 +76,7 @@ async function hashLocal(password) {
 }
 
 // Aucun utilisateur initial fictif - tous les utilisateurs viennent de Supabase
-const PERSONNEL_INITIAL = [];
+
 
 export const useUtilisateursStore = create(
   persist(
@@ -104,8 +103,9 @@ export const useUtilisateursStore = create(
             return;
           }
 
-          // Utiliser uniquement les données de Supabase
-          const supabaseUsers = data.map(row => rowToUtilisateur(row));
+          // Utiliser les données de Supabase tout en conservant les hash locaux
+          const localUsersMap = new Map(get().utilisateurs.map(u => [u.id, u]));
+          const supabaseUsers = data.map(row => rowToUtilisateur(row, localUsersMap.get(row.id)));
           set({ utilisateurs: supabaseUsers });
         } catch (err) {
           logger.error('fetchUtilisateurs:', err.message);

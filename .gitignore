@@ -29,3 +29,17 @@ build/
 *.njsproj
 *.sln
 *.sw?
+
+# Rapports générés
+eslint-report.json
+build-report*.txt
+lint-report*.txt
+eslint-devis.txt
+preview-log*.txt
+
+# Logs serveur
+vite-server.log
+
+# Windsurf / Qodo
+.windsurfignore
+.qodo/

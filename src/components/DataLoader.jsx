@@ -11,7 +11,6 @@ import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useUtilisateursStore } from '../store/useUtilisateursStore'
 import { useNotificationsStore } from '../store/useNotificationsStore'
 import { useSupabaseRealtimeEnhanced } from '../hooks/useSupabaseRealtimeEnhanced'
-import { useRealtimeSync } from '../hooks/useRealtimeSync'
 import { offlineQueue } from '../services/offlineQueue'
 import { logger } from '../utils/logger'
 
@@ -34,11 +33,8 @@ function validateDocument(d) {
  * ET active la synchronisation temps réel
  */
 export default function DataLoader() {
-  // Activer la sync temps réel améliorée avec reconnexion auto
+  // Activer la sync temps réel améliorée avec reconnexion auto (couvre toutes les tables)
   useSupabaseRealtimeEnhanced()
-  
-  // Activer la synchronisation temps réel des utilisateurs et autres tables
-  useRealtimeSync()
 
   const setClients = useClientsStore(state => state.setClients)
   const setFactures = useFacturesStore(state => state.setFactures)
@@ -50,7 +46,7 @@ export default function DataLoader() {
   const setRessourcesHebdo = usePlanificationStore(state => state.setRessourcesHebdo)
   const setEncaissements = useEncaissementsStore(state => state.setEncaissements)
   const setMouvements = useCaisseStore(state => state.setMouvements)
-  const setUtilisateurs = useUtilisateursStore(state => state.fetchUtilisateurs)
+  // Utilisateurs : mis à jour directement via useUtilisateursStore.setState dans loadAllData
   const genererNotifications = useNotificationsStore(state => state.genererNotifications)
 
   useEffect(() => {
@@ -58,7 +54,7 @@ export default function DataLoader() {
       try {
         
         // Charger toutes les données en parallèle
-        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes] = await Promise.all([
+        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, lignesDevisRes] = await Promise.all([
           supabase.from('clients').select('*').order('id'),
           supabase.from('factures').select('*').order('id'),
           supabase.from('devis').select('*').order('id'),
@@ -70,6 +66,7 @@ export default function DataLoader() {
           supabase.from('ressources_hebdo').select('*').order('id'),
           supabase.from('encaissements').select('*').order('id'),
           supabase.from('utilisateurs').select('*').order('id'),
+          supabase.from('lignes_devis').select('*').order('ordre'),
         ])
         
         // CLIENTS
@@ -121,22 +118,47 @@ export default function DataLoader() {
         
         // DEVIS
         if (!devisRes.error && devisRes.data?.length > 0) {
+          // Construire la map lignes par devis_id
+          const lignesMap = {};
+          if (!lignesDevisRes.error && lignesDevisRes.data?.length > 0) {
+            lignesDevisRes.data.forEach(l => {
+              if (!lignesMap[l.devis_id]) lignesMap[l.devis_id] = [];
+              lignesMap[l.devis_id].push({
+                id: l.id,
+                designation: l.designation || '',
+                dn: l.unite || '',
+                unite: l.unite || '',
+                ml: parseFloat(l.ml || 0),
+                pt: parseFloat(l.pt || 0),
+                qte: parseFloat(l.quantite || 0),
+                pu: parseFloat(l.pu || 0),
+                montant: parseFloat(l.montant || 0),
+                ordre: l.ordre || 0,
+              });
+            });
+          }
           const devis = devisRes.data.map(d => ({
             id: d.id,
             numero: d.numero,
             clientId: d.client_id,
             clientNom: d.client_nom,
             typeDevis: d.type_devis,
+            type: d.type_devis,
             objet: d.objet,
             montantHT: parseFloat(d.montant_ht || 0),
             montantTVA: parseFloat(d.montant_tva || 0),
             montantTTC: parseFloat(d.montant_ttc || 0),
+            ttc: parseFloat(d.montant_ttc || 0),
             montantTotal: parseFloat(d.montant_total || 0),
+            date: d.date_devis,
             dateDevis: d.date_devis,
             dateValidation: d.date_validation,
+            dateAnnulation: d.date_annulation,
+            dateTransformation: d.date_transformation,
             statut: d.statut,
             notes: d.notes,
-            dateCreation: d.date_creation
+            dateCreation: d.date_creation,
+            lignes: lignesMap[d.id] || []
           }))
           setDevis(devis)
         }
@@ -255,17 +277,22 @@ export default function DataLoader() {
 
         // UTILISATEURS
         if (!utilisateursRes.error && utilisateursRes.data?.length > 0) {
-          // Utiliser le store pour gérer les utilisateurs
-          const utilisateurs = utilisateursRes.data.map(u => ({
-            id: u.id,
-            nom: u.nom,
-            login: u.login,
-            email: u.email || '',
-            role: u.role,
-            actif: u.is_actif,
-            auth_user_id: u.auth_user_id || null,
-            permissions: u.permissions || null,
-          }))
+          // Conserver les hash locaux existants pour ne pas casser l'authentification locale
+          const localUsersMap = new Map(useUtilisateursStore.getState().utilisateurs.map(u => [u.id, u]));
+          const utilisateurs = utilisateursRes.data.map(u => {
+            const localUser = localUsersMap.get(u.id);
+            return {
+              id: u.id,
+              nom: u.nom,
+              login: u.login,
+              email: u.email || '',
+              role: u.role,
+              actif: u.is_actif,
+              auth_user_id: u.auth_user_id || null,
+              permissions: u.permissions || null,
+              motDePasseHash: localUser?.motDePasseHash || null,
+            };
+          })
           useUtilisateursStore.setState({ utilisateurs })
         }
 
@@ -354,7 +381,7 @@ export default function DataLoader() {
     }
 
     loadAllData()
-  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements, genererNotifications])
+  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements, genererNotifications]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return null // Composant invisible
 }

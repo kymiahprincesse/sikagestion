@@ -135,20 +135,23 @@ class OfflineQueue {
     const { table, operation, data, id } = item.payload
 
     switch (operation) {
-      case 'insert':
+      case 'insert': {
         const { error: insertError } = await supabase.from(table).insert(data)
         if (insertError) throw insertError
         break
+      }
 
-      case 'update':
+      case 'update': {
         const { error: updateError } = await supabase.from(table).update(data).eq('id', id)
         if (updateError) throw updateError
         break
+      }
 
-      case 'delete':
+      case 'delete': {
         const { error: deleteError } = await supabase.from(table).delete().eq('id', id)
         if (deleteError) throw deleteError
         break
+      }
 
       default:
         throw new Error(`Opération inconnue: ${operation}`)

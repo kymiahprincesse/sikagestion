@@ -1,7 +1,6 @@
 // SIKA INDUSTRIE — Service Worker PWA Amélioré
 // CACHE_VERSION est remplacé automatiquement par un timestamp à chaque `vite build`
 const CACHE_NAME = 'sikagestion-v2.0';
-const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
 // Ressources à mettre en cache immédiatement
 const PRECACHE_URLS = [
@@ -197,7 +196,7 @@ self.addEventListener('notificationclick', event => {
   event.notification.close();
   if (event.action !== 'close') {
     event.waitUntil(
-      clients.openWindow(event.notification.data?.url || '/dashboard')
+      self.clients.openWindow(event.notification.data?.url || '/dashboard')
     );
   }
 });

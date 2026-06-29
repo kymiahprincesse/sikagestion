@@ -16,7 +16,7 @@ export const useParametresStore = create(
       tauxHoraireTechnicien: 15000, // FCFA par heure
 
       // Paramètres financiers
-      soldeInitialEncaissements: 200600, // FCFA
+      soldeInitialEncaissements: 0,
 
       // Paramètres entreprise
       nomEntreprise: 'SIKA INDUSTRIE',
@@ -176,7 +176,7 @@ export const useParametresStore = create(
           prixCarburant: 700,
           consommationMoyenne: 8,
           tauxHoraireTechnicien: 15000,
-          soldeInitialEncaissements: 200600,
+          soldeInitialEncaissements: 0,
           nomEntreprise: 'SIKA INDUSTRIE',
           adresseEntreprise: 'Port-Bouët Anani, Rond-Point Carrefour',
           telephoneEntreprise: '07 97 25 25 26',

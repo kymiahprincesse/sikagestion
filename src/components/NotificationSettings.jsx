@@ -5,21 +5,23 @@ import { requestNotificationPermission } from '../utils/notifications'
 export default function NotificationSettings() {
   const [permission, setPermission] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied')
   const [showSettings, setShowSettings] = useState(false)
-  const [preferences, setPreferences] = useState({
-    alertesBudget: true,
-    facturesImpayees: true,
-    devisGagnes: true,
-    nouveauxAO: true,
-    encaissements: true,
-    tachesRetard: true
+  const [preferences, setPreferences] = useState(() => {
+    const defaults = {
+      alertesBudget: true,
+      facturesImpayees: true,
+      devisGagnes: true,
+      nouveauxAO: true,
+      encaissements: true,
+      tachesRetard: true
+    }
+    try {
+      const saved = localStorage.getItem('notification_preferences')
+      if (saved) return { ...defaults, ...JSON.parse(saved) }
+    } catch (e) { /* ignore */ }
+    return defaults
   })
 
   useEffect(() => {
-    const saved = localStorage.getItem('notification_preferences')
-    if (saved) {
-      setPreferences(JSON.parse(saved))
-    }
-
     const checkPermission = () => {
       setPermission(typeof Notification !== 'undefined' ? Notification.permission : 'denied')
     }

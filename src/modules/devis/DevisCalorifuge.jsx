@@ -6,7 +6,7 @@ import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import TVABlock from '../../components/TVABlock'
-import { formatDateLong, formatFCFA, safeParseFloat, getTodayISO } from '../../utils/format'
+import { formatDateLong, formatFCFA, safeParseFloat, getTodayISO, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
 import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
 import { useDuplicatePrevention } from '../../hooks/useDuplicatePrevention'
@@ -27,7 +27,6 @@ const DESIGNATIONS_PREDEFINES = [
 ]
 
 const LIGNE_VIDE = {
-  id: Date.now(),
   designation: '',
   dn: '',
   ml: 0,
@@ -36,6 +35,7 @@ const LIGNE_VIDE = {
   qteManuelle: false,
   pu: 0
 }
+const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisCalorifuge() {
   const pdfRef = useRef(null)
@@ -69,7 +69,8 @@ export default function DevisCalorifuge() {
     type: 'CALORIFUGE',
     demandePar: '',
     objet: '',
-    lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    notes: '',
+    lignes: [nouvelleLigne()],
     tauxRemise: 0,
     tvaActive: true,
     statut: 'BROUILLON'
@@ -99,7 +100,8 @@ export default function DevisCalorifuge() {
             type: devisExist.type || 'CALORIFUGE',
             demandePar: devisExist.demandePar || '',
             objet: devisExist.objet || '',
-            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            notes: devisExist.notes || '',
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [nouvelleLigne()],
             tauxRemise: devisExist.tauxRemise || 0,
             tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
             statut: devisExist.statut || 'BROUILLON'
@@ -190,7 +192,7 @@ export default function DevisCalorifuge() {
   const ajouterLigne = () => {
     setDevisData(prev => ({
       ...prev,
-      lignes: [...prev.lignes, { ...LIGNE_VIDE, id: Date.now() }]
+      lignes: [...prev.lignes, nouvelleLigne()]
     }))
   }
 
@@ -304,7 +306,8 @@ export default function DevisCalorifuge() {
       type: 'CALORIFUGE',
       demandePar: '',
       objet: '',
-      lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+      notes: '',
+      lignes: [nouvelleLigne()],
       tauxRemise: 0,
       tvaActive: true,
       statut: 'BROUILLON'
@@ -424,6 +427,8 @@ export default function DevisCalorifuge() {
         reference: devisData.numero,
         objet: devisData.objet || 'Calorifuge',
         type: 'CALORIFUGE',
+        notes: devisData.notes || '',
+        statut: devisData.statut || 'BROUILLON',
         client: {
           nom: client?.nom || '—',
           interlocuteur: devisData.demandePar || client?.contactNom || '—',
@@ -585,6 +590,16 @@ export default function DevisCalorifuge() {
                 value={devisData.objet}
                 onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))}
                 placeholder="Description de la mission"
+                rows={3}
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-bleu block mb-1">NOTES / OBSERVATIONS</label>
+              <textarea
+                value={devisData.notes || ''}
+                onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Informations complémentaires, conditions particulières, remarques client..."
                 rows={3}
                 className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
               />

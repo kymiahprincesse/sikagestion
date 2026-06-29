@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase, checkConnection } from '../lib/supabaseClient'
 import { connectionManager } from '../lib/connectionManager'
 
@@ -14,11 +14,16 @@ export const useSupabaseSync = () => {
     isReconnecting: false
   })
 
-  const verifyConnection = async () => {
-    setState(s => ({ ...s, isChecking: true }))
+  const isMountedRef = useRef(true)
+  const safeSetState = useCallback((updater) => {
+    if (isMountedRef.current) setState(updater)
+  }, [])
+
+  const verifyConnection = useCallback(async () => {
+    safeSetState(s => ({ ...s, isChecking: true }))
     try {
       const status = await checkConnection()
-      setState(s => ({
+      safeSetState(s => ({
         ...s,
         isConnected: status.connected,
         lastCheck: status.timestamp,
@@ -27,7 +32,7 @@ export const useSupabaseSync = () => {
       }))
       return status.connected
     } catch (err) {
-      setState(s => ({
+      safeSetState(s => ({
         ...s,
         isConnected: false,
         error: err.message,
@@ -35,15 +40,14 @@ export const useSupabaseSync = () => {
       }))
       return false
     }
-  }
+  }, [safeSetState])
 
   useEffect(() => {
-    // Vérification initiale
+    isMountedRef.current = true
     verifyConnection()
 
-    // S'abonner au connectionManager pour les mises à jour en temps réel
     const unsubscribe = connectionManager.subscribe((managerState) => {
-      setState(s => ({
+      safeSetState(s => ({
         ...s,
         isConnected: managerState.isSupabaseConnected,
         isOnline: managerState.isOnline,
@@ -54,33 +58,39 @@ export const useSupabaseSync = () => {
       }))
     })
 
-    // Vérification périodique de secours
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        verifyConnection()
-      }
-    }, 30000)
+    let interval = null
+    let visibilityHandler = null
 
-    // Gérer la reconnexion quand la page redevient visible
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        verifyConnection()
-        connectionManager.forceReconnect()
+    const startIntervals = () => {
+      interval = setInterval(() => {
+        if (document.visibilityState === 'visible') verifyConnection()
+      }, 30000)
+
+      visibilityHandler = () => {
+        if (document.visibilityState === 'visible') {
+          verifyConnection()
+          connectionManager.forceReconnect()
+        }
       }
+      document.addEventListener('visibilitychange', visibilityHandler)
     }
-    document.addEventListener('visibilitychange', handleVisibility)
+
+    // Délai avant de démarrer les vérifications périodiques pour éviter le flood au montage
+    const startupDelay = setTimeout(startIntervals, 1000)
 
     return () => {
+      isMountedRef.current = false
       unsubscribe()
-      clearInterval(interval)
-      document.removeEventListener('visibilitychange', handleVisibility)
+      clearTimeout(startupDelay)
+      if (interval) clearInterval(interval)
+      if (visibilityHandler) document.removeEventListener('visibilitychange', visibilityHandler)
     }
-  }, [])
+  }, [verifyConnection, safeSetState])
 
   return {
     ...state,
     refresh: verifyConnection,
-    forceReconnect: () => connectionManager.forceReconnect(),
+    forceReconnect: useCallback(() => connectionManager.forceReconnect(), []),
     supabase
   }
 }

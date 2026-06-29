@@ -106,10 +106,10 @@ export class DuplicateDetector {
       const dateExistante = new Date(existante.dateCreation || existante.date || 0).getTime();
       const diffMs = maintenant - dateExistante;
       
-      // Si créé dans les dernières secondes avec données similaires
-      if (diffMs < 5000) { // 5 secondes
+      // Si créé dans les dernières 500ms avec données quasi-identiques (double-clic)
+      if (diffMs < 500) { // 500 millisecondes seulement
         const similarité = this._calculerSimilaritéGlobale(nouvelle, existante);
-        return similarité > 0.7; // 70% de similarité
+        return similarité > 0.95; // 95% de similarité
       }
       return false;
     });
@@ -200,14 +200,6 @@ export const DuplicateConfigs = {
   devis: {
     critères: [
       {
-        nom: 'Doublon exact',
-        type: 'EXACT_DUPLICATE',
-        champs: ['clientId', 'montantTTC', 'type'],
-        comparaison: 'exact',
-        fenêtreTemps: 60000, // 1 minute
-        message: 'Un devis identique existe déjà pour ce client'
-      },
-      {
         nom: 'Numéro existant',
         type: 'NUMBER_DUPLICATE',
         champs: ['numero'],
@@ -215,7 +207,7 @@ export const DuplicateConfigs = {
         message: 'Ce numéro de devis existe déjà'
       }
     ],
-    délaiFenêtre: 60000
+    délaiFenêtre: 10000
   },
 
   facture: {

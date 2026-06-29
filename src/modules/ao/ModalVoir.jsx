@@ -1,5 +1,12 @@
 import { STATUTS_AO } from '../../store/useAOStore';
 
+const InfoRow = ({ label, value }) => (
+  <div className="grid grid-cols-3 gap-4 py-3 border-b border-argent">
+    <div className="font-medium text-gray-700">{label}</div>
+    <div className="col-span-2 text-gray-900">{value || '-'}</div>
+  </div>
+);
+
 export default function ModalVoir({ ao, onClose }) {
   const getStatutLabel = (statut) => {
     const labels = {
@@ -24,13 +31,6 @@ export default function ModalVoir({ ao, onClose }) {
     };
     return colors[statut] || 'bg-gray-400';
   };
-
-  const InfoRow = ({ label, value }) => (
-    <div className="grid grid-cols-3 gap-4 py-3 border-b border-argent">
-      <div className="font-medium text-gray-700">{label}</div>
-      <div className="col-span-2 text-gray-900">{value || '-'}</div>
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

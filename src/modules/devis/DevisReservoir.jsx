@@ -7,7 +7,7 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
+import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const FORMES_RESERVOIR = ['Cylindrique', 'Sphérique', 'Rectangulaire', 'Conique']
@@ -52,7 +52,7 @@ export default function DevisReservoir() {
   const { confirm } = useNotifications()
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: '',
+    numero: location.state?.devisId ? '' : getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'RESERVOIR',
@@ -93,17 +93,11 @@ export default function DevisReservoir() {
       { libelle: 'Réception définitive', pourcentage: 5 }
     ],
     tvaActive: true,
+    notes: '',
     statut: 'BROUILLON'
   }))
 
   const [devisId, setDevisId] = useState(null)
-
-  // Générer le numéro après le montage (évite setState pendant le render)
-  useEffect(() => {
-    if (!devisData.numero && !location.state?.devisId) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
-    }
-  }, [devisData.numero, location.state?.devisId, getNextNumero])
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
@@ -128,6 +122,7 @@ export default function DevisReservoir() {
             hauteur: devisExist.hauteur || 0,
             epaisseur: devisExist.epaisseur || 0,
             objet: devisExist.objet || '',
+            notes: devisExist.notes || '',
             lignesCommerciales: devisExist.lignesCommerciales?.length > 0 ? devisExist.lignesCommerciales : LIGNES_PREDEFINES.map((l, i) => ({ ...l, id: Date.now() + i })),
             tauxRemise: devisExist.tauxRemise || 10,
             tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
@@ -146,7 +141,8 @@ export default function DevisReservoir() {
       }
     }
     loadDevis()
-  }, [location.state, location.state?.devisId, getDevisById])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.devisId])
 
   const [accordeonOuvert, setAccordeonOuvert] = useState({
     A1: true,
@@ -262,6 +258,7 @@ export default function DevisReservoir() {
           { libelle: 'Réception définitive', pourcentage: 5 }
         ],
         tvaActive: true,
+        notes: '',
         statut: 'BROUILLON'
       })
       setDevisId(null)
@@ -301,36 +298,37 @@ export default function DevisReservoir() {
       dateModification: new Date().toISOString().split('T')[0]
     }
 
-    if (devisId) {
-      updateDevis(devisId, devisComplet)
-      addLog({
-        module: 'DEVIS_RESERVOIR',
-        action: 'MODIFICATION',
-        utilisateur: 'Utilisateur',
-        apres: { numero: devisData.numero, montantTTC: totaux.ttc }
-      })
+    try {
+      if (devisId) {
+        await updateDevis(devisId, devisComplet)
+        addLog({
+          module: 'DEVIS_RESERVOIR',
+          action: 'MODIFICATION',
+          utilisateur: 'Utilisateur',
+          apres: { numero: devisData.numero, montantTTC: totaux.ttc }
+        })
+        ajouterNotification({
+          type: 'INFO', icone: '✅', titre: 'SUCCÈS',
+          message: `Devis ${devisData.numero} modifié - ${formatFCFA(totaux.ttc)}`,
+          lien: '/devis/liste'
+        })
+        navigate('/devis/liste')
+      } else {
+        const nouveau = await addDevis(devisComplet)
+        setDevisId(nouveau.id)
+        addLog({ module: 'DEVIS_RESERVOIR', action: 'CREATION', utilisateur: 'Utilisateur', apres: { numero: nouveau.numero, montantTTC: totaux.ttc } })
+        ajouterNotification({
+          type: 'INFO', icone: '✅', titre: 'SUCCÈS',
+          message: `Devis ${nouveau.numero} enregistré - ${formatFCFA(totaux.ttc)}`,
+          lien: '/devis/liste'
+        })
+        navigate('/devis/liste')
+      }
+    } catch (error) {
+      console.error('Erreur enregistrement:', error)
       ajouterNotification({
-        type: 'INFO',
-        icone: '✅',
-        titre: 'SUCCÈS',
-        message: `Devis ${devisData.numero} modifié avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
-        lien: '/devis/liste'
-      })
-    } else {
-      const nouveau = addDevis(devisComplet)
-      setDevisId(nouveau.id)
-      addLog({
-        module: 'DEVIS_RESERVOIR',
-        action: 'CREATION',
-        utilisateur: 'Utilisateur',
-        apres: { numero: nouveau.numero, montantTTC: totaux.ttc }
-      })
-      ajouterNotification({
-        type: 'INFO',
-        icone: '✅',
-        titre: 'SUCCÈS',
-        message: `Devis ${nouveau.numero} enregistré avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
-        lien: '/devis/liste'
+        type: 'URGENT', icone: '❌', titre: 'ERREUR ENREGISTREMENT',
+        message: `Échec: ${error?.message || 'Erreur inconnue'}`
       })
     }
   }
@@ -362,16 +360,26 @@ export default function DevisReservoir() {
       reference: devisData.numero,
       objet: devisData.objet || `Réservoir ${devisData.forme} ${devisData.volume}${devisData.volumeUnit} - ${devisData.typeAcier}`,
       type: 'RÉSERVOIR',
+      notes: devisData.notes || '',
+      statut: devisData.statut || 'BROUILLON',
       client: {
         nom: client?.nom || '—',
-        interlocuteur: client?.contactNom || '—',
-        site: devisData.lieuMontage || client?.ville || '—'
+        interlocuteur: devisData.demandePar || client?.contactNom || '—',
+        adresse: devisData.lieuMontage || client?.adresse || '—',
+        telephone: client?.telephone || '',
+        email: client?.contactEmail || '',
+        raisonSociale: client?.raisonSociale || '',
+        secteur: client?.secteur || '',
+        ville: client?.ville || '',
+        pays: client?.pays || 'Côte d\'Ivoire',
+        conditionsPaiement: client?.conditionsPaiement || ''
       },
       infos: {
         date: devisData.date,
         validite: '30 jours',
         etabliPar: 'SIKA INDUSTRIE',
-        tel: '(225) 07 97 25 25 26'
+        tel: '(225) 07 97 25 25 26',
+        demandePar: devisData.demandePar || ''
       },
       lignes: lignesAvecMontant,
       montantBrut: totaux.montantBrut,
@@ -381,20 +389,7 @@ export default function DevisReservoir() {
       ttc: totaux.ttc
     };
 
-    // Générer le HTML avec le nouveau template
-    const htmlContent = generateDevisHTML(templateData);
-    
-    // Ouvrir dans une nouvelle fenêtre pour impression
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Attendre le chargement puis imprimer
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    };
+    printDevisHTML(templateData);
     
     addLog({
       module: 'DEVIS_RESERVOIR',
@@ -466,6 +461,15 @@ export default function DevisReservoir() {
                     readOnly
                     className="w-full px-3 py-2 border border-argent rounded-lg bg-navyClair font-bold text-navy"
                   />
+                  <div className="mt-2">
+                    <span className="text-xs font-semibold text-bleu uppercase tracking-wide">Type de devis</span>
+                    <div className="mt-1">
+                      <span className="inline-flex items-center gap-2 px-3 py-1 bg-orange text-white text-xs font-bold rounded-full uppercase tracking-wide">
+                        <span className="w-2 h-2 rounded-full bg-white" />
+                        {devisData.type}
+                      </span>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-navy mb-2">Date</label>
@@ -809,6 +813,20 @@ export default function DevisReservoir() {
               </div>
             </div>
 
+            {/* NOTES / OBSERVATIONS */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">
+                📝 Notes / Observations
+              </h2>
+              <textarea
+                value={devisData.notes || ''}
+                onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Informations complémentaires, conditions particulières, remarques client..."
+                rows={4}
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              />
+            </div>
+
             {/* SECTION B - OFFRE COMMERCIALE */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">
@@ -830,7 +848,8 @@ export default function DevisReservoir() {
                     {devisData.lignesCommerciales.map((ligne, index) => {
                       const qte = parseFloat(ligne.qte) || 0
                       const pu = parseFloat(ligne.pu) || 0
-                      const montant = qte * pu
+                      const montantAuto = qte * pu
+                      const montant = (ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null) ? parseFloat(ligne.montant) || 0 : montantAuto
                       
                       return (
                         <tr key={ligne.id} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
@@ -854,13 +873,25 @@ export default function DevisReservoir() {
                           <td className="border border-argent px-4 py-2">
                             <input
                               type="number"
-                              value={ligne.pu}
+                              value={ligne.pu || ''}
                               onChange={(e) => modifierLigneCommerciale(ligne.id, 'pu', e.target.value)}
-                              className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:border-orange"
+                              placeholder="0"
+                              className="w-full px-2 py-1 border-2 border-orange rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-orange bg-orangeClair"
                             />
                           </td>
-                          <td className="border border-argent px-4 py-2 text-right font-semibold text-navy">
-                            {formatFCFA(montant)}
+                          <td className="border border-argent px-3 py-2">
+                            <input
+                              type="number"
+                              value={ligne.montant !== '' && ligne.montant !== undefined ? ligne.montant : montantAuto || ''}
+                              onChange={(e) => modifierLigneCommerciale(ligne.id, 'montant', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                              placeholder={montantAuto > 0 ? String(montantAuto) : '0'}
+                              min="0" step="1"
+                              className="w-full px-2 py-1 border-2 border-navy rounded text-right font-bold text-navy focus:outline-none focus:ring-2 focus:ring-navy bg-navyClair"
+                              title="Saisissable — laissez vide pour calculer auto (Qte x PU)"
+                            />
+                            {(ligne.montant === '' || ligne.montant === undefined) && montantAuto > 0 && (
+                              <div className="text-right text-xs text-gray-400 mt-0.5">= {qte}x{pu}</div>
+                            )}
                           </td>
                           <td className="border border-argent px-4 py-2 text-center">
                             <button
@@ -1078,6 +1109,32 @@ export default function DevisReservoir() {
                 </p>
               ))}
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* BARRE ACTIONS BAS */}
+      <div className="bg-white border-t-4 border-orange shadow-lg rounded-lg mt-6 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+              ➕ Nouveau
+            </button>
+            <button
+              onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${devisData.tvaActive ? 'bg-vert text-white hover:bg-opacity-90' : 'bg-argent text-navy hover:bg-opacity-80'}`}
+            >
+              🔄 TVA : {devisData.tvaActive ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-navy font-bold text-sm hidden sm:block">TTC : {formatFCFA(totaux.ttc)}</span>
+            <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+              📄 PDF complet
+            </button>
+            <button onClick={handleEnregistrer} className="flex items-center gap-2 px-5 py-3 bg-vert text-white rounded-lg hover:bg-opacity-90 transition font-bold text-base shadow-lg">
+              💾 Enregistrer
+            </button>
           </div>
         </div>
       </div>

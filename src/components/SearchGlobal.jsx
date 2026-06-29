@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDevisStore } from '../store/useDevisStore';
 import { useFacturesStore } from '../store/useFacturesStore';
@@ -50,8 +50,18 @@ const MODULES = {
 export default function SearchGlobal() {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [resultats, setResultats] = useState([]);
-  const [historique, setHistorique] = useState([]);
+  const [historique, setHistorique] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('sika_search_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.slice(0, 5);
+      }
+    } catch {
+      sessionStorage.removeItem('sika_search_history');
+    }
+    return [];
+  });
   const [selectedIndex, setSelectedIndex] = useState(0);
   
   const inputRef = useRef(null);
@@ -66,21 +76,31 @@ export default function SearchGlobal() {
   const projets = usePlanificationStore((state) => state.projets);
   const clients = useClientsStore((state) => state.clients);
 
-  // Charger l'historique depuis sessionStorage (limité à la session, plus sécurisé)
-  useEffect(() => {
+  const ajouterHistorique = (recherche) => {
+    const nouvelHistorique = [
+      recherche,
+      ...historique.filter(h => h !== recherche)
+    ].slice(0, 5);
+    
+    setHistorique(nouvelHistorique);
     try {
-      const saved = sessionStorage.getItem('sika_search_history');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setHistorique(parsed.slice(0, 5)); // Max 5 éléments
-        }
-      }
+      sessionStorage.setItem('sika_search_history', JSON.stringify(nouvelHistorique));
     } catch (e) {
-      // Corrompu ou inaccessible - ignorer silencieusement
-      sessionStorage.removeItem('sika_search_history');
+      // Storage plein ou inaccessible - ignorer
     }
-  }, []);
+  };
+
+  const handleSelectResult = useCallback((resultat) => {
+    ajouterHistorique(query);
+    setIsOpen(false);
+    setQuery('');
+
+    // Navigation vers le module avec l'ID
+    const module = MODULES[resultat.module];
+    if (module) {
+      navigate(`${module.route}?id=${resultat.id}`);
+    }
+  }, [query, navigate]);
 
   // Raccourci clavier Ctrl+K
   useEffect(() => {
@@ -90,7 +110,7 @@ export default function SearchGlobal() {
         inputRef.current?.focus();
         setIsOpen(true);
       }
-      
+
       if (e.key === 'Escape') {
         setIsOpen(false);
         inputRef.current?.blur();
@@ -100,29 +120,6 @@ export default function SearchGlobal() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  // Navigation au clavier dans les résultats
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!isOpen || resultats.length === 0) return;
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev + 1) % resultats.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev - 1 + resultats.length) % resultats.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (resultats[selectedIndex]) {
-          handleSelectResult(resultats[selectedIndex]);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, resultats, selectedIndex]);
 
   // Fermer le dropdown si clic à l'extérieur
   useEffect(() => {
@@ -136,13 +133,9 @@ export default function SearchGlobal() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Recherche globale
-  useEffect(() => {
-    if (!query.trim()) {
-      setResultats([]);
-      setSelectedIndex(0);
-      return;
-    }
+  // Recherche globale : calculée avec useMemo pour éviter setState dans un effet
+  const resultats = useMemo(() => {
+    if (!query.trim()) return [];
 
     const q = query.toLowerCase();
     const resultatsTemp = [];
@@ -259,35 +252,36 @@ export default function SearchGlobal() {
       }
     });
 
-    setResultats(resultatsTemp);
-    setSelectedIndex(0);
+    return resultatsTemp;
   }, [query, devis, factures, ao, encaissements, fournisseurs, projets, clients]);
 
-  const ajouterHistorique = (recherche) => {
-    const nouvelHistorique = [
-      recherche,
-      ...historique.filter(h => h !== recherche)
-    ].slice(0, 5);
-    
-    setHistorique(nouvelHistorique);
-    try {
-      sessionStorage.setItem('sika_search_history', JSON.stringify(nouvelHistorique));
-    } catch (e) {
-      // Storage plein ou inaccessible - ignorer
-    }
-  };
+  // Navigation au clavier dans les résultats
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isOpen || resultats.length === 0) return;
 
-  const handleSelectResult = (resultat) => {
-    ajouterHistorique(query);
-    setIsOpen(false);
-    setQuery('');
-    
-    // Navigation vers le module avec l'ID
-    const module = MODULES[resultat.module];
-    if (module) {
-      navigate(`${module.route}?id=${resultat.id}`);
-    }
-  };
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev + 1) % resultats.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev - 1 + resultats.length) % resultats.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (resultats[selectedIndex]) {
+          handleSelectResult(resultats[selectedIndex]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, resultats, selectedIndex, handleSelectResult]);
+
+  // Réinitialiser l'index de sélection quand la recherche change ou les résultats changent
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query, resultats.length]);
 
   const handleHistoriqueClick = (recherche) => {
     setQuery(recherche);

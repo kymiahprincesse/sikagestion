@@ -5,7 +5,7 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
-import { formatDateLong, formatFCFA } from '../../utils/format'
+import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
 import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -16,7 +16,6 @@ const TYPES_RACCORD = ['Coude 90°', 'Coude 45°', 'Té', 'Réduction', 'Manchon
 const PRESSIONS = ['PN10', 'PN16', 'PN25', 'PN40']
 
 const LIGNE_VIDE = {
-  id: Date.now(),
   designation: '',
   dn: 'DN50',
   typeTuyau: 'Acier noir',
@@ -24,6 +23,7 @@ const LIGNE_VIDE = {
   longueur: 0,
   pu: 0
 }
+const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisTuyauterie() {
   const pdfRef = useRef(null)
@@ -41,10 +41,11 @@ export default function DevisTuyauterie() {
     clientId: null,
     type: 'TUYAUTERIE',
     objet: '',
+    notes: '',
     fluideTransporte: '',
     temperatureService: 20,
 
-    lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    lignes: [nouvelleLigne()],
     tauxRemise: 0,
     tvaActive: true,
     statut: 'BROUILLON'
@@ -71,9 +72,10 @@ export default function DevisTuyauterie() {
             clientId: devisExist.clientId,
             type: devisExist.type || 'TUYAUTERIE',
             objet: devisExist.objet || '',
+            notes: devisExist.notes || '',
             fluideTransporte: devisExist.fluideTransporte || '',
             temperatureService: devisExist.temperatureService || 20,
-            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [nouvelleLigne()],
             tauxRemise: devisExist.tauxRemise || 0,
             tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
             statut: devisExist.statut || 'BROUILLON'
@@ -112,7 +114,7 @@ export default function DevisTuyauterie() {
   const ajouterLigne = () => {
     setDevisData(prev => ({
       ...prev,
-      lignes: [...prev.lignes, { ...LIGNE_VIDE, id: Date.now() }]
+      lignes: [...prev.lignes, nouvelleLigne()]
     }))
   }
 
@@ -154,9 +156,10 @@ export default function DevisTuyauterie() {
         clientId: null,
         type: 'TUYAUTERIE',
         objet: '',
+        notes: '',
         fluideTransporte: '',
         temperatureService: 20,
-        lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+        lignes: [nouvelleLigne()],
         tauxRemise: 0,
         tvaActive: true,
         statut: 'BROUILLON'
@@ -253,6 +256,8 @@ export default function DevisTuyauterie() {
       reference: devisData.numero,
       objet: devisData.objet || `Tuyauterie - ${devisData.fluideTransporte || 'Fluide'}`,
       type: 'TUYAUTERIE',
+      notes: devisData.notes || '',
+      statut: devisData.statut || 'BROUILLON',
       client: {
         nom: client?.nom || '—',
         interlocuteur: client?.contactNom || '—',
@@ -341,6 +346,17 @@ export default function DevisTuyauterie() {
           <div className="mb-4">
             <label className="block text-sm font-semibold text-navy mb-2">Objet</label>
             <input type="text" value={devisData.objet} onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" placeholder="Ex: Installation réseau tuyauterie..." />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-navy mb-2">Notes / Observations</label>
+            <textarea
+              value={devisData.notes || ''}
+              onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={3}
+              placeholder="Informations complémentaires, conditions particulières, remarques client..."
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange resize-vertical"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-4">

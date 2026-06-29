@@ -21,30 +21,52 @@ class ConnectionManager {
     this.reconnectTimeout = null
     this.isReconnecting = false
     this.isCheckingConnection = false
+    this.isProcessing = false
     this.listeners = []
     this.pendingOperations = []
     this.channels = new Map()
+    this.boundHandleNetworkChange = null
+    this.boundHandleVisibility = null
+    this._destroyed = false
     
     this.init()
   }
 
   init() {
-    // Écouter les changements de connexion réseau
-    window.addEventListener('online', () => this.handleNetworkChange(true))
-    window.addEventListener('offline', () => this.handleNetworkChange(false))
+    if (this._destroyed) return
+    // Stabiliser les handlers pour pouvoir les retirer proprement
+    this.boundHandleNetworkChange = (e) => this.handleNetworkChange(e.type === 'online')
+    this.boundHandleVisibility = () => {
+      if (document.visibilityState === 'visible') this.checkConnection()
+    }
+
+    window.addEventListener('online', this.boundHandleNetworkChange)
+    window.addEventListener('offline', this.boundHandleNetworkChange)
+    document.addEventListener('visibilitychange', this.boundHandleVisibility)
     
-    // Écouter la visibilité de la page (retour après inactivité)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        this.checkConnection()
-      }
-    })
-    
-    // Démarrer le heartbeat
     this.startHeartbeat()
-    
-    // Vérification initiale
     this.checkConnection()
+  }
+
+  /**
+   * Nettoyage complet pour HMR, tests, ou démontage de l'application.
+   */
+  destroy() {
+    this._destroyed = true
+    if (this.boundHandleNetworkChange) {
+      window.removeEventListener('online', this.boundHandleNetworkChange)
+      window.removeEventListener('offline', this.boundHandleNetworkChange)
+    }
+    if (this.boundHandleVisibility) {
+      document.removeEventListener('visibilitychange', this.boundHandleVisibility)
+    }
+    this.stopHeartbeat()
+    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout)
+    this.channels.forEach((config) => {
+      if (config?.instance) supabase.removeChannel(config.instance)
+    })
+    this.channels.clear()
+    this.listeners = []
   }
 
   handleNetworkChange(online) {
@@ -138,15 +160,12 @@ class ConnectionManager {
   }
 
   /**
-   * Enregistrer un canal realtime pour reconnexion automatique
+   * Enregistrer un canal realtime pour reconnexion automatique.
+   * Le canal est créé immédiatement car le realtime WebSocket est indépendant de l'API REST.
    */
   registerChannel(name, channelConfig) {
     this.channels.set(name, channelConfig)
-    
-    if (this.isSupabaseConnected) {
-      return this.createChannel(name, channelConfig)
-    }
-    return null
+    return this.createChannel(name, channelConfig)
   }
 
   unregisterChannel(name) {
@@ -159,12 +178,12 @@ class ConnectionManager {
 
   createChannel(name, config) {
     const { table, onInsert, onUpdate, onDelete, filter } = config
-    
+
     let channel = supabase.channel(`realtime-${name}`)
-    
+
     const changesConfig = { event: '*', schema: 'public', table }
     if (filter) changesConfig.filter = filter
-    
+
     channel = channel.on('postgres_changes', changesConfig, (payload) => {
       switch (payload.eventType) {
         case 'INSERT':
@@ -178,17 +197,32 @@ class ConnectionManager {
           break
       }
     })
-    
+
     channel.subscribe((status) => {
       logger.info(`📡 Canal ${name}: ${status}`)
+      // Le statut realtime est une source de vérité plus fiable que le simple ping REST
+      if (status === 'SUBSCRIBED') {
+        const wasConnected = this.isSupabaseConnected
+        this.isSupabaseConnected = true
+        this.isReconnecting = false
+        this.reconnectAttempts = 0
+        if (!wasConnected) {
+          logger.info('✅ Connexion realtime Supabase confirmée')
+          this.notifyListeners()
+        }
+      } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
+        this.isSupabaseConnected = false
+        this.notifyListeners()
+        this.scheduleReconnect()
+      }
     })
-    
+
     // Mettre à jour l'instance dans la config
     const config2 = this.channels.get(name)
     if (config2) {
       config2.instance = channel
     }
-    
+
     return channel
   }
 
@@ -239,23 +273,34 @@ class ConnectionManager {
   }
 
   async processPendingOperations() {
-    if (!this.isSupabaseConnected || this.pendingOperations.length === 0) return
+    if (!this.isSupabaseConnected || this.pendingOperations.length === 0 || this.isProcessing) return
 
+    this.isProcessing = true
     const operations = [...this.pendingOperations]
     this.pendingOperations = []
     this.savePendingOperations()
 
+    const failed = []
     for (const op of operations) {
+      const attempts = (op.attempts || 0) + 1
       try {
         await this.executeOperation(op)
       } catch (err) {
         logger.error('Erreur exécution opération:', err)
-        // Remettre en file si échec
-        this.pendingOperations.push(op)
+        if (attempts < 5) {
+          failed.push({ ...op, attempts })
+        } else {
+          logger.error('Opération abandonnée après 5 échecs:', op)
+        }
       }
     }
-    
-    this.savePendingOperations()
+
+    if (failed.length > 0) {
+      this.pendingOperations = [...this.pendingOperations, ...failed]
+      this.savePendingOperations()
+    }
+
+    this.isProcessing = false
   }
 
   async executeOperation(op) {

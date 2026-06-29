@@ -45,18 +45,16 @@ export const checkConnection = async () => {
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 8000)
-    // Always use anon key for client-side connectivity checks
-    const keyForCheck = supabaseAnonKey
-    const res = await fetch(`${supabaseUrl}/rest/v1/`, {
-      method: 'HEAD',
-      headers: { 'apikey': keyForCheck, 'Authorization': `Bearer ${keyForCheck}` },
-      signal: controller.signal,
-    })
+
+    // Requête légère et fiable via le client Supabase (HEAD count sur clients)
+    const { count, error } = await supabase
+      .from('clients')
+      .select('*', { count: 'exact', head: true })
+      .abortSignal(controller.signal)
+
     clearTimeout(timeout)
-    if (res.status >= 200 && res.status < 500) {
-      return { connected: true, timestamp: new Date().toISOString() }
-    }
-    throw new Error(`HTTP ${res.status}`)
+    if (error) throw error
+    return { connected: true, timestamp: new Date().toISOString() }
   } catch (error) {
     const msg = error?.name === 'AbortError' ? 'Délai dépassé (timeout)' : (error?.message || 'Erreur réseau ou configuration Supabase invalide')
     logger.error('Erreur connexion Supabase:', msg)

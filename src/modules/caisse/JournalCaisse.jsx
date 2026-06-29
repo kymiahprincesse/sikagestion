@@ -203,30 +203,31 @@ const JournalCaisse = () => {
     });
 
     const sortedKeys = Object.keys(monthMap).sort();
-    let soldePrecedent = 0;
 
-    return sortedKeys.map(key => {
+    const { results } = sortedKeys.reduce((acc, key) => {
       const ops = monthMap[key];
       const entrees = ops.filter(o => o.type === 'ENTREE').reduce((s, o) => s + Number(o.montant), 0);
       const sorties = ops.filter(o => o.type === 'SORTIE').reduce((s, o) => s + Number(o.montant), 0);
-      const soldeFinal = soldePrecedent + entrees - sorties;
+      const soldeFinal = acc.solde + entrees - sorties;
       const [yr, mo] = key.split('-');
       const periode = new Date(Number(yr), Number(mo) - 1, 1)
         .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-      const result = {
+      acc.results.push({
         key,
         periode,
-        soldeInitial: soldePrecedent,
+        soldeInitial: acc.solde,
         soldeFinal,
         totalEntrees: entrees,
         totalSorties: sorties,
         nbOps: ops.length,
         dateDebut: ops[0].date,
         dateFin: ops[ops.length - 1].date,
-      };
-      soldePrecedent = soldeFinal;
-      return result;
-    }).filter(h => {
+      });
+      acc.solde = soldeFinal;
+      return acc;
+    }, { results: [], solde: 0 });
+
+    return results.filter(h => {
       if (!searchTerm) return true;
       return h.periode.toLowerCase().includes(searchTerm.toLowerCase());
     });

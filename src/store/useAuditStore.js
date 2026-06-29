@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabaseClient';
-import { SUPER_ADMIN_ID, SUPER_ADMIN_LOGIN, AUDIT_ACTIONS, AUDIT_MODULES } from '../config/auditConfig';
+import { SUPER_ADMIN_ID, SUPER_ADMIN_LOGIN, SUPER_ADMIN_EMAIL, AUDIT_ACTIONS, AUDIT_MODULES } from '../config/auditConfig';
+import { generateSecureId } from '../utils/format';
 
 export const ACTIONS_AUDIT  = AUDIT_ACTIONS;
 export const MODULES_AUDIT  = AUDIT_MODULES;

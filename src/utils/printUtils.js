@@ -12,7 +12,6 @@ const PAGE_W = 210;   // mm
 const PAGE_H = 297;   // mm
 const MARGE_G = 15;   // mm gauche
 const MARGE_D = 15;   // mm droite
-const ENTETE_H = 38;  // mm hauteur zone en-tête
 const PIED_H   = 22;  // mm hauteur zone pied de page
 const CONTENT_W = PAGE_W - MARGE_G - MARGE_D;
 
@@ -248,7 +247,7 @@ export function sikaTable(doc, columns, rows, startY, ctx) {
       fillColor: [232, 236, 244],
     },
     columnStyles: {},
-    didDrawPage: (data) => {
+    didDrawPage: () => {
       // Sur chaque nouvelle page créée par autoTable : en-tête + pied
       ctx.applyHeaderFooter(doc.internal.getCurrentPageInfo().pageNumber);
     },

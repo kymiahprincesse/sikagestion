@@ -1,15 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 
 export default function MoneyInput({ value, onChange, label, placeholder = '0' }) {
-  const [displayValue, setDisplayValue] = useState('')
-
-  useEffect(() => {
+  const displayValue = useMemo(() => {
     if (value !== null && value !== undefined && value !== '') {
-      const formatted = Number(value).toLocaleString('fr-FR').replace(/\s/g, '.')
-      setDisplayValue(formatted)
-    } else {
-      setDisplayValue('')
+      return Number(value).toLocaleString('fr-FR').replace(/\s/g, '.')
     }
+    return ''
   }, [value])
 
   const handleChange = (e) => {

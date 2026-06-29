@@ -116,9 +116,9 @@ const ImportExport = () => {
   const devis = useDevisStore(state => state.devis);
   const factures = useFacturesStore(state => state.factures);
   const encaissements = useEncaissementsStore(state => state.encaissements);
-  const aos = useAOStore(state => state.aos);
-  const operations = useCaisseStore(state => state.operations);
-  const journalEntries = useJournalStore(state => state.entries);
+  const aos = useAOStore(state => state.appelsDoffres);
+  const operations = useCaisseStore(state => state.mouvements);
+  const journalEntries = useJournalStore(state => state.ecritures);
   const taches = usePlanificationStore(state => state.taches);
 
   const handleFileUpload = (e) => {
@@ -269,8 +269,8 @@ const ImportExport = () => {
             factures: 'addFacture',
             encaissements: 'addEncaissement',
             ao: 'addAO',
-            caisse: 'addOperation',
-            journal: 'addEntry',
+            caisse: 'addMouvement',
+            journal: 'addEcriture',
             planification: 'addTache'
           };
           
@@ -280,9 +280,9 @@ const ImportExport = () => {
           if (store && addMethod) {
             if (importMode === 'replace') {
               const state = store.getState();
-              const dataKey = moduleKey === 'ao' ? 'aos' : 
-                             moduleKey === 'caisse' ? 'operations' :
-                             moduleKey === 'journal' ? 'entries' :
+              const dataKey = moduleKey === 'ao' ? 'appelsDoffres' : 
+                             moduleKey === 'caisse' ? 'mouvements' :
+                             moduleKey === 'journal' ? 'ecritures' :
                              moduleKey === 'planification' ? 'taches' :
                              moduleKey;
               

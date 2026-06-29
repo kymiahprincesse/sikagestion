@@ -5,23 +5,24 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
-import { formatDateLong, formatFCFA } from '../../utils/format'
+import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
+import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_PROFIL = ['IPE', 'HEA', 'HEB', 'UPN', 'Tube carré', 'Tube rectangulaire', 'Cornière']
 const TRAITEMENTS = ['Galvanisation à chaud', 'Peinture antirouille', 'Métallisation', 'Aucun']
 
 const LIGNE_VIDE = {
-  id: Date.now(),
   designation: '',
   typeProfil: 'IPE',
   surface: '',
   longueur: 0,
   quantite: 1,
-  pu: 0
+  pu: 0,
+  montant: ''
 }
+const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisCharpente() {
   const pdfRef = useRef(null)
@@ -34,70 +35,72 @@ export default function DevisCharpente() {
   const { confirm } = useNotifications()
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: '',
+    numero: location.state?.devisId ? '' : getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'CHARPENTE',
     objet: '',
+    notes: '',
     portee: 0,
     hauteur: 0,
     traitement: 'Peinture antirouille',
 
-    lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    lignes: [nouvelleLigne()],
     tauxRemise: 0,
     tvaActive: true,
     statut: 'BROUILLON'
   }))
 
   const [devisId, setDevisId] = useState(null)
-
-  // Générer le numéro après le montage (évite setState pendant le render)
-  useEffect(() => {
-    if (!devisData.numero && !location.state?.devisId) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
-    }
-  }, [devisData.numero, location.state?.devisId, getNextNumero])
+  const [isSaving, setIsSaving] = useState(false)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const loadedDevisIdRef = useRef(null)
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
-    const loadDevis = () => {
-      if (location.state?.devisId) {
-        const devisExist = getDevisById(location.state.devisId)
-        if (devisExist) {
-          setDevisData({
-            numero: devisExist.numero,
-            date: devisExist.date || new Date().toISOString().split('T')[0],
-            clientId: devisExist.clientId,
-            type: devisExist.type || 'CHARPENTE',
-            objet: devisExist.objet || '',
-            portee: devisExist.portee || 0,
-            hauteur: devisExist.hauteur || 0,
-            traitement: devisExist.traitement || 'Peinture antirouille',
-            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes.map(l => ({ ...l, surface: l.surface || l.dimension || '', quantite: l.quantite || 1, pu: l.pu || 0 })) : [{ ...LIGNE_VIDE, id: Date.now() }],
-            tauxRemise: devisExist.tauxRemise || 0,
-            tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
-            statut: devisExist.statut || 'BROUILLON'
-          })
-          setDevisId(devisExist.id)
-        } else {
-          console.error('Devis non trouvé avec ID:', location.state.devisId)
-          ajouterNotification({
-            type: 'ATTENTION',
-            icone: '⚠️',
-            titre: 'ERREUR',
-            message: 'Devis non trouvé. Il a peut-être été supprimé.'
-          })
-        }
-      }
+    const idFromState = location.state?.devisId
+    if (!idFromState || loadedDevisIdRef.current === idFromState) return
+
+    const devisExist = getDevisById(idFromState)
+    if (devisExist) {
+      setDevisData({
+        numero: devisExist.numero,
+        date: devisExist.date || new Date().toISOString().split('T')[0],
+        clientId: devisExist.clientId,
+        type: devisExist.type || 'CHARPENTE',
+        objet: devisExist.objet || '',
+        notes: devisExist.notes || '',
+        portee: devisExist.portee || 0,
+        hauteur: devisExist.hauteur || 0,
+        traitement: devisExist.traitement || 'Peinture antirouille',
+        lignes: devisExist.lignes?.length > 0 ? devisExist.lignes.map(l => ({ ...l, surface: l.surface || l.dimension || '', quantite: l.quantite || 1, pu: l.pu || 0 })) : [nouvelleLigne()],
+        tauxRemise: devisExist.tauxRemise || 0,
+        tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
+        statut: devisExist.statut || 'BROUILLON'
+      })
+      setDevisId(devisExist.id)
+      loadedDevisIdRef.current = devisExist.id
+    } else {
+      console.error('Devis non trouvé avec ID:', idFromState)
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'ERREUR',
+        message: 'Devis non trouvé. Il a peut-être été supprimé.'
+      })
     }
-    loadDevis()
-  }, [location.state, location.state?.devisId, getDevisById])
+  // getDevisById est stable dans le store Zustand ; location.state?.devisId est la seule dépendance utile
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.devisId])
 
   const calculerPoidsLineaire = (ligne) => {
     return 0
   }
 
   const calculerMontant = (ligne) => {
+    if (ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null) {
+      return parseFloat(ligne.montant) || 0
+    }
     const quantite = parseFloat(ligne.quantite) || 1
     const pu = parseFloat(ligne.pu) || 0
     return quantite * pu
@@ -116,7 +119,7 @@ export default function DevisCharpente() {
   const ajouterLigne = () => {
     setDevisData(prev => ({
       ...prev,
-      lignes: [...prev.lignes, { ...LIGNE_VIDE, id: Date.now() }]
+      lignes: [...prev.lignes, nouvelleLigne()]
     }))
   }
 
@@ -163,10 +166,11 @@ export default function DevisCharpente() {
       clientId: null,
       type: 'CHARPENTE',
       objet: '',
+      notes: '',
       portee: 0,
       hauteur: 0,
       traitement: 'Peinture antirouille',
-      lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+      lignes: [nouvelleLigne()],
       tauxRemise: 0,
       tvaActive: true,
       statut: 'BROUILLON'
@@ -176,6 +180,7 @@ export default function DevisCharpente() {
   }
 
   const handleEnregistrer = async () => {
+    if (isSaving) return
     if (!devisData.clientId) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -195,34 +200,44 @@ export default function DevisCharpente() {
     })
     if (!ok) return
 
+    setIsSaving(true)
     const totaux = calculerTotaux()
     const devisComplet = { ...devisData, ...totaux, dateModification: new Date().toISOString().split('T')[0] }
 
-    if (devisId) {
-      updateDevis(devisId, devisComplet)
-      addLog({ module: 'DEVIS_CHARPENTE', action: 'MODIFICATION', utilisateur: 'Utilisateur', apres: { numero: devisData.numero, montantTTC: totaux.ttc } })
+    try {
+      if (devisId) {
+        await updateDevis(devisId, devisComplet)
+        addLog({ module: 'DEVIS_CHARPENTE', action: 'MODIFICATION', utilisateur: 'Utilisateur', apres: { numero: devisData.numero, montantTTC: totaux.ttc } })
+        ajouterNotification({
+          type: 'INFO', icone: '✅', titre: 'SUCCÈS',
+          message: `Devis ${devisData.numero} modifié - ${formatFCFA(totaux.ttc)}`,
+          lien: '/devis/liste'
+        })
+        navigate('/devis/liste')
+      } else {
+        const nouveau = await addDevis(devisComplet)
+        setDevisId(nouveau.id)
+        addLog({ module: 'DEVIS_CHARPENTE', action: 'CREATION', utilisateur: 'Utilisateur', apres: { numero: nouveau.numero, montantTTC: totaux.ttc } })
+        ajouterNotification({
+          type: 'INFO', icone: '✅', titre: 'SUCCÈS',
+          message: `Devis ${nouveau.numero} enregistré - ${formatFCFA(totaux.ttc)}`,
+          lien: '/devis/liste'
+        })
+        navigate('/devis/liste')
+      }
+    } catch (error) {
+      console.error('Erreur enregistrement:', error)
       ajouterNotification({
-        type: 'INFO',
-        icone: '✅',
-        titre: 'SUCCÈS',
-        message: `Devis ${devisData.numero} modifié avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
-        lien: '/devis/liste'
+        type: 'URGENT', icone: '❌', titre: 'ERREUR ENREGISTREMENT',
+        message: `Échec: ${error?.message || 'Erreur inconnue'}`
       })
-    } else {
-      const nouveau = addDevis(devisComplet)
-      setDevisId(nouveau.id)
-      addLog({ module: 'DEVIS_CHARPENTE', action: 'CREATION', utilisateur: 'Utilisateur', apres: { numero: nouveau.numero, montantTTC: totaux.ttc } })
-      ajouterNotification({
-        type: 'INFO',
-        icone: '✅',
-        titre: 'SUCCÈS',
-        message: `Devis ${nouveau.numero} enregistré avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
-        lien: '/devis/liste'
-      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
   const handleGenerePDF = async () => {
+    if (isGeneratingPDF) return
     if (!devisData.clientId) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -232,67 +247,69 @@ export default function DevisCharpente() {
       })
       return
     }
-    
-    const client = clients.find(c => c.id === devisData.clientId);
-    const totaux = calculerTotaux();
-    
-    // Préparer les données pour le template avec tous les détails
-    const lignesAvecMontant = devisData.lignes.map(l => ({
-      designation: l.designation || `Profil ${l.typeProfil || 'IPE'}`,
-      typeProfil: l.typeProfil,
-      surface: l.surface,
-      longueur: l.longueur,
-      dn: l.surface || l.longueur ? `${l.longueur || 0}m - ${l.surface || ''}` : '—',
-      qte: parseFloat(l.quantite) || 0,
-      pu: parseFloat(l.pu) || 0,
-      montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
-    }));
-    
-    const templateData = {
-      reference: devisData.numero,
-      objet: devisData.objet || `Charpente Métallique - Portée ${devisData.portee || 0}m`,
-      type: 'CHARPENTE',
-      client: {
-        nom: client?.nom || '—',
-        interlocuteur: client?.contactNom || '—',
-        site: client?.ville || '—'
-      },
-      infos: {
-        date: devisData.date,
-        validite: '30 jours',
-        etabliPar: 'SIKA INDUSTRIE',
-        tel: '(225) 07 97 25 25 26'
-      },
-      lignes: lignesAvecMontant,
-      montantBrut: totaux.montantBrut,
-      remise: totaux.remise,
-      montantHT: totaux.montantHT,
-      tva: totaux.tva,
-      ttc: totaux.ttc
-    };
 
-    // Générer le HTML avec le nouveau template
-    const htmlContent = generateDevisHTML(templateData);
-    
-    // Ouvrir dans une nouvelle fenêtre pour impression
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Attendre le chargement puis imprimer
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    };
-    
-    addLog({ module: 'DEVIS_CHARPENTE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devisData.numero } });
-    ajouterNotification({
-      type: 'INFO',
-      icone: '📄',
-      titre: 'PDF GÉNÉRÉ',
-      message: 'Devis ouvert dans une nouvelle fenêtre pour impression'
-    });
+    setIsGeneratingPDF(true)
+    try {
+      const client = clients.find(c => c.id === devisData.clientId)
+      const totaux = calculerTotaux()
+
+      // Préparer les données pour le template avec tous les détails
+      const lignesAvecMontant = devisData.lignes.map(l => ({
+        designation: l.designation || `Profil ${l.typeProfil || 'IPE'}`,
+        typeProfil: l.typeProfil,
+        surface: l.surface,
+        longueur: l.longueur,
+        dn: l.surface || l.longueur ? `${l.longueur || 0}m - ${l.surface || ''}` : '—',
+        qte: parseFloat(l.quantite) || 0,
+        pu: parseFloat(l.pu) || 0,
+        montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
+      }))
+
+      const templateData = {
+        reference: devisData.numero,
+        objet: devisData.objet || `Charpente Métallique - Portée ${devisData.portee || 0}m`,
+        type: 'CHARPENTE',
+        notes: devisData.notes || '',
+        statut: devisData.statut || 'BROUILLON',
+        client: {
+          nom: client?.nom || '—',
+          interlocuteur: devisData.demandePar || client?.contactNom || '—',
+          adresse: client?.adresse || '—',
+          telephone: client?.telephone || '',
+          email: client?.contactEmail || '',
+          raisonSociale: client?.raisonSociale || '',
+          secteur: client?.secteur || '',
+          ville: client?.ville || '',
+          pays: client?.pays || 'Côte d\'Ivoire',
+          conditionsPaiement: client?.conditionsPaiement || ''
+        },
+        infos: {
+          date: devisData.date,
+          validite: '30 jours',
+          etabliPar: 'SIKA INDUSTRIE',
+          tel: '(225) 07 97 25 25 26',
+          demandePar: devisData.demandePar || ''
+        },
+        lignes: lignesAvecMontant,
+        montantBrut: totaux.montantBrut,
+        remise: totaux.remise,
+        montantHT: totaux.montantHT,
+        tva: totaux.tva,
+        ttc: totaux.ttc
+      }
+
+      printDevisHTML(templateData)
+
+      addLog({ module: 'DEVIS_CHARPENTE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devisData.numero } })
+      ajouterNotification({
+        type: 'INFO',
+        icone: '📄',
+        titre: 'PDF GÉNÉRÉ',
+        message: 'Devis ouvert dans une nouvelle fenêtre pour impression'
+      })
+    } finally {
+      setIsGeneratingPDF(false)
+    }
   }
 
   const clientSelectionne = clients.find(c => c.id === devisData.clientId)
@@ -303,18 +320,19 @@ export default function DevisCharpente() {
       <div className="max-w-6xl mx-auto">
         
         <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
-          <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition">
+          <button onClick={handleNouveau} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
             ➕ Nouveau
           </button>
-          <button onClick={handleEnregistrer} className="flex items-center gap-2 px-4 py-2 bg-vert text-white rounded-lg hover:bg-opacity-90 transition">
-            💾 Enregistrer
+          <button onClick={handleEnregistrer} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-vert text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
+            {isSaving ? '⏳ Enregistrement...' : '💾 Enregistrer'}
           </button>
-          <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition">
-            📄 PDF
+          <button onClick={handleGenerePDF} disabled={isGeneratingPDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
+            {isGeneratingPDF ? '⏳ PDF...' : '📄 PDF'}
           </button>
           <button
             onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium ${devisData.tvaActive ? 'bg-vert text-white hover:bg-opacity-90' : 'bg-argent text-navy hover:bg-opacity-80'}`}
+            disabled={isSaving}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium ${devisData.tvaActive ? 'bg-vert text-white hover:bg-opacity-90' : 'bg-argent text-navy hover:bg-opacity-80'} disabled:opacity-50`}
           >
             🔄 TVA 18% : {devisData.tvaActive ? 'Activée' : 'Désactivée'}
           </button>
@@ -325,6 +343,11 @@ export default function DevisCharpente() {
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">N° Devis</label>
               <input type="text" value={devisData.numero} readOnly className="w-full px-3 py-2 border border-argent rounded-lg bg-navyClair font-bold text-navy" />
+              <div className="mt-2">
+                <span className="inline-block px-3 py-1 bg-orange text-white text-xs font-bold rounded-full uppercase tracking-wide">
+                  {devisData.type}
+                </span>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Date</label>
@@ -340,6 +363,17 @@ export default function DevisCharpente() {
           <div className="mb-4">
             <label className="block text-sm font-semibold text-navy mb-2">Objet</label>
             <input type="text" value={devisData.objet} onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" placeholder="Ex: Charpente métallique hangar industriel..." />
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-navy mb-2">Notes / Observations</label>
+            <textarea
+              value={devisData.notes || ''}
+              onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
+              rows={3}
+              placeholder="Informations complémentaires, remarques, conditions particulières..."
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+            />
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">
@@ -396,9 +430,22 @@ export default function DevisCharpente() {
                         <input type="number" value={ligne.quantite} onChange={(e) => modifierLigne(ligne.id, 'quantite', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" value={ligne.pu} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:border-orange" />
+                        <input type="number" value={ligne.pu || ''} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} placeholder="0" className="w-full px-2 py-1 border-2 border-orange rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-orange bg-orangeClair" />
                       </td>
-                      <td className="border border-argent px-4 py-2 text-right font-semibold text-navy">{formatFCFA(montant)}</td>
+                      <td className="border border-argent px-3 py-2">
+                        <input
+                          type="number"
+                          value={ligne.montant !== '' && ligne.montant !== undefined ? ligne.montant : montant || ''}
+                          onChange={(e) => modifierLigne(ligne.id, 'montant', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                          placeholder={montant > 0 ? String(montant) : '0'}
+                          min="0" step="1"
+                          className="w-full px-2 py-1 border-2 border-navy rounded text-right font-bold text-navy focus:outline-none focus:ring-2 focus:ring-navy bg-navyClair"
+                          title="Saisissable — laissez vide pour calculer auto (Qte × PU)"
+                        />
+                        {(ligne.montant === '' || ligne.montant === undefined) && montant > 0 && (
+                          <div className="text-right text-xs text-gray-400 mt-0.5">= {ligne.quantite}×{ligne.pu}</div>
+                        )}
+                      </td>
                       <td className="border border-argent px-4 py-2 text-center">
                         <button onClick={() => supprimerLigne(ligne.id)} className="text-rouge hover:text-opacity-70" title="Supprimer">🗑</button>
                       </td>
@@ -452,6 +499,32 @@ export default function DevisCharpente() {
               <h2 className="text-xl text-bleu">DEVIS CHARPENTE MÉTALLIQUE</h2>
               <p className="text-sm text-navy mt-2">{devisData.numero}</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* BARRE ACTIONS BAS */}
+      <div className="bg-white border-t-4 border-orange shadow-lg rounded-lg mt-6 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+              ➕ Nouveau
+            </button>
+            <button
+              onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${devisData.tvaActive ? 'bg-vert text-white hover:bg-opacity-90' : 'bg-argent text-navy hover:bg-opacity-80'}`}
+            >
+              🔄 TVA : {devisData.tvaActive ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-navy font-bold text-sm hidden sm:block">TTC : {formatFCFA(totaux.ttc)}</span>
+            <button onClick={handleGenerePDF} disabled={isGeneratingPDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm disabled:opacity-50">
+              {isGeneratingPDF ? '⏳ PDF...' : '📄 PDF'}
+            </button>
+            <button onClick={handleEnregistrer} disabled={isSaving} className="flex items-center gap-2 px-5 py-3 bg-vert text-white rounded-lg hover:bg-opacity-90 transition font-bold text-base shadow-lg disabled:opacity-50">
+              {isSaving ? '⏳ Enregistrement...' : '💾 Enregistrer'}
+            </button>
           </div>
         </div>
       </div>

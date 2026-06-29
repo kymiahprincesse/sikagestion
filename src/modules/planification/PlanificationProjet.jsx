@@ -69,7 +69,7 @@ export default function PlanificationProjet() {
   const importerTaches = usePlanificationStore(state => state.importerTaches);
 
   const { ajouterNotification } = useNotificationsStore();
-  const { confirmDelete } = useNotifications();
+  const { success, error, confirmDelete } = useNotifications();
 
   const [clientSelectionne, setClientSelectionne] = useState(null);
   const [projetSelectionne, setProjetSelectionne] = useState(null);
@@ -173,7 +173,7 @@ export default function PlanificationProjet() {
     setShowFormProjet(true);
   };
 
-  const handleSaveProjet = () => {
+  const handleSaveProjet = async () => {
     if (!formProjet.nom || !formProjet.clientId) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -183,20 +183,26 @@ export default function PlanificationProjet() {
       });
       return;
     }
-    
-    if (projetSelectionne) {
-      updateProjet(projetSelectionne.id, formProjet, user?.nom || 'Utilisateur');
-    } else {
-      const nouveauProjet = addProjet({ ...formProjet, creePar: user?.nom || 'Utilisateur' });
-      setProjetSelectionne(nouveauProjet);
+
+    try {
+      if (projetSelectionne) {
+        await updateProjet(projetSelectionne.id, formProjet, user?.nom || 'Utilisateur');
+        success(`Projet "${formProjet.nom}" modifié avec succès`);
+      } else {
+        const nouveauProjet = await addProjet({ ...formProjet, creePar: user?.nom || 'Utilisateur' });
+        setProjetSelectionne(nouveauProjet);
+        success(`Projet "${nouveauProjet?.nom || formProjet.nom}" créé avec succès`);
+      }
+
+      setShowFormProjet(false);
+      setFormProjet({
+        nom: '', clientId: null, devisId: null,
+        dateDebut: '', dateFin: '', budgetPrevu: 0,
+        statut: STATUTS_PROJET.EN_PREPARATION, referenceProjet: '', notes: ''
+      });
+    } catch (err) {
+      error('Erreur lors de l\'enregistrement du projet : ' + (err?.message || 'Vérifiez la connexion'));
     }
-    
-    setShowFormProjet(false);
-    setFormProjet({
-      nom: '', clientId: null, devisId: null,
-      dateDebut: '', dateFin: '', budgetPrevu: 0,
-      statut: STATUTS_PROJET.EN_PREPARATION, referenceProjet: '', notes: ''
-    });
   };
 
   const handleVoirProjet = (projet) => {
@@ -215,9 +221,14 @@ export default function PlanificationProjet() {
     if (!projetSelectionne) return;
     const ok = await confirmDelete(`le projet "${projetSelectionne.nom}"`);
     if (!ok) return;
-    deleteProjet(projetSelectionne.id);
-    setProjetSelectionne(null);
-    setVue('liste');
+    try {
+      await deleteProjet(projetSelectionne.id);
+      success(`Projet "${projetSelectionne.nom}" supprimé avec succès`);
+      setProjetSelectionne(null);
+      setVue('liste');
+    } catch (err) {
+      error('Erreur lors de la suppression du projet : ' + (err?.message || 'Vérifiez la connexion'));
+    }
   };
 
   const handleNouvelleTache = () => {
@@ -232,7 +243,7 @@ export default function PlanificationProjet() {
     setShowFormTache(true);
   };
 
-  const handleSaveTache = () => {
+  const handleSaveTache = async () => {
     if (!formTache.nom || !projetSelectionne) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -242,24 +253,30 @@ export default function PlanificationProjet() {
       });
       return;
     }
-    
-    const tacheComplete = { 
-      ...formTache, 
+
+    const tacheComplete = {
+      ...formTache,
       dateDebut: tacheDateDebut,
       dateFin: tacheDateFin,
-      dureeJours: dureeJoursCalculee 
+      dureeJours: dureeJoursCalculee
     };
     const parametres = { indemniteRepas, prixCarburant, consommationMoyenne };
     const budget = calculerBudgetTache(tacheComplete, parametres);
 
-    if (tacheSelectionnee) {
-      updateTache(tacheSelectionnee.id, { ...tacheComplete, ...budget });
-    } else {
-      addTache({ ...tacheComplete, projetId: projetSelectionne.id, ...budget });
+    try {
+      if (tacheSelectionnee) {
+        await updateTache(tacheSelectionnee.id, { ...tacheComplete, ...budget });
+        success(`Tâche "${formTache.nom}" modifiée avec succès`);
+      } else {
+        await addTache({ ...tacheComplete, projetId: projetSelectionne.id, ...budget });
+        success(`Tâche "${formTache.nom}" créée avec succès`);
+      }
+
+      setShowFormTache(false);
+      setTacheSelectionnee(null);
+    } catch (err) {
+      error('Erreur lors de l\'enregistrement de la tâche : ' + (err?.message || 'Vérifiez la connexion'));
     }
-    
-    setShowFormTache(false);
-    setTacheSelectionnee(null);
   };
 
   const handleModifierTache = (tache) => {
@@ -274,7 +291,12 @@ export default function PlanificationProjet() {
   const handleSupprimerTache = async (tacheId) => {
     const ok = await confirmDelete('cette tâche');
     if (!ok) return;
-    deleteTache(tacheId);
+    try {
+      await deleteTache(tacheId);
+      success('Tâche supprimée avec succès');
+    } catch (err) {
+      error('Erreur lors de la suppression de la tâche : ' + (err?.message || 'Vérifiez la connexion'));
+    }
   };
 
   const handleImportPlanning = (tachesImportees) => {
@@ -640,8 +662,7 @@ export default function PlanificationProjet() {
 
       // Ouvrir directement dans un nouvel onglet pour impression
       const printWindow = window.open(pdfUrl, '_blank');
-      if (printWindow) {
-      } else {
+      if (!printWindow) {
         doc.save(`Planification_${new Date().toISOString().split('T')[0]}.pdf`);
       }
 

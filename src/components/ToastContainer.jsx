@@ -7,49 +7,49 @@ const ToastContainer = () => {
   const getIcon = (type) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+        return <CheckCircle className="w-6 h-6 text-green-600" />;
       case 'error':
-        return <XCircle className="w-5 h-5 text-red-600" />;
+        return <XCircle className="w-6 h-6 text-red-600" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-orange-600" />;
+        return <AlertTriangle className="w-6 h-6 text-orange-500" />;
       case 'info':
       default:
-        return <Info className="w-5 h-5 text-blue-600" />;
+        return <Info className="w-6 h-6 text-blue-600" />;
     }
   };
 
   const getStyles = (type) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200';
+        return 'bg-white border-l-4 border-l-green-500 border border-green-200 shadow-xl';
       case 'error':
-        return 'bg-red-50 border-red-200';
+        return 'bg-white border-l-4 border-l-red-500 border border-red-200 shadow-xl';
       case 'warning':
-        return 'bg-orange-50 border-orange-200';
+        return 'bg-white border-l-4 border-l-orange-500 border border-orange-200 shadow-xl';
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-white border-l-4 border-l-blue-500 border border-blue-200 shadow-xl';
     }
   };
 
   if (!toasts || toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-md pointer-events-auto">
+    <div className="fixed top-4 right-4 z-[9999] space-y-3 max-w-sm pointer-events-auto">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg animate-slide-in ${getStyles(toast.type)}`}
+          className={`flex items-start gap-3 p-4 rounded-lg ${getStyles(toast.type)}`}
         >
           <div className="flex-shrink-0 mt-0.5">
             {getIcon(toast.type)}
           </div>
-          <div className="flex-1 text-sm text-gray-800">
+          <div className="flex-1 text-sm text-gray-800 font-medium leading-snug">
             {toast.message}
           </div>
           <button
             onClick={() => supprimerToast(toast.id)}
-            className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+            className="flex-shrink-0 text-gray-400 hover:text-gray-700 transition-colors ml-1"
           >
             <X className="w-4 h-4" />
           </button>

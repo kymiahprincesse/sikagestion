@@ -52,15 +52,18 @@ export function useDebouncedCallback(callback, delay = 500) {
  */
 export function useDebounceWithControl(value, delay = 500) {
   const [debouncedValue, setDebouncedValue] = useState(value);
+  const [isPending, setIsPending] = useState(false);
   const timeoutRef = useRef(null);
 
   const setValue = useCallback((newValue) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
+    setIsPending(true);
 
     timeoutRef.current = setTimeout(() => {
       setDebouncedValue(newValue);
+      setIsPending(false);
     }, delay);
   }, [delay]);
 
@@ -68,6 +71,7 @@ export function useDebounceWithControl(value, delay = 500) {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
+      setIsPending(false);
     }
   }, []);
 
@@ -75,6 +79,7 @@ export function useDebounceWithControl(value, delay = 500) {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
+      setIsPending(false);
     }
   }, []);
 
@@ -83,6 +88,6 @@ export function useDebounceWithControl(value, delay = 500) {
     setValue,
     cancel,
     flush,
-    isPending: !!timeoutRef.current
+    isPending
   };
 }

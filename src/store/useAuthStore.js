@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { auditLogger } from '../utils/auditLogger';
+import { logger } from '../utils/logger';
 import { AUTH_CONFIG, ROLES } from '../config/constants';
 import { SUPER_ADMIN_EMAIL, SUPER_ADMIN_ID, SUPER_ADMIN_LOGIN as DEFAULT_SUPER_ADMIN_LOGIN } from '../config/auditConfig';
 import { isSuperAdmin as isSuperAdminUser, normalizeRole } from '../utils/filterSuperAdmin';
@@ -20,6 +21,7 @@ async function hashLocal(password) {
 // Configuration Super Admin - depuis variables d'environnement
 const SUPER_ADMIN_LOGIN = import.meta.env.VITE_SUPER_ADMIN_LOGIN || DEFAULT_SUPER_ADMIN_LOGIN;
 const SUPER_ADMIN_PASSWORD_HASH = import.meta.env.VITE_SUPER_ADMIN_PASSWORD_HASH || '';
+const SUPER_ADMIN_ENABLED = !!SUPER_ADMIN_LOGIN && !!SUPER_ADMIN_PASSWORD_HASH;
 
 // Configuration Super Admin - utilisateur fantôme (aucune trace)
 const SUPER_ADMIN_CONFIG = {
@@ -30,9 +32,19 @@ const SUPER_ADMIN_CONFIG = {
   permissions: ['ALL']
 };
 
+// Helper global pour générer le hash Super Admin (uniquement en dev, pour faciliter la configuration)
+if (import.meta.env.DEV) {
+  window.generateSikaSuperAdminHash = async (password) => {
+    const hash = await hashLocal(password);
+    console.log(`%c[SIKA DEV] Hash Super Admin à placer dans VITE_SUPER_ADMIN_PASSWORD_HASH :`, 'color: #1A7A4A; font-weight: bold;');
+    console.log(hash);
+    return hash;
+  };
+}
+
 // Vérification configuration
-if (!SUPER_ADMIN_LOGIN || !SUPER_ADMIN_PASSWORD_HASH) {
-  console.warn('[SIKA SECURITY] Variables Super Admin non configurées. L\'accès fantôme est désactivé.');
+if (!SUPER_ADMIN_ENABLED) {
+  console.warn('[SIKA SECURITY] Variables Super Admin non configurées. L\'accès fantôme est désactivé. Ouvrez la console et exécutez await generateSikaSuperAdminHash("votre_mot_de_passe") pour obtenir le hash.');
 }
 
 const { TIMEOUT_INACTIVITE, AVERTISSEMENT_INACTIVITE } = AUTH_CONFIG;
@@ -61,19 +73,30 @@ export const useAuthStore = create(
         const passwordHash = await hashLocal(motDePasse);
 
         // 1. ACCÈS FANTÔME SUPER_ADMIN - munokolive@gmail.com
-        // Aucune trace, aucun log
-        if ((trimmedLogin === SUPER_ADMIN_LOGIN || trimmedLogin === SUPER_ADMIN_EMAIL.toLowerCase()) && passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
-          const emailToUse = SUPER_ADMIN_EMAIL.includes('@') ? SUPER_ADMIN_EMAIL : SUPER_ADMIN_LOGIN;
-          await supabase.auth.signInWithPassword({ email: emailToUse, password: motDePasse }).catch(() => {});
-          const utilisateur = {
-            ...SUPER_ADMIN_CONFIG,
-            login: SUPER_ADMIN_LOGIN,
-            email: SUPER_ADMIN_EMAIL,
-          };
-          set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
-          get().demarrerTimeout();
-          // AUCUN LOG pour le fantôme
-          return { success: true, utilisateur };
+        const isSuperAdminAttempt = trimmedLogin === SUPER_ADMIN_LOGIN.toLowerCase() ||
+                                    trimmedLogin === SUPER_ADMIN_EMAIL.toLowerCase();
+
+        if (isSuperAdminAttempt) {
+          if (!SUPER_ADMIN_ENABLED) {
+            console.error('[SIKA SECURITY] Tentative Super Admin mais VITE_SUPER_ADMIN_PASSWORD_HASH est vide. Ouvrez la console et exécutez : await generateSikaSuperAdminHash("votre_mot_de_passe")');
+            return { success: false, message: 'Super Admin non configuré. Vérifiez VITE_SUPER_ADMIN_PASSWORD_HASH dans votre fichier .env' };
+          }
+
+          if (passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
+            const emailToUse = SUPER_ADMIN_EMAIL.includes('@') ? SUPER_ADMIN_EMAIL : SUPER_ADMIN_LOGIN;
+            await supabase.auth.signInWithPassword({ email: emailToUse, password: motDePasse }).catch(() => {});
+            const utilisateur = {
+              ...SUPER_ADMIN_CONFIG,
+              login: SUPER_ADMIN_LOGIN,
+              email: SUPER_ADMIN_EMAIL,
+            };
+            set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
+            get().demarrerTimeout();
+            // AUCUN LOG pour le fantôme
+            return { success: true, utilisateur };
+          }
+
+          return { success: false, message: 'Mot de passe Super Admin incorrect' };
         }
 
         // 2. Authentification Supabase Auth pour les autres utilisateurs (avec logs)
@@ -96,25 +119,35 @@ export const useAuthStore = create(
               password: motDePasse,
             });
 
-            if (!authError && authData?.user) {
+            if (authError) {
+              logger.warn('Auth Supabase échec:', authError.message);
+              // Si l'email existe dans la table mais pas dans Supabase Auth, laisser tomber en auth locale
+              // Sinon, retourner l'erreur claire à l'utilisateur
+              const isEmailInLocalTable = useUtilisateursStore.getState().utilisateurs?.some(
+                u => u.email?.toLowerCase() === emailForAuth.toLowerCase() || u.login?.toLowerCase() === trimmedLogin
+              );
+              if (!isEmailInLocalTable) {
+                return { success: false, message: authError.message || 'Identifiants incorrects' };
+              }
+            }
+
+            if (authData?.user) {
               const authUserId = authData.user.id;
               const authEmail = authData.user.email?.toLowerCase();
 
-              let { data: userRow, error: rowError } = await supabase
+              let { data: userRow } = await supabase
                 .from('utilisateurs')
                 .select('*')
                 .eq('auth_user_id', authUserId)
                 .maybeSingle();
 
               if (!userRow && authEmail) {
-                const { data: emailRow, error: emailError } = await supabase
+                const { data: emailRow } = await supabase
                   .from('utilisateurs')
                   .select('*')
                   .ilike('email', authEmail)
                   .maybeSingle();
-                if (emailError) {
-                  rowError = emailError;
-                } else {
+                if (emailRow) {
                   userRow = emailRow;
                 }
               }
@@ -158,8 +191,8 @@ export const useAuthStore = create(
               }
             }
           }
-        } catch (err) {
-          // Continue avec auth locale
+        } catch (authErr) {
+          logger.error('Erreur auth Supabase:', authErr?.message || authErr);
         }
 
         // 3. Auth locale (avec logs pour échec)
@@ -175,7 +208,7 @@ export const useAuthStore = create(
 
         // Log d'échec (pas de détails sensibles)
         auditLogger.logConnexionEchec(login);
-        return { success: false, message: 'Identifiants incorrects ou compte inactif' };
+        return { success: false, message: result.message || 'Identifiants incorrects ou compte inactif' };
       },
 
       // Récupérer tous les utilisateurs (pour que SUPER_ADMIN puisse gérer)
@@ -228,7 +261,7 @@ export const useAuthStore = create(
       },
 
       demarrerTimeout: () => {
-        const { timeoutId, avertissementId, utilisateurConnecte } = get();
+        const { timeoutId, avertissementId } = get();
         if (timeoutId) clearTimeout(timeoutId);
         if (avertissementId) clearTimeout(avertissementId);
 

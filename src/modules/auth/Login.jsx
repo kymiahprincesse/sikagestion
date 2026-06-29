@@ -14,12 +14,25 @@ const INPUT_STYLE = {
 
 const Login = () => {
   /* ── Connexion ── */
-  const [identifiant, setIdentifiant] = useState('');
+  const [identifiant, setIdentifiant] = useState(() => {
+    try {
+      localStorage.removeItem('sika_saved_password');
+      localStorage.removeItem('sika_saved_login');
+      localStorage.removeItem('sika_remember_me');
+      const savedLogin = sessionStorage.getItem('sika_saved_login');
+      if (sessionStorage.getItem('sika_remember_me') === 'true' && savedLogin) return savedLogin;
+    } catch (e) { /* ignore */ }
+    return '';
+  });
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    try {
+      return sessionStorage.getItem('sika_remember_me') === 'true';
+    } catch (e) { return false; }
+  });
 
   /* ── Navigation entre vues ── */
   const [vue, setVue] = useState('login'); // 'login' | 'email' | 'code' | 'succes'
@@ -36,6 +49,8 @@ const Login = () => {
   const [tempsRestant, setTempsRestant] = useState(900);
   const [copied, setCopied] = useState(false);
   const timerRef = useRef(null);
+  const [isLoadingRecup, setIsLoadingRecup] = useState(false);
+  const [isLoadingReinit, setIsLoadingReinit] = useState(false);
 
   const loginAction = useAuthStore(state => state.login);
   const genererCodeRecuperation = useUtilisateursStore(state => state.genererCodeRecuperation);
@@ -47,27 +62,6 @@ const Login = () => {
   const [modeEmail, setModeEmail] = useState(false);
 
   useEffect(() => {
-    // Nettoyage sécurité: supprimer ancien mot de passe stocké si présent (localStorage obsolète)
-    try {
-      localStorage.removeItem('sika_saved_password');
-      localStorage.removeItem('sika_saved_login');
-      localStorage.removeItem('sika_remember_me');
-    } catch (e) {
-      // Ignorer
-    }
-
-    // Utiliser sessionStorage (limité à la session, plus sécurisé)
-    try {
-      const savedLogin = sessionStorage.getItem('sika_saved_login');
-      if (sessionStorage.getItem('sika_remember_me') === 'true' && savedLogin) {
-        setIdentifiant(savedLogin);
-        setRememberMe(true);
-      }
-    } catch (e) {
-      // Ignorer erreur storage
-    }
-
-    // Synchroniser les utilisateurs depuis Supabase
     fetchUtilisateurs();
   }, [fetchUtilisateurs]);
 
@@ -77,17 +71,29 @@ const Login = () => {
       timerRef.current = setInterval(() => {
         setTempsRestant(t => {
           if (t <= 1) {
-            clearInterval(timerRef.current);
-            setErreurRecup('⏰ Code expiré. Veuillez recommencer.');
-            setVue('email');
             return 0;
           }
           return t - 1;
         });
       }, 1000);
+    } else {
+      setTempsRestant(900);
     }
-    return () => clearInterval(timerRef.current);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [vue]);
+
+  // Gérer l'expiration du code séparément pour éviter les setState imbriqués
+  useEffect(() => {
+    if (vue === 'code' && tempsRestant === 0) {
+      setErreurRecup('⏰ Code expiré. Veuillez recommencer.');
+      setVue('email');
+    }
+  }, [vue, tempsRestant]);
 
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   const progression = (tempsRestant / 900) * 100;
@@ -128,44 +134,62 @@ const Login = () => {
 
   const handleDemandeCode = async (e) => {
     e.preventDefault();
+    if (isLoadingRecup) return;
     setErreurRecup('');
-    await fetchUtilisateurs();
-    const emailNorm = emailRecup.trim().toLowerCase();
-    const res = genererCodeRecuperation(emailNorm);
-    if (!res.success) { setErreurRecup(res.message); return; }
-    setNomUser(res.nom);
-    if (res.hasAuthAccount) {
-      const emailRes = await envoyerEmailRecuperation(emailNorm);
-      if (!emailRes.success) { setErreurRecup(emailRes.message); return; }
-      setModeEmail(true);
-      setVue('email-sent');
-    } else {
-      setModeEmail(false);
-      setCodeGenere(res.code);
-      setVue('code');
+    setIsLoadingRecup(true);
+    try {
+      await fetchUtilisateurs();
+      const emailNorm = emailRecup.trim().toLowerCase();
+      const res = genererCodeRecuperation(emailNorm);
+      if (!res.success) { setErreurRecup(res.message); return; }
+      setNomUser(res.nom);
+      if (res.hasAuthAccount) {
+        const emailRes = await envoyerEmailRecuperation(emailNorm);
+        if (!emailRes.success) { setErreurRecup(emailRes.message); return; }
+        setModeEmail(true);
+        setVue('email-sent');
+      } else {
+        setModeEmail(false);
+        setCodeGenere(res.code);
+        setVue('code');
+      }
+    } finally {
+      setIsLoadingRecup(false);
     }
   };
 
-  const handleReinit = (e) => {
+  const handleReinit = async (e) => {
     e.preventDefault();
+    if (isLoadingReinit) return;
     setErreurRecup('');
     if (nouveauMdp !== confirmMdp) { setErreurRecup('Les mots de passe ne correspondent pas'); return; }
     if (nouveauMdp.length < 6) { setErreurRecup('Minimum 6 caractères requis'); return; }
-    const res = reinitialiserAvecCode(emailRecup.trim().toLowerCase(), codeEntre.trim(), nouveauMdp);
-    if (!res.success) { setErreurRecup(res.message); return; }
-    clearInterval(timerRef.current);
-    setVue('succes');
-    setTimeout(() => {
-      setVue('login');
-      setEmailRecup(''); setCodeGenere(''); setCodeEntre('');
-      setNouveauMdp(''); setConfirmMdp(''); setErreurRecup('');
-    }, 3200);
+    setIsLoadingReinit(true);
+    try {
+      const res = await reinitialiserAvecCode(emailRecup.trim().toLowerCase(), codeEntre.trim(), nouveauMdp);
+      if (!res.success) { setErreurRecup(res.message); return; }
+      if (timerRef.current) clearInterval(timerRef.current);
+      setVue('succes');
+      setTimeout(() => {
+        setVue('login');
+        setEmailRecup(''); setCodeGenere(''); setCodeEntre('');
+        setNouveauMdp(''); setConfirmMdp(''); setErreurRecup('');
+      }, 3200);
+    } finally {
+      setIsLoadingReinit(false);
+    }
   };
 
   const handleCopier = () => {
+    if (!navigator.clipboard) {
+      setErreurRecup('Copie impossible dans ce contexte');
+      return;
+    }
     navigator.clipboard.writeText(codeGenere).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      setErreurRecup('Échec de la copie');
     });
   };
 
@@ -305,10 +329,10 @@ const Login = () => {
                       style={INPUT_STYLE} placeholder="ex: prenom.nom@sikaindustrie.ci"
                       required autoFocus />
                   </div>
-                  <button type="submit"
-                    className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90"
+                  <button type="submit" disabled={isLoadingRecup}
+                    className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
                     style={{ backgroundColor: '#1B2A4A', fontSize: '14px' }}>
-                    📨 Générer mon code de récupération
+                    {isLoadingRecup ? '⏳ Envoi en cours...' : '📨 Générer mon code de récupération'}
                   </button>
                 </form>
               </>
@@ -419,10 +443,10 @@ const Login = () => {
                     )}
                   </div>
 
-                  <button type="submit"
-                    className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90"
+                  <button type="submit" disabled={isLoadingReinit}
+                    className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
                     style={{ backgroundColor: '#1A7A4A', fontSize: '14px' }}>
-                    ✓ Réinitialiser mon mot de passe
+                    {isLoadingReinit ? '⏳ Réinitialisation...' : '✓ Réinitialiser mon mot de passe'}
                   </button>
                 </form>
               </>

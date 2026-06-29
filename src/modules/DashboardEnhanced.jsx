@@ -14,42 +14,25 @@ import SyncButton from '../components/SyncButton'
 
 export default function DashboardEnhanced() {
   const navigate = useNavigate()
-  
-  let facturesStore, devisStore, aoStore, planificationStore, caisseStore, clientsStore
 
-  try {
-    facturesStore = useFacturesStore()
-    devisStore = useDevisStore()
-    aoStore = useAOStore()
-    planificationStore = usePlanificationStore()
-    caisseStore = useCaisseStore()
-    clientsStore = useClientsStore()
-  } catch (error) {
-    console.error('Erreur lors du chargement des stores:', error)
-    return (
-      <div className="p-8">
-        <div className="bg-white p-6 rounded-lg shadow border-l-4" style={{ borderColor: '#E60000' }}>
-          <h2 className="text-xl font-bold mb-2" style={{ color: '#E60000' }}>Erreur de chargement</h2>
-          <p style={{ color: '#06006E' }}>Une erreur est survenue lors du chargement du tableau de bord.</p>
-          <p className="text-sm mt-2" style={{ color: '#06006E' }}>{error.message}</p>
-        </div>
-      </div>
-    )
-  }
+  const factures = useFacturesStore(state => state.factures || [])
+  const devis = useDevisStore(state => state.devis || [])
+  const appelsDoffres = useAOStore(state => state.appelsDoffres || [])
+  const projets = usePlanificationStore(state => state.projets || [])
+  const clients = useClientsStore(state => state.clients || [])
+  const soldeCaisse = useCaisseStore(state => state.soldeCaisse || 0)
+  const getStatistiquesFactures = useFacturesStore(state => state.getStatistiques)
+  const getStatistiquesAO = useAOStore(state => state.getStatistiques)
 
-  // Sécurité : vérifier que les stores sont bien chargés
-  const factures = facturesStore?.factures || []
-  const devis = devisStore?.devis || []
-  const appelsDoffres = aoStore?.appelsDoffres || []
-  const projets = planificationStore?.projets || []
-  const clients = clientsStore?.clients || []
-  const soldeCaisse = caisseStore?.soldeCaisse || 0
+  const statsFactures = useMemo(() => {
+    if (typeof getStatistiquesFactures === 'function') return getStatistiquesFactures()
+    return { payees: 0, partielles: 0, impayees: 0 }
+  }, [getStatistiquesFactures, factures])
 
-  const getStatsFactures = facturesStore?.getStatistiques || (() => ({ payees: 0, partielles: 0, impayees: 0 }))
-  const getStatsAO = aoStore?.getStatistiques || (() => ({ aChiffrer: 0, enAttente: 0, soumis: 0, gagne: 0, perdu: 0 }))
-
-  const statsFactures = getStatsFactures()
-  const statsAO = getStatsAO()
+  const statsAO = useMemo(() => {
+    if (typeof getStatistiquesAO === 'function') return getStatistiquesAO()
+    return { aChiffrer: 0, enAttente: 0, soumis: 0, gagne: 0, perdu: 0 }
+  }, [getStatistiquesAO, appelsDoffres])
 
   // Statistiques globales
   const stats = useMemo(() => {
@@ -131,6 +114,9 @@ export default function DashboardEnhanced() {
       { name: 'Perdu', value: statsAO.perdu, color: '#E60000' }
     ]
   }, [statsAO])
+
+  const tickFormatterMillions = useMemo(() => (value) => (typeof value === 'number' && isFinite(value)) ? `${(value / 1000000).toFixed(0)}M` : '0M', [])
+  const tooltipFormatterFCFA = useMemo(() => (value) => formatFCFA(value), [])
 
   // Projets par statut
   const projetsParStatut = useMemo(() => {
@@ -273,8 +259,8 @@ export default function DashboardEnhanced() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
               <XAxis dataKey="mois" stroke="#06006E" />
-              <YAxis stroke="#06006E" tickFormatter={(value) => (typeof value === 'number' && isFinite(value)) ? `${(value / 1000000).toFixed(0)}M` : '0M'} domain={[0, 'auto']} />
-              <Tooltip formatter={(value) => formatFCFA(value)} />
+              <YAxis stroke="#06006E" tickFormatter={tickFormatterMillions} domain={[0, 'auto']} />
+              <Tooltip formatter={tooltipFormatterFCFA} />
               <Legend />
               <Area type="monotone" dataKey="CA" stroke="#06006E" fillOpacity={1} fill="url(#colorCA)" />
               <Area type="monotone" dataKey="Encaissé" stroke="#1A7A4A" fillOpacity={1} fill="url(#colorEncaisse)" />
@@ -312,9 +298,9 @@ export default function DashboardEnhanced() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topClients} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
-              <XAxis type="number" stroke="#06006E" tickFormatter={(value) => (typeof value === 'number' && isFinite(value)) ? `${(value / 1000000).toFixed(0)}M` : '0M'} domain={[0, 'auto']} />
+              <XAxis type="number" stroke="#06006E" tickFormatter={tickFormatterMillions} domain={[0, 'auto']} />
               <YAxis type="category" dataKey="nom" stroke="#06006E" width={100} />
-              <Tooltip formatter={(value) => formatFCFA(value)} />
+              <Tooltip formatter={tooltipFormatterFCFA} />
               <Bar dataKey="ca" fill="#E60000" radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>

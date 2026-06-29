@@ -5,9 +5,9 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
-import { formatDateLong, formatFCFA } from '../../utils/format'
+import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
+import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_SOUDURE = ['TIG', 'MIG/MAG', 'Arc électrique', 'Oxyacétylénique', 'Plasma']
@@ -16,12 +16,13 @@ const POSITIONS_SOUDURE = ['À plat (PA)', 'Horizontale (PC)', 'Verticale (PF)',
 const QUALIFICATIONS = ['Soudeur qualifié', 'Soudeur certifié ISO 9606', 'Soudeur spécialisé']
 
 const LIGNE_VIDE = {
-  id: Date.now(),
   designation: '',
   longueur: 0,
   epaisseur: 0,
-  pu: 0
+  pu: 0,
+  montant: ''
 }
+const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisSoudure() {
   const pdfRef = useRef(null)
@@ -34,11 +35,12 @@ export default function DevisSoudure() {
   const { confirm } = useNotifications()
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: '',
+    numero: location.state?.devisId ? '' : getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'SOUDURE',
     objet: '',
+    notes: '',
 
     typeSoudure: 'TIG',
     materiau: 'Acier carbone',
@@ -47,20 +49,13 @@ export default function DevisSoudure() {
     controleQualite: true,
     radiographie: false,
 
-    lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    lignes: [nouvelleLigne()],
     tauxRemise: 0,
     tvaActive: true,
     statut: 'BROUILLON'
   }))
 
   const [devisId, setDevisId] = useState(null)
-
-  // Générer le numéro après le montage ou quand il devient vide (évite setState pendant le render)
-  useEffect(() => {
-    if (!devisData.numero && !location.state?.devisId) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
-    }
-  }, [devisData.numero, location.state?.devisId, getNextNumero])
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
@@ -74,13 +69,14 @@ export default function DevisSoudure() {
             clientId: devisExist.clientId,
             type: devisExist.type || 'SOUDURE',
             objet: devisExist.objet || '',
+            notes: devisExist.notes || '',
             typeSoudure: devisExist.typeSoudure || 'TIG',
             materiau: devisExist.materiau || 'Acier carbone',
             position: devisExist.position || 'À plat (PA)',
             qualification: devisExist.qualification || 'Soudeur qualifié',
             controleQualite: devisExist.controleQualite !== undefined ? devisExist.controleQualite : true,
             radiographie: devisExist.radiographie || false,
-            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes.map(l => ({ ...l, longueur: l.longueur || 0, epaisseur: l.epaisseur || 0, pu: l.pu || 0 })) : [{ ...LIGNE_VIDE, id: Date.now() }],
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes.map(l => ({ ...l, longueur: l.longueur || 0, epaisseur: l.epaisseur || 0, pu: l.pu || 0 })) : [nouvelleLigne()],
             tauxRemise: devisExist.tauxRemise || 0,
             tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
             statut: devisExist.statut || 'BROUILLON'
@@ -98,9 +94,13 @@ export default function DevisSoudure() {
       }
     }
     loadDevis()
-  }, [location.state, location.state?.devisId, getDevisById])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.devisId])
 
   const calculerMontant = (ligne) => {
+    if (ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null) {
+      return parseFloat(ligne.montant) || 0
+    }
     const longueur = parseFloat(ligne.longueur) || 0
     const pu = parseFloat(ligne.pu) || 0
     return longueur * pu
@@ -119,7 +119,7 @@ export default function DevisSoudure() {
   const ajouterLigne = () => {
     setDevisData(prev => ({
       ...prev,
-      lignes: [...prev.lignes, { ...LIGNE_VIDE, id: Date.now() }]
+      lignes: [...prev.lignes, nouvelleLigne()]
     }))
   }
 
@@ -161,13 +161,14 @@ export default function DevisSoudure() {
         clientId: null,
         type: 'SOUDURE',
         objet: '',
+        notes: '',
         typeSoudure: 'TIG',
         materiau: 'Acier carbone',
         position: 'À plat (PA)',
         qualification: 'Soudeur qualifié',
         controleQualite: true,
         radiographie: false,
-        lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+        lignes: [nouvelleLigne()],
         tauxRemise: 0,
         tvaActive: true,
         statut: 'BROUILLON'
@@ -206,31 +207,27 @@ export default function DevisSoudure() {
         await updateDevis(devisId, devisComplet)
         addLog({ module: 'DEVIS_SOUDURE', action: 'MODIFICATION', utilisateur: 'Utilisateur', apres: { numero: devisData.numero, montantTTC: totaux.ttc } })
         ajouterNotification({
-          type: 'INFO',
-          icone: '✅',
-          titre: 'SUCCÈS',
-          message: `Devis ${devisData.numero} modifié avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
+          type: 'INFO', icone: '✅', titre: 'SUCCÈS',
+          message: `Devis ${devisData.numero} modifié - ${formatFCFA(totaux.ttc)}`,
           lien: '/devis/liste'
         })
+        navigate('/devis/liste')
       } else {
         const nouveau = await addDevis(devisComplet)
         setDevisId(nouveau.id)
         addLog({ module: 'DEVIS_SOUDURE', action: 'CREATION', utilisateur: 'Utilisateur', apres: { numero: nouveau.numero, montantTTC: totaux.ttc } })
         ajouterNotification({
-          type: 'INFO',
-          icone: '✅',
-          titre: 'SUCCÈS',
-          message: `Devis ${nouveau.numero} enregistré avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
+          type: 'INFO', icone: '✅', titre: 'SUCCÈS',
+          message: `Devis ${nouveau.numero} enregistré - ${formatFCFA(totaux.ttc)}`,
           lien: '/devis/liste'
         })
+        navigate('/devis/liste')
       }
     } catch (error) {
-      console.error('Erreur lors de l\'enregistrement:', error)
+      console.error('Erreur enregistrement:', error)
       ajouterNotification({
-        type: 'URGENT',
-        icone: '❌',
-        titre: 'ERREUR',
-        message: 'Erreur lors de l\'enregistrement du devis. Veuillez réessayer.'
+        type: 'URGENT', icone: '❌', titre: 'ERREUR ENREGISTREMENT',
+        message: `Échec: ${error?.message || 'Erreur inconnue'}`
       })
     }
   }
@@ -266,16 +263,26 @@ export default function DevisSoudure() {
       reference: devisData.numero,
       objet: devisData.objet || `Soudure ${devisData.typeSoudure || 'TIG'} - ${devisData.materiau || 'Acier'}`,
       type: 'SOUDURE',
+      notes: devisData.notes || '',
+      statut: devisData.statut || 'BROUILLON',
       client: {
         nom: client?.nom || '—',
-        interlocuteur: client?.contactNom || '—',
-        site: client?.ville || '—'
+        interlocuteur: devisData.demandePar || client?.contactNom || '—',
+        adresse: client?.adresse || '—',
+        telephone: client?.telephone || '',
+        email: client?.contactEmail || '',
+        raisonSociale: client?.raisonSociale || '',
+        secteur: client?.secteur || '',
+        ville: client?.ville || '',
+        pays: client?.pays || 'Côte d\'Ivoire',
+        conditionsPaiement: client?.conditionsPaiement || ''
       },
       infos: {
         date: devisData.date,
         validite: '30 jours',
         etabliPar: 'SIKA INDUSTRIE',
-        tel: '(225) 07 97 25 25 26'
+        tel: '(225) 07 97 25 25 26',
+        demandePar: devisData.demandePar || ''
       },
       lignes: lignesAvecMontant,
       montantBrut: totaux.montantBrut,
@@ -285,20 +292,7 @@ export default function DevisSoudure() {
       ttc: totaux.ttc
     };
 
-    // Générer le HTML avec le nouveau template
-    const htmlContent = generateDevisHTML(templateData);
-    
-    // Ouvrir dans une nouvelle fenêtre pour impression
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Attendre le chargement puis imprimer
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    };
+    printDevisHTML(templateData);
     
     addLog({ module: 'DEVIS_SOUDURE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devisData.numero } });
     ajouterNotification({
@@ -339,6 +333,15 @@ export default function DevisSoudure() {
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">N° Devis</label>
               <input type="text" value={devisData.numero} readOnly className="w-full px-3 py-2 border border-argent rounded-lg bg-navyClair font-bold text-navy" />
+              <div className="mt-2">
+                <span className="text-xs font-semibold text-bleu uppercase tracking-wide">Type de devis</span>
+                <div className="mt-1">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 bg-orange text-white text-xs font-bold rounded-full uppercase tracking-wide">
+                    <span className="w-2 h-2 rounded-full bg-white" />
+                    {devisData.type}
+                  </span>
+                </div>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Date</label>
@@ -430,9 +433,22 @@ export default function DevisSoudure() {
                         <input type="number" step="0.1" value={ligne.epaisseur} onChange={(e) => modifierLigne(ligne.id, 'epaisseur', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" value={ligne.pu} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:border-orange" />
+                        <input type="number" value={ligne.pu || ''} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} placeholder="0" className="w-full px-2 py-1 border-2 border-orange rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-orange bg-orangeClair" />
                       </td>
-                      <td className="border border-argent px-4 py-2 text-right font-semibold text-navy">{formatFCFA(montant)}</td>
+                      <td className="border border-argent px-3 py-2">
+                        <input
+                          type="number"
+                          value={ligne.montant !== '' && ligne.montant !== undefined ? ligne.montant : montant || ''}
+                          onChange={(e) => modifierLigne(ligne.id, 'montant', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                          placeholder={montant > 0 ? String(montant) : '0'}
+                          min="0" step="1"
+                          className="w-full px-2 py-1 border-2 border-navy rounded text-right font-bold text-navy focus:outline-none focus:ring-2 focus:ring-navy bg-navyClair"
+                          title="Saisissable — laissez vide pour calculer auto (Longueur × PU)"
+                        />
+                        {(ligne.montant === '' || ligne.montant === undefined) && montant > 0 && (
+                          <div className="text-right text-xs text-gray-400 mt-0.5">= {ligne.longueur}×{ligne.pu}</div>
+                        )}
+                      </td>
                       <td className="border border-argent px-4 py-2 text-center">
                         <button onClick={() => supprimerLigne(ligne.id)} className="text-rouge hover:text-opacity-70" title="Supprimer">🗑</button>
                       </td>
@@ -479,6 +495,16 @@ export default function DevisSoudure() {
           </div>
         </div>
 
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <label className="block text-sm font-semibold text-navy mb-2">Notes / Observations</label>
+          <textarea
+            value={devisData.notes || ''}
+            onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
+            className="w-full min-h-[120px] px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange resize-vertical"
+            placeholder="Ajoutez des notes ou observations ici..."
+          />
+        </div>
+
         <div className="hidden">
           <div ref={pdfRef} className="bg-white p-8" style={{ width: '210mm' }}>
             <div className="text-center mb-8">
@@ -492,6 +518,32 @@ export default function DevisSoudure() {
                 <p className="text-sm text-navy">Date : {formatDateLong(devisData.date)}</p>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* BARRE ACTIONS BAS */}
+      <div className="bg-white border-t-4 border-orange shadow-lg rounded-lg mt-6 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+              ➕ Nouveau
+            </button>
+            <button
+              onClick={() => setDevisData(prev => ({ ...prev, tvaActive: !prev.tvaActive }))}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-medium text-sm ${devisData.tvaActive ? 'bg-vert text-white hover:bg-opacity-90' : 'bg-argent text-navy hover:bg-opacity-80'}`}
+            >
+              🔄 TVA : {devisData.tvaActive ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-navy font-bold text-sm hidden sm:block">TTC : {formatFCFA(totaux.ttc)}</span>
+            <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+              📄 PDF
+            </button>
+            <button onClick={handleEnregistrer} className="flex items-center gap-2 px-5 py-3 bg-vert text-white rounded-lg hover:bg-opacity-90 transition font-bold text-base shadow-lg">
+              💾 Enregistrer
+            </button>
           </div>
         </div>
       </div>

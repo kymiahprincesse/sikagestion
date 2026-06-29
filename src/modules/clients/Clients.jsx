@@ -19,7 +19,7 @@ export default function Clients() {
   const { devis } = useDevisStore()
   const { factures } = useFacturesStore()
   const { projets } = usePlanificationStore()
-  const { success, error: notifError, warning, confirmDelete } = useNotifications()
+  const { success, error, warning, confirmDelete } = useNotifications()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSecteur, setFilterSecteur] = useState('')
@@ -389,7 +389,7 @@ export default function Clients() {
       })
     } catch (err) {
       console.error('Erreur lors de l\'impression:', err)
-      notifError(`Erreur lors de l'impression: ${err.message || 'Erreur inconnue'}`)
+      error(`Erreur lors de l'impression: ${err.message || 'Erreur inconnue'}`)
     }
   }
 
@@ -492,7 +492,7 @@ export default function Clients() {
       })
     } catch (err) {
       console.error('Erreur lors de la génération de la fiche:', err)
-      notifError(`Erreur lors de l'impression de la fiche: ${err.message || 'Erreur inconnue'}`)
+      error(`Erreur lors de l'impression de la fiche: ${err.message || 'Erreur inconnue'}`)
     }
   }
 

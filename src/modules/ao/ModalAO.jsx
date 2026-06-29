@@ -2,32 +2,17 @@ import { useState, useEffect } from 'react';
 import { useAOStore, STATUTS_AO } from '../../store/useAOStore';
 import { useClientsStore } from '../../store/useClientsStore';
 import { useAuditStore } from '../../store/useAuditStore';
+import { useNotifications } from '../../components/NotificationProvider';
 
 export default function ModalAO({ ao, onClose }) {
   const { addAO, updateAO } = useAOStore();
   const { clients } = useClientsStore();
   const { addLog } = useAuditStore();
+  const { success, error } = useNotifications();
 
-  const [formData, setFormData] = useState({
-    dateDevis: '',
-    numeroDevis: '',
-    client: '',
-    referenceAO: '',
-    secteurActivite: '',
-    prestationSouhaitee: '',
-    designations: '',
-    receptionAO: '',
-    dateVisiteChantier: '',
-    dateReponseAO: '',
-    montantRetenue: '',
-    statut: STATUTS_AO.A_CHIFFRER
-  });
-
-  const [errors, setErrors] = useState({});
-
-  useEffect(() => {
+  const [formData, setFormData] = useState(() => {
     if (ao) {
-      setFormData({
+      return {
         dateDevis: ao.dateDevis || '',
         numeroDevis: ao.numeroDevis || '',
         client: ao.client || '',
@@ -40,14 +25,25 @@ export default function ModalAO({ ao, onClose }) {
         dateReponseAO: ao.dateReponseAO || '',
         montantRetenue: ao.montantRetenue || '',
         statut: ao.statut || STATUTS_AO.A_CHIFFRER
-      });
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        dateDevis: new Date().toISOString().split('T')[0]
-      }));
+      };
     }
-  }, [ao]);
+    return {
+      dateDevis: new Date().toISOString().split('T')[0],
+      numeroDevis: '',
+      client: '',
+      referenceAO: '',
+      secteurActivite: '',
+      prestationSouhaitee: '',
+      designations: '',
+      receptionAO: '',
+      dateVisiteChantier: '',
+      dateReponseAO: '',
+      montantRetenue: '',
+      statut: STATUTS_AO.A_CHIFFRER
+    };
+  });
+
+  const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -75,7 +71,7 @@ export default function ModalAO({ ao, onClose }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validate()) return;
@@ -85,27 +81,32 @@ export default function ModalAO({ ao, onClose }) {
       montantRetenue: formData.montantRetenue ? parseFloat(formData.montantRetenue) : null
     };
 
-    if (ao) {
-      updateAO(ao.id, dataToSave);
-      addLog({
-        module: 'Appels d\'offres',
-        action: 'Modification AO',
-        utilisateur: 'Admin',
-        avant: ao,
-        apres: { ...ao, ...dataToSave }
-      });
-    } else {
-      const nouvelAO = addAO(dataToSave);
-      addLog({
-        module: 'Appels d\'offres',
-        action: 'Création AO',
-        utilisateur: 'Admin',
-        avant: null,
-        apres: nouvelAO
-      });
+    try {
+      if (ao) {
+        await updateAO(ao.id, dataToSave);
+        addLog({
+          module: 'Appels d\'offres',
+          action: 'Modification AO',
+          utilisateur: 'Admin',
+          avant: ao,
+          apres: { ...ao, ...dataToSave }
+        });
+        success(`AO ${formData.numeroDevis || formData.referenceAO} modifié avec succès`);
+      } else {
+        const nouvelAO = await addAO(dataToSave);
+        addLog({
+          module: 'Appels d\'offres',
+          action: 'Création AO',
+          utilisateur: 'Admin',
+          avant: null,
+          apres: nouvelAO
+        });
+        success(`AO ${nouvelAO?.numeroDevis || nouvelAO?.referenceAO || ''} créé avec succès`);
+      }
+      onClose();
+    } catch (err) {
+      error('Erreur lors de l\'enregistrement de l\'AO : ' + (err?.message || 'Vérifiez la connexion'));
     }
-
-    onClose();
   };
 
   return (

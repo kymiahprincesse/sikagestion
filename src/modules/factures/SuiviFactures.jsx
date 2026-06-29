@@ -12,11 +12,11 @@ import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as
 const MOYENS_REGLEMENT = ['ESPECES', 'CHEQUE', 'VIREMENT', 'CARTE', 'TRAITE', 'AUTRE']
 const TAUX_TVA = 18
 
-const genererReferenceFacture = (factures) => {
+const genererNumeroFacture = (factures) => {
   const annee = new Date().getFullYear()
-  const prefix = `FACT-${annee}-`
+  const prefix = `FAC-${annee}-`
   const numerosExistants = factures
-    .map(f => f.reference)
+    .map(f => f.numero || f.reference)
     .filter(ref => ref && ref.startsWith(prefix))
     .map(ref => parseInt(ref.replace(prefix, ''), 10))
     .filter(n => !isNaN(n))
@@ -105,11 +105,11 @@ export default function SuiviFactures() {
   const facturesFiltrees = useMemo(() => {
     return facturesAvecClients.filter(f => {
       const matchRecherche = !recherche || 
-        f.reference?.toLowerCase().includes(recherche.toLowerCase()) ||
+        (f.numero || f.reference)?.toLowerCase().includes(recherche.toLowerCase()) ||
         f.clientNom?.toLowerCase().includes(recherche.toLowerCase()) ||
         f.observation?.toLowerCase().includes(recherche.toLowerCase())
       
-      const matchClient = !filtreClient || f.clientId === parseInt(filtreClient)
+      const matchClient = !filtreClient || String(f.clientId) === String(filtreClient)
       const matchStatut = !filtreStatut || f.statut.label === filtreStatut
       
       const matchDate = (!filtreDateDebut || f.dateDepot >= filtreDateDebut) &&
@@ -124,9 +124,9 @@ export default function SuiviFactures() {
 
   const totaux = useMemo(() => {
     const totalHT = facturesFiltrees.reduce((sum, f) => sum + (f.montantHT || 0), 0)
-    const totalTVA = facturesFiltrees.reduce((sum, f) => sum + (f.tva || 0), 0)
+    const totalTVA = facturesFiltrees.reduce((sum, f) => sum + (f.montantTVA || 0), 0)
     const totalTTC = facturesFiltrees.reduce((sum, f) => sum + (f.montantTTC || 0), 0)
-    const totalRegle = facturesFiltrees.filter(f => f.dateReglement).reduce((sum, f) => sum + (f.montantTTC || 0), 0)
+    const totalRegle = facturesFiltrees.reduce((sum, f) => sum + (f.montantPaye || 0), 0)
     const resteARecouvrer = totalTTC - totalRegle
 
     return { totalHT, totalTVA, totalTTC, totalRegle, resteARecouvrer }
@@ -145,23 +145,24 @@ export default function SuiviFactures() {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     const factureData = {
       ...formData,
-      clientId: parseInt(formData.clientId),
+      numero: formData.numero || formData.reference,
+      clientId: formData.clientId,
       montantHT: parseFloat(formData.montantHT),
-      tva: parseFloat(formData.tva),
+      montantTVA: parseFloat(formData.tva),
       montantTTC: parseFloat(formData.montantTTC),
       delaiReglement: parseInt(formData.delaiReglement)
     }
 
     if (currentFacture) {
-      updateFacture(currentFacture.id, factureData)
+      await updateFacture(currentFacture.id, factureData)
       addLog({ module: 'FACTURE', action: 'UPDATE', utilisateur: 'Utilisateur', avant: currentFacture, apres: factureData })
     } else {
-      const newFacture = addFacture(factureData)
+      const newFacture = await addFacture(factureData)
       addLog({ module: 'FACTURE', action: 'CREATE', utilisateur: 'Utilisateur', apres: newFacture })
     }
 
@@ -256,7 +257,7 @@ export default function SuiviFactures() {
 
   const handlePrint = async (facture) => {
     const client = clients.find(c => c.id === facture.clientId)
-    const ctx = await createSikaPDF(`FACTURE ${facture.reference}`)
+    const ctx = await createSikaPDF(`FACTURE ${facture.numero || facture.reference}`)
     const { doc, startY, MARGE_G, PAGE_W } = ctx
     
     let y = startY
@@ -286,7 +287,7 @@ export default function SuiviFactures() {
     const columns = ['Description', 'Montant (FCFA)']
     const rows = [
       ['Montant HT', formatMontant(facture.montantHT)],
-      ['TVA (18%)', formatMontant(facture.tva)],
+      ['TVA (18%)', formatMontant(facture.montantTVA || facture.tva || 0)],
       ['MONTANT TTC', formatMontant(facture.montantTTC)]
     ]
     
@@ -335,8 +336,9 @@ export default function SuiviFactures() {
       y = sikaTable(doc, colsPaiements, rowsPaiements, y, ctx)
     }
 
-    await finalizeSikaPDF(ctx, `SIKA_Facture_${facture.reference.replace(/\//g, '_')}.pdf`)
-    addLog({ module: 'FACTURE', action: 'PRINT', utilisateur: 'Utilisateur', apres: { factureId: facture.id, reference: facture.reference } })
+    const refPDF = facture.numero || facture.reference || String(facture.id)
+    await finalizeSikaPDF(ctx, `SIKA_Facture_${refPDF.replace(/\//g, '_')}.pdf`)
+    addLog({ module: 'FACTURE', action: 'PRINT', utilisateur: 'Utilisateur', apres: { factureId: facture.id, reference: refPDF } })
   }
 
   const resetForm = () => {
@@ -360,9 +362,9 @@ export default function SuiviFactures() {
   const exportExcel = () => {
     const data = facturesFiltrees.map(f => ({
       'NOM DU CLIENT': f.clientNom,
-      'REFERENCE': f.reference,
+      'REFERENCE': f.numero || f.reference,
       'MONTANT HT': f.montantHT,
-      'TVA': f.tva,
+      'TVA': f.montantTVA || f.tva || 0,
       'MONTANT TTC': f.montantTTC,
       'MONTANT PAYÉ': f.montantPaye || 0,
       'RESTE À PAYER': (f.montantTTC || 0) - (f.montantPaye || 0),
@@ -415,7 +417,7 @@ export default function SuiviFactures() {
       formatMontant(f.montantTTC),
       formatMontant(f.montantPaye || 0),
       formatMontant((f.montantTTC || 0) - (f.montantPaye || 0)),
-      f.reference,
+      f.numero || f.reference,
       f.statut.label
     ])
     
@@ -428,7 +430,7 @@ export default function SuiviFactures() {
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(27, 42, 74)
     
-    [
+    ;[
       ['Total HT', formatMontant(totaux.totalHT) + ' FCFA'],
       ['Total TVA', formatMontant(totaux.totalTVA) + ' FCFA'],
       ['Total TTC', formatMontant(totaux.totalTTC) + ' FCFA'],
@@ -466,9 +468,9 @@ export default function SuiviFactures() {
       cell: info => <span className="text-navy">{formatFCFA(info.getValue())}</span>
     },
     {
-      accessorKey: 'tva',
+      accessorKey: 'montantTVA',
       header: 'TVA',
-      cell: info => <span className="text-bleu">{formatFCFA(info.getValue())}</span>
+      cell: info => <span className="text-bleu">{formatFCFA(info.getValue() || 0)}</span>
     },
     {
       accessorKey: 'montantTTC',
@@ -504,7 +506,7 @@ export default function SuiviFactures() {
     {
       accessorKey: 'reference',
       header: 'REFERENCE',
-      cell: info => <span className="font-bold text-navy">{info.getValue()}</span>
+      cell: ({ row }) => <span className="font-bold text-navy">{row.original.numero || row.original.reference}</span>
     },
     {
       accessorKey: 'observation',
@@ -576,7 +578,7 @@ export default function SuiviFactures() {
 
         <div className="flex gap-2 mb-6 flex-wrap">
           <button
-            onClick={() => { setCurrentFacture(null); setFormData({ clientId: '', montantHT: '', tva: '', montantTTC: '', dateDepot: '', delaiReglement: 30, dateReglement: '', moyenReglement: '', reference: genererReferenceFacture(factures), observation: '' }); setShowModal(true); }}
+            onClick={() => { setCurrentFacture(null); setFormData({ clientId: '', montantHT: '', tva: '', montantTTC: '', dateDepot: '', delaiReglement: 30, dateReglement: '', moyenReglement: '', numero: genererNumeroFacture(factures), reference: genererNumeroFacture(factures), observation: '' }); setShowModal(true); }}
             className="px-4 py-2 bg-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
           >
             ➕ Nouvelle Facture
@@ -881,7 +883,7 @@ export default function SuiviFactures() {
             <div className="p-6 space-y-4">
               <div className="bg-navyClair p-3 rounded-lg">
                 <div className="text-sm text-bleu">Facture</div>
-                <div className="font-bold text-navy">{currentFacture?.reference}</div>
+                <div className="font-bold text-navy">{currentFacture?.numero || currentFacture?.reference}</div>
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   <div>
                     <div className="text-xs text-gray-500">Montant TTC</div>
@@ -988,7 +990,7 @@ export default function SuiviFactures() {
                 </div>
                 <div className="bg-navyClair p-3 rounded-lg">
                   <div className="text-xs text-bleu font-semibold">Référence</div>
-                  <div className="font-bold text-navy">{currentFacture.reference}</div>
+                  <div className="font-bold text-navy">{currentFacture.numero || currentFacture.reference}</div>
                 </div>
                 <div className="bg-navyClair p-3 rounded-lg">
                   <div className="text-xs text-bleu font-semibold">Montant HT</div>
@@ -996,7 +998,7 @@ export default function SuiviFactures() {
                 </div>
                 <div className="bg-navyClair p-3 rounded-lg">
                   <div className="text-xs text-bleu font-semibold">TVA (18%)</div>
-                  <div className="font-bold text-navy">{formatFCFA(currentFacture.tva)}</div>
+                  <div className="font-bold text-navy">{formatFCFA(currentFacture.montantTVA || currentFacture.tva || 0)}</div>
                 </div>
                 <div className="bg-orangeClair p-3 rounded-lg border-2 border-orange">
                   <div className="text-xs text-orange font-semibold">Montant TTC</div>

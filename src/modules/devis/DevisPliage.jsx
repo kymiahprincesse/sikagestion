@@ -5,7 +5,7 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
-import { formatDateLong, formatFCFA } from '../../utils/format'
+import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
 import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -24,11 +24,11 @@ const UNITES_PRIX = [
 ]
 
 const LIGNE_VIDE = {
-  id: Date.now(),
   designation: '',
   qte: 0,
   pu: 0
 }
+const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisPliage() {
   const pdfRef = useRef(null)
@@ -46,7 +46,8 @@ export default function DevisPliage() {
     clientId: null,
     type: 'PLIAGE',
     objet: '',
-    lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+    notes: '',
+    lignes: [nouvelleLigne()],
     tauxRemise: 0,
     statut: 'BROUILLON',
     tvaActive: true
@@ -80,7 +81,8 @@ export default function DevisPliage() {
             clientId: devisExist.clientId,
             type: devisExist.type || 'PLIAGE',
             objet: devisExist.objet || '',
-            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [{ ...LIGNE_VIDE, id: Date.now() }],
+            notes: devisExist.notes || '',
+            lignes: devisExist.lignes?.length > 0 ? devisExist.lignes : [nouvelleLigne()],
             statut: devisExist.statut || 'BROUILLON',
             tvaActive: devisExist.tvaActive !== undefined ? devisExist.tvaActive : true,
             tauxRemise: devisExist.tauxRemise || 0
@@ -120,7 +122,7 @@ export default function DevisPliage() {
   const ajouterLigne = () => {
     setDevisData(prev => ({
       ...prev,
-      lignes: [...prev.lignes, { ...LIGNE_VIDE, id: Date.now() }]
+      lignes: [...prev.lignes, nouvelleLigne()]
     }))
   }
 
@@ -141,10 +143,10 @@ export default function DevisPliage() {
   }
 
   const dupliquerLigne = (ligne) => {
-    const nouvelleLigne = { ...ligne, id: Date.now() }
+    const nouvelleLigneCopiee = { ...ligne, id: generateSecureId('LIG') }
     const index = devisData.lignes.findIndex(l => l.id === ligne.id)
     const nouvellesLignes = [...devisData.lignes]
-    nouvellesLignes.splice(index + 1, 0, nouvelleLigne)
+    nouvellesLignes.splice(index + 1, 0, nouvelleLigneCopiee)
     setDevisData(prev => ({ ...prev, lignes: nouvellesLignes }))
   }
 
@@ -220,7 +222,8 @@ export default function DevisPliage() {
       date: new Date().toISOString().split('T')[0],
       clientId: null,
       objet: '',
-      lignes: [{ ...LIGNE_VIDE, id: Date.now() }],
+      notes: '',
+      lignes: [nouvelleLigne()],
       tauxRemise: 0,
       statut: 'BROUILLON',
       tvaActive: true
@@ -353,6 +356,8 @@ export default function DevisPliage() {
         reference: devisData.numero,
         objet: devisData.objet || `Pliage ${specifications.typeTole || 'Tôle'} ${specifications.epaisseur || ''}mm`,
         type: 'PLIAGE',
+        notes: devisData.notes || '',
+        statut: devisData.statut || 'BROUILLON',
         client: {
           nom: client?.nom || '—',
           interlocuteur: client?.contactNom || '—',
@@ -473,6 +478,16 @@ export default function DevisPliage() {
                 value={devisData.objet}
                 onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))}
                 placeholder="Description de la mission"
+                rows={3}
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-bleu block mb-1">NOTES / OBSERVATIONS</label>
+              <textarea
+                value={devisData.notes || ''}
+                onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Informations complémentaires, conditions particulières, remarques client..."
                 rows={3}
                 className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
               />

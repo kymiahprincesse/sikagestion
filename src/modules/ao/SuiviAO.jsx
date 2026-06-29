@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNotifications } from '../../components/NotificationProvider';
 import { useAOStore, STATUTS_AO } from '../../store/useAOStore';
-import { useClientsStore } from '../../store/useClientsStore';
 import { useAuditStore } from '../../store/useAuditStore';
 import SikaHeader from '../../components/SikaHeader';
 import SikaFooter from '../../components/SikaFooter';
@@ -14,9 +13,8 @@ import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as
 
 export default function SuiviAO() {
   const { appelsDoffres, deleteAO, getStatistiques, getAOUrgents } = useAOStore();
-  const { clients } = useClientsStore();
   const { addLog } = useAuditStore();
-  const { confirmDelete } = useNotifications();
+  const { success, error, confirmDelete } = useNotifications();
 
   const [showModalAO, setShowModalAO] = useState(false);
   const [showModalConversion, setShowModalConversion] = useState(false);
@@ -100,18 +98,89 @@ export default function SuiviAO() {
   const handleSupprimer = async (ao) => {
     const ok = await confirmDelete(`l'AO ${ao.numeroDevis || ao.id}`);
     if (!ok) return;
-    deleteAO(ao.id);
-    addLog({
-      module: 'Appels d\'offres',
-      action: 'Suppression AO',
-      utilisateur: 'Admin',
-      avant: ao,
-      apres: null
-    });
+    try {
+      await deleteAO(ao.id);
+      addLog({
+        module: 'Appels d\'offres',
+        action: 'Suppression AO',
+        utilisateur: 'Admin',
+        avant: ao,
+        apres: null
+      });
+      success(`AO ${ao.numeroDevis || ao.id} supprimé avec succès`);
+    } catch (err) {
+      error('Erreur lors de la suppression de l\'AO : ' + (err?.message || 'Vérifiez la connexion'));
+    }
   };
 
-  const handleImprimer = (ao) => {
-    window.print();
+  const handleImprimer = async (ao) => {
+    const ctx = await createSikaPDF(`APPEL D'OFFRES - ${ao.numeroDevis || ao.referenceAO || ''}`);
+    const { doc, startY, endY, MARGE_G, PAGE_W, CONTENT_W } = ctx;
+
+    let y = startY;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(27, 42, 74);
+
+    const infos = [
+      ['N° Devis', ao.numeroDevis || '—'],
+      ['Référence AO', ao.referenceAO || '—'],
+      ['Client', ao.client || '—'],
+      ['Secteur d\'activité', ao.secteurActivite || '—'],
+      ['Prestation souhaitée', ao.prestationSouhaitee || '—'],
+      ['Date du devis', formatDatePDF(ao.dateDevis)],
+      ['Réception AO', formatDatePDF(ao.receptionAO)],
+      ['Date visite chantier', formatDatePDF(ao.dateVisiteChantier)],
+      ['Date de réponse', formatDatePDF(ao.dateReponseAO)],
+      ['Montant retenue', ao.montantRetenue ? `${formatMontant(ao.montantRetenue)} FCFA` : '—'],
+      ['Statut', ao.statut || '—']
+    ];
+
+    infos.forEach(([label, value]) => {
+      if (y > endY) {
+        doc.addPage();
+        y = startY;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${label} :`, MARGE_G, y);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(String(value), PAGE_W - MARGE_G - 85);
+      doc.text(lines, MARGE_G + 55, y);
+      y += Math.max(lines.length * 5, 6);
+    });
+
+    if (ao.designations) {
+      y += 5;
+      if (y > endY) {
+        doc.addPage();
+        y = startY;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.text('DÉSIGNATIONS / DESCRIPTION :', MARGE_G, y);
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      const descLines = doc.splitTextToSize(String(ao.designations), CONTENT_W - 10);
+      doc.text(descLines, MARGE_G + 5, y);
+      y += descLines.length * 5 + 2;
+    }
+
+    if (ao.notes) {
+      y += 5;
+      if (y > endY) {
+        doc.addPage();
+        y = startY;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.text('NOTES :', MARGE_G, y);
+      y += 6;
+      doc.setFont('helvetica', 'normal');
+      const notesLines = doc.splitTextToSize(String(ao.notes), CONTENT_W - 10);
+      doc.text(notesLines, MARGE_G + 5, y);
+    }
+
+    await openPDFForPrint(ctx);
+
     addLog({
       module: 'Appels d\'offres',
       action: 'Impression AO',
@@ -122,17 +191,19 @@ export default function SuiviAO() {
 
   const handleExportExcel = () => {
     const dataExport = aoFiltres.map(ao => {
-      const client = clients.find(c => c.id === ao.clientId);
       return {
-        'N° AO': ao.numero,
-        'Client': client?.nom || 'Inconnu',
-        'Objet': ao.objet,
-        'Secteur': ao.secteur || '',
-        'Date Réception': formatDate(ao.dateReception),
-        'Date Réponse': formatDate(ao.dateReponse),
-        'Montant Estimé': ao.montantEstime || 0,
-        'Statut': ao.statut,
-        'Priorité': ao.priorite || 'Normale'
+        'N° Devis': ao.numeroDevis || '',
+        'Référence AO': ao.referenceAO || '',
+        'Client': ao.client || '',
+        'Secteur d\'activité': ao.secteurActivite || '',
+        'Prestation souhaitée': ao.prestationSouhaitee || '',
+        'Date du devis': formatDate(ao.dateDevis),
+        'Réception AO': formatDate(ao.receptionAO),
+        'Date visite chantier': formatDate(ao.dateVisiteChantier),
+        'Date réponse AO': formatDate(ao.dateReponseAO),
+        'Montant retenue': ao.montantRetenue || 0,
+        'Statut': ao.statut || '',
+        'Désignations': ao.designations || ''
       };
     });
     
@@ -150,36 +221,34 @@ export default function SuiviAO() {
 
   const handleExportPDF = async () => {
     const ctx = await createSikaPDF('SUIVI DES APPELS D\'OFFRES');
-    const { doc, startY, MARGE_G, PAGE_W } = ctx;
-    
+    const { doc, startY, MARGE_G } = ctx;
+
     let y = startY;
-    
+
     // Statistiques en haut
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.text(`Total : ${aoFiltres.length} appel(s) d'offres`, MARGE_G, y);
     doc.text(`Gagné : ${stats.gagne} | Perdu : ${stats.perdu} | En cours : ${stats.aChiffrer + stats.enAttente + stats.soumis}`, MARGE_G + 70, y);
     y += 8;
-    
+
     // Tableau AO
-    const columns = ['N° AO', 'Client', 'Objet', 'Secteur', 'Date limite', 'Montant (FCFA)', 'Statut'];
-    const rows = aoFiltres.map(ao => {
-      const client = clients.find(c => c.id === ao.clientId);
-      return [
-        ao.numeroAO || '—',
-        client?.nom || '—',
-        ao.objet?.substring(0, 30) || '—',
-        ao.secteurActivite || '—',
-        ao.dateLimite ? formatDate(ao.dateLimite) : '—',
-        ao.montantEstime ? formatMontant(ao.montantEstime) : '—',
-        ao.statut || '—'
-      ];
-    });
-    
+    const columns = ['N° Devis', 'Réf. AO', 'Client', 'Secteur', 'Prestation', 'Date réponse', 'Montant (FCFA)', 'Statut'];
+    const rows = aoFiltres.map(ao => [
+      ao.numeroDevis || '—',
+      ao.referenceAO || '—',
+      ao.client || '—',
+      ao.secteurActivite || '—',
+      ao.prestationSouhaitee || '—',
+      formatDatePDF(ao.dateReponseAO),
+      ao.montantRetenue ? formatMontant(ao.montantRetenue) : '—',
+      ao.statut || '—'
+    ]);
+
     sikaTable(doc, columns, rows, y, ctx);
-    
+
     await finalizeSikaPDF(ctx, `SIKA_AppelsOffres_${new Date().toISOString().split('T')[0]}.pdf`);
-    
+
     addLog({
       module: 'Appels d\'offres',
       action: 'Export PDF',
@@ -187,51 +256,6 @@ export default function SuiviAO() {
     });
   };
   
-  const handlePrintAO = async (ao) => {
-    const client = clients.find(c => c.id === ao.clientId);
-    const ctx = await createSikaPDF(`APPEL D'OFFRES - ${ao.numeroAO}`);
-    const { doc, startY, MARGE_G, PAGE_W } = ctx;
-    
-    let y = startY;
-    
-    // Informations AO
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 42, 74);
-    
-    const infos = [
-      ['N° AO', ao.numeroAO || '—'],
-      ['Client', client?.nom || '—'],
-      ['Objet', ao.objet || '—'],
-      ['Secteur d\'activité', ao.secteurActivite || '—'],
-      ['Date limite', ao.dateLimite ? formatDate(ao.dateLimite) : '—'],
-      ['Date réponse', ao.dateReponseAO ? formatDate(ao.dateReponseAO) : '—'],
-      ['Montant estimé', ao.montantEstime ? formatMontant(ao.montantEstime) + ' FCFA' : '—'],
-      ['Statut', ao.statut || '—'],
-      ['Priorité', ao.priorite || '—']
-    ];
-    
-    infos.forEach(([label, value]) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(label + ' :', MARGE_G, y);
-      doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(value, 120);
-      doc.text(lines, MARGE_G + 50, y);
-      y += lines.length * 6;
-    });
-    
-    if (ao.description) {
-      y += 5;
-      doc.setFont('helvetica', 'bold');
-      doc.text('DESCRIPTION :', MARGE_G, y);
-      y += 6;
-      doc.setFont('helvetica', 'normal');
-      const descLines = doc.splitTextToSize(ao.description, 160);
-      doc.text(descLines, MARGE_G + 5, y);
-    }
-    
-    await finalizeSikaPDF(ctx, `SIKA_AO_${ao.numeroAO}.pdf`);
-  };
 
   const getRowClass = (ao) => {
     if (ao.statut === STATUTS_AO.DECLINE || ao.statut === STATUTS_AO.PERDU) {

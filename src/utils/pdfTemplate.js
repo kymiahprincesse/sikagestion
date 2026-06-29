@@ -8,9 +8,8 @@ import piedImg from '../assets/ENTETE SIKA pied 1.png'
  * @param {jsPDF} doc - Instance jsPDF
  * @param {number} pageNumber - Numéro de page actuel
  */
-export const addSikaHeader = (doc, pageNumber = 1) => {
+export const addSikaHeader = (doc) => {
   const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
   
   // En-tête image - hauteur 25mm
   try {
@@ -79,7 +78,7 @@ export const addSikaHeaderFooterToAllPages = (doc, totalPages = null) => {
   
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i)
-    addSikaHeader(doc, i)
+    addSikaHeader(doc)
     addSikaFooter(doc, i, pages)
   }
 }
@@ -97,7 +96,7 @@ export const createSikaPDF = (orientation = 'portrait') => {
   })
 
   // Ajouter en-tête et pied de page à la première page
-  addSikaHeader(doc, 1)
+  addSikaHeader(doc)
   addSikaFooter(doc, 1, 1)
 
   return doc

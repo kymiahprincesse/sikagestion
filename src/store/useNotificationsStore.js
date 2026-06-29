@@ -1,13 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { 
-  sendBrowserNotification, 
-  notifyAlerteBudget, 
-  notifyFactureImpayee,
-  notifyDevisGagne,
-  notifyNouveauAO,
-  notifyEncaissementRecu
-} from '../utils/notifications';
 
 export const TYPES_NOTIFICATION = {
   URGENT: 'URGENT',
@@ -84,7 +76,7 @@ export const useNotificationsStore = create(
                 titre: 'URGENT',
                 message: `AO ${appelOffre.numeroDevis} réponse dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''}`,
                 date: new Date().toISOString(),
-                lien: '/appels-offres',
+                lien: '/ao',
                 donnees: { aoId: appelOffre.id }
               });
             }
@@ -178,6 +170,34 @@ export const useNotificationsStore = create(
         set((state) => ({
           notifications: [nouvelle, ...state.notifications]
         }));
+
+        // ✅ Créer aussi un toast visible automatiquement
+        const toastType = notification.type === 'URGENT' ? TYPES_TOAST.ERROR
+          : notification.type === 'ATTENTION' ? TYPES_TOAST.WARNING
+          : TYPES_TOAST.SUCCESS;
+
+        const toastMessage = notification.titre
+          ? `${notification.icone || ''} ${notification.titre} — ${notification.message || ''}`.trim()
+          : notification.message || '';
+
+        const toastDuration = notification.type === 'URGENT' ? 7000 : 5000;
+
+        const toastId = `toast-${nouvelle.id}`;
+        const nouveauToast = {
+          id: toastId,
+          type: toastType,
+          message: toastMessage,
+          duration: toastDuration,
+          date: new Date().toISOString()
+        };
+
+        set((state) => ({
+          toasts: [...state.toasts, nouveauToast]
+        }));
+
+        setTimeout(() => {
+          get().supprimerToast(toastId);
+        }, toastDuration);
 
         return nouvelle;
       },

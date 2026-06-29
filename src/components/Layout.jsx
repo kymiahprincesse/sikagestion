@@ -57,7 +57,7 @@ export default function Layout() {
     // SUPER_ADMIN a accès absolu à tout (fantôme)
     if (isSuperAdmin(utilisateurConnecte)) return true
     
-    // UTILISATEURS : uniquement ADMIN et SUPER_ADMIN
+    // UTILISATEURS et TOUR DE CONTRÔLE : uniquement ADMIN et SUPER_ADMIN
     if (module === 'UTILISATEURS') {
       return role === 'ADMIN' || role === 'SUPER_ADMIN'
     }
@@ -65,11 +65,17 @@ export default function Layout() {
     // ADMIN a accès à tout le reste
     if (role === 'ADMIN') return true
     
-    // CAISSE : interdit pour SECRETAIRE
-    if (module === 'CAISSE' && role === 'SECRETAIRE') return false
+    // CAISSE : interdit pour SECRETAIRE et VIEWER
+    if (module === 'CAISSE' && (role === 'SECRETAIRE' || role === 'VIEWER')) return false
     
-    // DEVIS : TECHNICIEN ne peut pas créer de devis (lecture seule)
-    if (module === 'DEVIS' && role === 'TECHNICIEN') return false
+    // DEVIS : TECHNICIEN et VIEWER ne peuvent pas créer de devis
+    if (module === 'DEVIS' && (role === 'TECHNICIEN' || role === 'VIEWER')) return false
+
+    // IMPORT : interdit pour VIEWER et TECHNICIEN
+    if (module === 'IMPORT' && (role === 'VIEWER' || role === 'TECHNICIEN')) return false
+
+    // FOURNISSEURS : interdit pour VIEWER
+    if (module === 'FOURNISSEURS' && role === 'VIEWER') return false
     
     // Tous les autres modules sont accessibles
     return true
@@ -184,6 +190,7 @@ export default function Layout() {
           {canAccess('CLIENTS') && (
             <Link
               to="/clients"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/clients')
                   ? 'text-white font-semibold'
@@ -200,6 +207,7 @@ export default function Layout() {
           {canAccess('PLANIFICATION') && (
             <Link
               to="/planification"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/planification')
                   ? 'text-white font-semibold'
@@ -216,6 +224,7 @@ export default function Layout() {
           {canAccess('AO') && (
             <Link
               to="/ao"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/ao')
                   ? 'text-white font-semibold'
@@ -284,6 +293,7 @@ export default function Layout() {
 
               <Link
                 to="/devis/liste"
+                onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                   isActive('/devis/liste')
                     ? 'text-white font-semibold'
@@ -310,6 +320,7 @@ export default function Layout() {
           {canAccess('FACTURES') && (
             <Link
               to="/factures"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/factures')
                   ? 'text-white font-semibold'
@@ -326,6 +337,7 @@ export default function Layout() {
           {canAccess('ENCAISSEMENTS') && (
             <Link
               to="/encaissements"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/encaissements')
                   ? 'text-white font-semibold'
@@ -342,6 +354,7 @@ export default function Layout() {
           {canAccess('CAISSE') && (
             <Link
               to="/caisse"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/caisse')
                   ? 'text-white font-semibold'
@@ -358,6 +371,7 @@ export default function Layout() {
           {canAccess('CAISSE') && (
             <Link
               to="/journal"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/journal')
                   ? 'text-white font-semibold'
@@ -374,6 +388,7 @@ export default function Layout() {
           {canAccess('FOURNISSEURS') && (
             <Link
               to="/fournisseurs"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/fournisseurs')
                   ? 'text-white font-semibold'
@@ -416,6 +431,7 @@ export default function Layout() {
           {canAccess('IMPORT') && (
             <Link
               to="/import-export"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/import-export')
                   ? 'text-white font-semibold'
@@ -441,6 +457,7 @@ export default function Layout() {
           {canAccess('UTILISATEURS') && (
             <Link
               to="/utilisateurs"
+              onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                 isActive('/utilisateurs')
                   ? 'text-white font-semibold'

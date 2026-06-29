@@ -53,16 +53,18 @@ const PermBadge = ({ allowed, label }) => (
   </span>
 );
 
-const BTN = ({ onClick, color, bg, border, children, title }) => (
+const BTN = ({ onClick, color, bg, border, children, title, disabled }) => (
   <button
     onClick={onClick}
     title={title}
+    disabled={disabled}
     style={{
       background: bg || color, color: bg ? color : 'white',
       border: border ? `1px solid ${color}` : 'none',
-      padding: '5px 12px', borderRadius: '6px', cursor: 'pointer',
+      padding: '5px 12px', borderRadius: '6px', cursor: disabled ? 'not-allowed' : 'pointer',
       fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
-      display: 'inline-flex', alignItems: 'center', gap: '4px'
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      opacity: disabled ? 0.5 : 1
     }}
   >
     {children}
@@ -94,7 +96,7 @@ const Utilisateurs = () => {
   const utilisateurConnecte = useAuthStore((state) => state.utilisateurConnecte);
   const { enregistrerAction } = useAudit();
 
-  const utilisateurs = useUtilisateursStore((state) => state.getUtilisateurs());
+  const utilisateurs = useUtilisateursStore((state) => state.utilisateurs);
   const fetchUtilisateurs = useUtilisateursStore((state) => state.fetchUtilisateurs);
   const modifierUtilisateur = useUtilisateursStore((state) => state.modifierUtilisateur);
   const changerMotDePasse = useUtilisateursStore((state) => state.changerMotDePasse);

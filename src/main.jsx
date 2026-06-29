@@ -4,6 +4,21 @@ import './index.css'
 import App from './App.jsx'
 import { logger } from './utils/logger'
 
+// ── PURGE CACHE LOCAL DONNÉES FICTIVES (production reset) ──────────
+const CACHE_VERSION = 'sika_prod_v1'
+if (localStorage.getItem('sika_cache_version') !== CACHE_VERSION) {
+  const keysToRemove = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith('sika_') && key !== 'sika_cache_version') {
+      keysToRemove.push(key)
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k))
+  localStorage.setItem('sika_cache_version', CACHE_VERSION)
+}
+// ────────────────────────────────────────────────────────────────────
+
 // ── PWA SERVICE WORKER ───────────────────────────────────
 if ('serviceWorker' in navigator) {
   let reloading = false;

@@ -3,36 +3,26 @@ import { useState, useEffect, useCallback } from 'react';
 export function usePWAInstall() {
   const [deferredPrompt,   setDeferredPrompt]   = useState(null);
   const [canInstall,       setCanInstall]        = useState(false);
-  const [isInstalled,      setIsInstalled]       = useState(false);
+  const [isInstalled,      setIsInstalled]       = useState(() => {
+    if (typeof window !== 'undefined') {
+      if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return true;
+      try { if (sessionStorage.getItem('sika_pwa_installed') === 'true') return true; } catch (e) { /* ignore */ }
+    }
+    return false;
+  });
   const [isInstalling,     setIsInstalling]      = useState(false);
   const [installSuccess,   setInstallSuccess]    = useState(false);
-  const [platform,         setPlatform]          = useState('unknown');
+  const [platform,         setPlatform]          = useState(() => {
+    if (typeof window === 'undefined') return 'unknown';
+    const ua = navigator.userAgent.toLowerCase();
+    if (/iphone|ipad|ipod/.test(ua)) return 'ios';
+    if (/android/.test(ua)) return 'android';
+    return 'desktop';
+  });
+  const [shouldShow, setShouldShow] = useState(true);
 
   useEffect(() => {
-    // Détecte si déjà installée
-    if (window.matchMedia('(display-mode: standalone)').matches ||
-        window.navigator.standalone === true) {
-      setIsInstalled(true);
-      return;
-    }
-
-    // Vérifie si installée lors de la session courante (sessionStorage, pas localStorage)
-    try {
-      if (sessionStorage.getItem('sika_pwa_installed') === 'true') {
-        setIsInstalled(true);
-        return;
-      }
-    } catch (e) {
-      // Ignorer erreur storage
-    }
-
-    // Détecte la plateforme
-    const ua = navigator.userAgent.toLowerCase();
-    if (/iphone|ipad|ipod/.test(ua))      setPlatform('ios');
-    else if (/android/.test(ua))           setPlatform('android');
-    else if (/windows/.test(ua))           setPlatform('windows');
-    else if (/mac/.test(ua))               setPlatform('mac');
-    else                                   setPlatform('desktop');
+    if (isInstalled) return;
 
     // Capture l'événement beforeinstallprompt (Chrome/Edge/Android)
     const handler = (e) => {
@@ -57,16 +47,18 @@ export function usePWAInstall() {
 
     window.addEventListener('appinstalled', installedHandler);
 
-    // Sur iOS, on peut toujours proposer la bannière manuelle
-    if (/iphone|ipad|ipod/.test(ua)) {
-      setCanInstall(true);
+    // Sur iOS, on peut toujours proposer la bannière manuelle (initialisation différée via timeout)
+    let iosTimeout = null;
+    if (platform === 'ios') {
+      iosTimeout = setTimeout(() => setCanInstall(true), 0);
     }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
       window.removeEventListener('appinstalled', installedHandler);
+      if (iosTimeout) clearTimeout(iosTimeout);
     };
-  }, []);
+  }, [isInstalled, platform]);
 
   // Lance l'installation
   const install = useCallback(async () => {
@@ -105,18 +97,17 @@ export function usePWAInstall() {
   }, []);
 
   // Vérifie si on doit afficher (respect du délai après refus)
-  const shouldShow = () => {
+  useEffect(() => {
     try {
       const next = sessionStorage.getItem('sika_pwa_next_show');
-      if (!next) return true;
-      return Date.now() > parseInt(next);
+      setShouldShow(!next || Date.now() > parseInt(next));
     } catch (e) {
-      return true;
+      setShouldShow(true);
     }
-  };
+  }, [canInstall]);
 
   return {
-    canInstall: canInstall && shouldShow(),
+    canInstall: canInstall && shouldShow,
     isInstalled,
     isInstalling,
     installSuccess,

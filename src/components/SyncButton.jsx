@@ -29,40 +29,54 @@ export default function SyncButton() {
     storeDataRef.current = { clients, factures, devis, appelsDoffres, fournisseurs, projets, mouvements }
   }, [clients, factures, devis, appelsDoffres, fournisseurs, projets, mouvements])
 
+  const toastTimeoutRef = useRef(null)
+  const isSyncingRef = useRef(false)
+
+  useEffect(() => {
+    isSyncingRef.current = isSyncing
+  }, [isSyncing])
+
   const handleSync = useCallback(async () => {
+    if (isSyncingRef.current) return
+    isSyncingRef.current = true
     setIsSyncing(true)
     setSyncResult(null)
     setShowResult(false)
 
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+
     try {
       const result = await syncService.syncAll(storeDataRef.current)
-
       setSyncResult(result)
       setShowResult(true)
 
-      setTimeout(() => {
+      toastTimeoutRef.current = setTimeout(() => {
         setShowResult(false)
       }, 5000)
     } catch (error) {
       setSyncResult({ success: false, error: error.message })
       setShowResult(true)
     } finally {
+      isSyncingRef.current = false
       setIsSyncing(false)
     }
   }, [])
 
-  // Synchronisation automatique toutes les 30 secondes — stable, ne se re-déclenche pas sur chaque changement de données
+  // Synchronisation automatique toutes les 60 secondes — stable, ne se re-déclenche pas sur chaque changement de données
   useEffect(() => {
     handleSync()
-    const interval = setInterval(handleSync, 30000)
-    return () => clearInterval(interval)
+    const interval = setInterval(handleSync, 60000)
+    return () => {
+      clearInterval(interval)
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
+    }
   }, [handleSync])
 
-  // Mise à jour de l'heure toutes les secondes
+  // Mise à jour de l'heure toutes les minutes (suffisant pour l'affichage header)
   useEffect(() => {
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date())
-    }, 1000)
+    }, 60000)
     return () => clearInterval(timeInterval)
   }, [])
 

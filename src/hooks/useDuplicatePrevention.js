@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { quickCheck } from '../utils/duplicateDetector';
 
 /**
@@ -129,7 +129,7 @@ export function useDuplicatePrevention(type, entitésExistantes, options = {}) {
     
     // Utilitaires
     peutSoumettre: !isVérificationEnCours,
-    tempsDepuisDernièreSoumission: Date.now() - dernièreSoumission.current
+    getTempsDepuisDernièreSoumission: () => Date.now() - dernièreSoumission.current
   };
 }
 

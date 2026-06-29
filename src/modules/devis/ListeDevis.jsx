@@ -9,9 +9,11 @@ import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, openPDFForPrint, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
+import { generateDevisHTML, printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate } from 'react-router-dom'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import GestionDoublons from '../../components/GestionDoublons'
+import { useAuthStore } from '../../store/useAuthStore'
 
 const STATUTS = ['BROUILLON', 'VALIDE', 'FACTURE', 'ANNULE']
 const TYPES = ['CALORIFUGE', 'PLIAGE', 'RESERVOIR', 'SOUDURE', 'CHARPENTE', 'TUYAUTERIE', 'CHAUDRONNERIE']
@@ -36,6 +38,8 @@ export default function ListeDevis() {
   const [devisSelectionne, setDevisSelectionne] = useState(null)
   const [showModalVoir, setShowModalVoir] = useState(false)
   const [showGestionDoublons, setShowGestionDoublons] = useState(false)
+  const [heureOuverture, setHeureOuverture] = useState(null)
+  const { utilisateurConnecte } = useAuthStore()
 
   // Fermer la modale avec la touche Escape
   useEscapeKey(showModalVoir, () => setShowModalVoir(false))
@@ -56,7 +60,7 @@ export default function ListeDevis() {
     addLog({
       module: 'LISTE_DEVIS',
       action: 'CHANGER_STATUT',
-      utilisateur: 'Utilisateur',
+      utilisateur: utilisateurConnecte?.nom || 'Utilisateur',
       avant: { numero: devis.numero, statut: devis.statut },
       apres: { numero: devis.numero, statut: nouveauStatut }
     })
@@ -100,6 +104,11 @@ export default function ListeDevis() {
 
   const devisFiltres = useMemo(() => {
     return devisAvecClients.filter(d => {
+      // ✅ Filtrer les devis sans type (typeDevis est déjà normalisé depuis type dans devisAvecClients)
+      if (!d.typeDevis && !d.type) {
+        return false;
+      }
+
       const matchRecherche = !recherche || 
         d.numero?.toLowerCase().includes(recherche.toLowerCase()) ||
         d.clientNom?.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -107,7 +116,7 @@ export default function ListeDevis() {
       
       const matchType = !filtreType || d.typeDevis === filtreType
       const matchStatut = !filtreStatut || d.statut === filtreStatut
-      const matchClient = !filtreClient || d.clientId === parseInt(filtreClient)
+      const matchClient = !filtreClient || String(d.clientId) === String(filtreClient)
       
       const matchDate = (!filtreDateDebut || d.date >= filtreDateDebut) &&
                         (!filtreDateFin || d.date <= filtreDateFin)
@@ -291,8 +300,9 @@ export default function ListeDevis() {
 
   const handleVoir = (devis) => {
     setDevisSelectionne(devis)
+    setHeureOuverture(new Date())
     setShowModalVoir(true)
-    addLog({ module: 'LISTE_DEVIS', action: 'VOIR', utilisateur: 'Utilisateur', apres: { numero: devis.numero } })
+    addLog({ module: 'LISTE_DEVIS', action: 'VOIR', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero } })
   }
 
   const handleModifier = (devis) => {
@@ -349,32 +359,35 @@ export default function ListeDevis() {
     }
 
     navigate(route, { state: { devisId: devis.id } })
-    addLog({ module: 'LISTE_DEVIS', action: 'MODIFIER', utilisateur: 'Utilisateur', apres: { numero: devis.numero, type: typeDevis, id: devis.id } })
+    addLog({ module: 'LISTE_DEVIS', action: 'MODIFIER', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero, type: typeDevis, id: devis.id } })
   }
 
   const handleSupprimer = async (devis) => {
     const ok = await confirmDelete(`le devis ${devis.numero}`)
     if (!ok) return
 
-    deleteDevis(devis.id)
-
-    addLog({
-      module: 'LISTE_DEVIS',
-      action: 'SUPPRIMER',
-      utilisateur: 'Utilisateur',
-      avant: { numero: devis.numero, montantTTC: devis.ttc }
-    })
-
-    // Notification de suppression
-    import('../../store/useNotificationsStore').then(({ useNotificationsStore }) => {
-      useNotificationsStore.getState().ajouterNotification({
+    try {
+      await deleteDevis(devis.id)
+      addLog({
+        module: 'LISTE_DEVIS',
+        action: 'SUPPRIMER',
+        utilisateur: utilisateurConnecte?.nom || 'Utilisateur',
+        avant: { numero: devis.numero, montantTTC: devis.ttc }
+      })
+      ajouterNotification({
         type: 'INFO',
         icone: '🗑️',
         titre: 'DEVIS SUPPRIMÉ',
-        message: `Le devis ${devis.numero} a été supprimé avec succès`,
-        lien: '/devis/liste'
+        message: `Le devis ${devis.numero} a été supprimé avec succès`
       })
-    })
+    } catch (error) {
+      ajouterNotification({
+        type: 'URGENT',
+        icone: '❌',
+        titre: 'ERREUR SUPPRESSION',
+        message: `Impossible de supprimer le devis ${devis.numero}. Veuillez réessayer.`
+      })
+    }
   }
 
   const handleExportPDF = async (devis) => {
@@ -425,7 +438,7 @@ export default function ListeDevis() {
     doc.text(formatMontant(devis.ttc) + ' FCFA', MARGE_G, y)
     
     await finalizeSikaPDF(ctx, `SIKA_Devis_${devis.numero.replace(/\//g, '_')}.pdf`)
-    addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devis.numero } })
+    addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_PDF', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero } })
   }
 
   const handleConvertirEnFacture = async (devis) => {
@@ -501,7 +514,7 @@ export default function ListeDevis() {
     XLSX.utils.book_append_sheet(wb, ws, 'Devis')
     XLSX.writeFile(wb, `Liste_Devis_${new Date().toISOString().split('T')[0]}.xlsx`)
     
-    addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_EXCEL', utilisateur: 'Utilisateur' })
+    addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_EXCEL', utilisateur: utilisateurConnecte?.nom || 'Utilisateur' })
   }
 
   const handleExportPDFListe = async () => {
@@ -564,7 +577,7 @@ export default function ListeDevis() {
     doc.text(formatMontant(totalTTC) + ' FCFA', PAGE_W - MARGE_G - 5, y + 4, { align: 'right' });
 
     await finalizeSikaPDF(ctx, `SIKA_Liste_Devis_${new Date().toISOString().split('T')[0]}.pdf`);
-    addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_PDF_LISTE', utilisateur: 'Utilisateur' });
+    addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_PDF_LISTE', utilisateur: utilisateurConnecte?.nom || 'Utilisateur' });
   }
 
   const handlePrintListe = async () => {
@@ -627,143 +640,77 @@ export default function ListeDevis() {
     doc.text(formatMontant(totalTTC) + ' FCFA', PAGE_W - MARGE_G - 5, y + 4, { align: 'right' });
 
     await openPDFForPrint(ctx);
-    addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_LISTE', utilisateur: 'Utilisateur' });
+    addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_LISTE', utilisateur: utilisateurConnecte?.nom || 'Utilisateur' });
   }
 
-  const handlePrintDevis = async (devis) => {
-    const client = clients.find(c => c.id === devis.clientId);
-    const ctx = await createSikaPDF(`DEVIS ${devis.typeDevis || devis.type} - ${devis.numero}`);
-    const { doc, startY, MARGE_G, PAGE_W } = ctx;
+  const handlePrintDevis = (devis) => {
+    const client = clients.find(c => c.id === devis.clientId) || {};
 
-    let y = startY;
-
-    // En-tête avec informations clés
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 42, 74);
-    doc.text('DEVIS', MARGE_G, y);
-    
-    doc.setFontSize(14);
-    doc.setTextColor(230, 0, 0);
-    doc.text(devis.numero, MARGE_G + 25, y);
-    y += 10;
-
-    // Ligne de séparation
-    doc.setDrawColor(230, 0, 0);
-    doc.setLineWidth(1);
-    doc.line(MARGE_G, y, PAGE_W - MARGE_G, y);
-    y += 8;
-
-    // Bloc informations générales en deux colonnes
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 42, 74);
-
-    const col1X = MARGE_G;
-    const col2X = PAGE_W / 2 + 10;
-    const startYInfo = y;
-
-    // Colonne 1
-    const infosCol1 = [
-      ['Client', client?.nom || 'N/A'],
-      ['Date', formatDatePDF(devis.date)],
-      ['Établi par', devis.etabliPar || 'Utilisateur'],
-    ];
-
-    infosCol1.forEach(([label, value]) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(label + ' :', col1X, y);
-      doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(value, 60);
-      doc.text(lines, col1X + 35, y);
-      y += lines.length * 5;
-    });
-
-    // Colonne 2
-    y = startYInfo;
-    const infosCol2 = [
-      ['Type', devis.typeDevis || devis.type || 'N/A'],
-      ['Statut', devis.statut || 'BROUILLON'],
-      ['Objet', devis.objet || 'N/A'],
-    ];
-
-    infosCol2.forEach(([label, value]) => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(label + ' :', col2X, y);
-      doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(value, 70);
-      doc.text(lines, col2X + 30, y);
-      y += lines.length * 5;
-    });
-
-    y = Math.max(y, startYInfo + 20) + 8;
-
-    // Ligne de séparation
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-    doc.line(MARGE_G, y, PAGE_W - MARGE_G, y);
-    y += 8;
-
-    // Tableau des lignes
-    if (devis.lignes && devis.lignes.length > 0) {
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(27, 42, 74);
-      doc.text('DÉTAIL DU DEVIS', MARGE_G, y);
-      y += 6;
-
-      const colsLignes = ['Désignation', 'Qté', 'PU (FCFA)', 'Total (FCFA)'];
-      const rowsLignes = devis.lignes.map(l => [
-        l.designation || '—',
-        l.quantite || l.qte || l.longueur || 0,
-        formatMontant(l.prixUnitaire || l.pu || 0),
-        formatMontant((l.quantite || l.qte || l.longueur || 0) * (l.prixUnitaire || l.pu || 0))
-      ]);
-
-      y = sikaTable(doc, colsLignes, rowsLignes, y, ctx) + 8;
-    }
+    // Lignes normalisées
+    const lignesBrutes = devis.lignes || devis.lignesCommerciales || [];
+    const lignes = lignesBrutes.map(l => ({
+      designation: l.designation || '—',
+      dn: l.dn || l.unite || 'U',
+      qte: parseFloat(l.qte || l.quantite || l.longueur || 0),
+      pu: parseFloat(l.pu || l.prixUnitaire || 0),
+      montant: l.montant !== '' && l.montant !== undefined ? parseFloat(l.montant) : undefined,
+      typeTravail: l.typeTravail || '',
+      materiau: l.materiau || '',
+      typeTole: l.typeTole || '',
+      epaisseur: l.epaisseur || 0,
+      typeTuyau: l.typeTuyau || '',
+      pression: l.pression || '',
+      longueur: l.longueur || 0,
+      ml: l.ml || 0,
+      pt: l.pt || 0,
+      surface: l.surface || 0,
+    }));
 
     // Totaux
-    const totauxX = PAGE_W - 85;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(27, 42, 74);
-    doc.text('RÉCAPITULATIF', MARGE_G, y);
-    y += 8;
+    const montantBrut = parseFloat(devis.montantBrut) || lignes.reduce((s, l) => s + (l.montant !== undefined ? l.montant : l.qte * l.pu), 0);
+    const tauxRemise = parseFloat(devis.tauxRemise) || 0;
+    const remise = parseFloat(devis.remise) || montantBrut * (tauxRemise / 100);
+    const montantHT = parseFloat(devis.montantHT) || montantBrut - remise;
+    const tva = parseFloat(devis.tva) || (devis.tvaActive !== false ? montantHT * 0.18 : 0);
+    const ttc = parseFloat(devis.ttc) || montantHT + tva;
 
-    doc.setFontSize(9);
-    const rowsTotaux = [
-      ['Total HT', formatMontant(devis.montantHT || 0) + ' FCFA'],
-      ['TVA (18%)', formatMontant(devis.montantTVA || devis.tva || 0) + ' FCFA'],
-    ];
+    const templateData = {
+      reference: devis.numero,
+      objet: devis.objet || '',
+      type: devis.typeDevis || devis.type || '',
+      notes: devis.notes || '',
+      statut: devis.statut || 'BROUILLON',
+      client: {
+        nom: client.nom || devis.clientNom || '—',
+        interlocuteur: devis.demandePar || client.contactNom || '—',
+        adresse: client.adresse || '—',
+        telephone: client.telephone || client.contactTelephone || '',
+        email: client.email || client.contactEmail || '',
+        raisonSociale: client.raisonSociale || '',
+        secteur: client.secteur || '',
+        ville: client.ville || '',
+        pays: client.pays || 'Côte d\'Ivoire',
+        conditionsPaiement: client.conditionsPaiement || '',
+      },
+      infos: {
+        date: devis.date,
+        validite: '30 jours',
+        etabliPar: 'SIKA INDUSTRIE',
+        tel: '(225) 07 97 25 25 26',
+        demandePar: devis.demandePar || '',
+      },
+      specifications: devis.specifications || null,
+      lignes,
+      montantBrut,
+      remise,
+      montantHT,
+      tva,
+      ttc,
+    };
 
-    rowsTotaux.forEach(([label, val]) => {
-      doc.setTextColor(27, 42, 74);
-      doc.setFont('helvetica', 'bold');
-      doc.text(label, totauxX, y);
-      doc.setFont('helvetica', 'normal');
-      doc.text(val, PAGE_W - MARGE_G, y, { align: 'right' });
-      y += 6;
-    });
+    printDevisHTML(templateData);
 
-    // TTC en surbrillance
-    doc.setFillColor(27, 42, 74);
-    doc.rect(totauxX - 2, y - 4, PAGE_W - MARGE_G - totauxX + 2, 10, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('MONTANT TTC', totauxX, y + 2);
-    doc.text(formatMontant(devis.ttc || 0) + ' FCFA', PAGE_W - MARGE_G, y + 2, { align: 'right' });
-    y += 15;
-
-    // Pied de page avec date d'impression
-    doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Document imprimé le ${formatDatePDF(new Date())} - SIKA INDUSTRIE`, MARGE_G, PAGE_W - 10);
-
-    await openPDFForPrint(ctx);
-    addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_DEVIS', utilisateur: 'Utilisateur', apres: { numero: devis.numero } });
+    addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_DEVIS', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero } });
   }
 
   return (
@@ -973,83 +920,263 @@ export default function ListeDevis() {
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              {/* Informations générales */}
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-6 space-y-4">
+
+              {/* ══ BANDEAU ENTÊTE ══ */}
+              <div className="rounded-lg text-white px-5 py-4 flex justify-between items-start" style={{ background: '#06006E' }}>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: '#06006E' }}>Client</p>
-                  <p className="text-lg">{devisSelectionne.clientNom}</p>
+                  <div className="text-2xl font-bold tracking-widest">DEVIS</div>
+                  <div className="text-sm font-bold opacity-90 mt-1">{devisSelectionne.numero}</div>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: '#06006E' }}>Type</p>
-                  <p className="text-lg">{devisSelectionne.type}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: '#06006E' }}>Date</p>
-                  <p className="text-lg">{formatDate(devisSelectionne.date)}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: '#06006E' }}>Statut</p>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    devisSelectionne.statut === 'VALIDE' ? 'bg-green-100 text-green-800' :
-                    devisSelectionne.statut === 'FACTURE' ? 'bg-blue-100 text-blue-800' :
-                    devisSelectionne.statut === 'ANNULE' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {devisSelectionne.statut}
-                  </span>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-sm font-semibold" style={{ color: '#06006E' }}>Objet</p>
-                  <p className="text-lg">{devisSelectionne.objet || 'Non spécifié'}</p>
+                <div className="text-right">
+                  {devisSelectionne.typeDevis && (
+                    <span className="inline-block px-3 py-1 rounded-full text-xs font-bold mb-1" style={{ background: '#E05A00' }}>
+                      {devisSelectionne.typeDevis}
+                    </span>
+                  )}
+                  <div className="text-sm opacity-90">{formatDate(devisSelectionne.date)}</div>
+                  <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    devisSelectionne.statut === 'VALIDE' ? 'bg-green-400 text-white' :
+                    devisSelectionne.statut === 'FACTURE' ? 'bg-blue-400 text-white' :
+                    devisSelectionne.statut === 'ANNULE' ? 'bg-red-400 text-white' :
+                    'bg-gray-300 text-gray-800'
+                  }`}>{devisSelectionne.statut}</span>
                 </div>
               </div>
 
-              {/* Lignes du devis */}
-              {devisSelectionne.lignes && devisSelectionne.lignes.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-bold mb-3" style={{ color: '#06006E' }}>Lignes du devis</h3>
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead style={{ backgroundColor: '#E8ECF4' }}>
-                        <tr>
-                          <th className="px-4 py-2 text-left" style={{ color: '#06006E' }}>Désignation</th>
-                          <th className="px-4 py-2 text-right" style={{ color: '#06006E' }}>Quantité</th>
-                          <th className="px-4 py-2 text-right" style={{ color: '#06006E' }}>Prix Unit.</th>
-                          <th className="px-4 py-2 text-right" style={{ color: '#06006E' }}>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {devisSelectionne.lignes.map((ligne, idx) => (
-                          <tr key={idx} className="border-t">
-                            <td className="px-4 py-2">{ligne.designation}</td>
-                            <td className="px-4 py-2 text-right">{ligne.quantite}</td>
-                            <td className="px-4 py-2 text-right">{formatFCFA(ligne.prixUnitaire)}</td>
-                            <td className="px-4 py-2 text-right font-semibold">{formatFCFA(ligne.quantite * ligne.prixUnitaire)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {/* ══ CLIENT + INFOS ══ */}
+              {(() => {
+                const clientComplet = clients.find(c => c.id === devisSelectionne.clientId) || {}
+                return (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>Client</div>
+                  <div className="p-3 space-y-1">
+                    <p className="text-base font-bold" style={{ color: '#06006E' }}>{devisSelectionne.clientNom}</p>
+                    {clientComplet.raisonSociale && (
+                      <p className="text-xs text-gray-500">{clientComplet.raisonSociale}</p>
+                    )}
+                    {clientComplet.secteur && (
+                      <p className="text-xs text-gray-500">Secteur : <span className="font-semibold">{clientComplet.secteur}</span></p>
+                    )}
+                    {(clientComplet.adresse || clientComplet.ville) && (
+                      <p className="text-xs text-gray-600">
+                        📍 {[clientComplet.adresse, clientComplet.ville, clientComplet.pays].filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                    {clientComplet.contactNom && (
+                      <p className="text-xs text-gray-600">👤 <span className="font-semibold">{clientComplet.contactNom}</span></p>
+                    )}
+                    {devisSelectionne.demandePar && devisSelectionne.demandePar !== clientComplet.contactNom && (
+                      <p className="text-xs text-gray-600">Contact devis : <span className="font-semibold">{devisSelectionne.demandePar}</span></p>
+                    )}
+                    {clientComplet.contactTelephone && (
+                      <p className="text-xs text-gray-600">📞 {clientComplet.contactTelephone}</p>
+                    )}
+                    {clientComplet.contactEmail && (
+                      <p className="text-xs text-gray-600">✉️ {clientComplet.contactEmail}</p>
+                    )}
+                    {clientComplet.conditionsPaiement && (
+                      <p className="text-xs text-gray-500 mt-1">Conditions paiement : <span className="font-semibold">{clientComplet.conditionsPaiement} jours</span></p>
+                    )}
+                  </div>
+                </div>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>Informations</div>
+                  <div className="p-3 space-y-1">
+                    <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Référence :</span> {devisSelectionne.numero}</p>
+                    <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Date :</span> {formatDate(devisSelectionne.date)}</p>
+                    <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Validité :</span> 30 jours</p>
+                    <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Établi par :</span> SIKA INDUSTRIE</p>
+                    <hr className="my-1 border-gray-200"/>
+                    <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: '#E05A00' }}>Consulté par</p>
+                    <p className="text-sm font-bold" style={{ color: '#06006E' }}>
+                      {utilisateurConnecte?.nom || utilisateurConnecte?.login || 'Utilisateur inconnu'}
+                    </p>
+                    {utilisateurConnecte?.login && utilisateurConnecte?.nom && (
+                      <p className="text-xs text-gray-500">Login : {utilisateurConnecte.login}</p>
+                    )}
+                    {utilisateurConnecte?.role && (
+                      <p className="text-xs text-gray-500">Rôle : {utilisateurConnecte.role}</p>
+                    )}
+                    {heureOuverture && (
+                      <p className="text-xs font-semibold" style={{ color: '#c53030' }}>
+                        🕐 {heureOuverture.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })} à {heureOuverture.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+                )
+              })()}
+
+              {/* ══ OBJET ══ */}
+              {devisSelectionne.objet && (
+                <div className="border-l-4 rounded-r-lg p-3" style={{ borderColor: '#06006E', background: '#f0f4ff' }}>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#06006E' }}>Objet</p>
+                  <p className="text-sm text-gray-800">{devisSelectionne.objet}</p>
+                </div>
+              )}
+
+              {/* ══ SPÉCIFICATIONS TECHNIQUES ══ */}
+              {devisSelectionne.specifications && Object.keys(devisSelectionne.specifications).length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>Spécifications techniques</div>
+                  <div className="p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {Object.entries(devisSelectionne.specifications)
+                      .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== 0)
+                      .map(([k, v]) => {
+                        const labels = {
+                          typeTole: 'Type de tôle', epaisseur: 'Épaisseur (mm)', nombrePlis: 'Nb plis',
+                          unitePrix: 'Unité de prix', typeTuyau: 'Type tuyau', pression: 'Pression',
+                          typeSoudure: 'Type soudure', materiau: 'Matériau', forme: 'Forme',
+                          volume: 'Volume', typeAcier: 'Type acier', portee: 'Portée',
+                          hauteur: 'Hauteur', typeCharpente: 'Type charpente'
+                        }
+                        return (
+                          <div key={k} className="bg-navyClair rounded p-2 text-center">
+                            <p className="text-xs font-bold uppercase" style={{ color: '#E05A00' }}>{labels[k] || k}</p>
+                            <p className="text-sm font-bold mt-0.5" style={{ color: '#06006E' }}>{String(v)}</p>
+                          </div>
+                        )
+                      })}
                   </div>
                 </div>
               )}
 
-              {/* Totaux */}
-              <div className="border-t pt-4">
-                <div className="flex justify-end">
-                  <div className="w-64 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="font-semibold" style={{ color: '#06006E' }}>Total HT:</span>
-                      <span className="font-bold text-lg">{formatFCFA(devisSelectionne.montantHT)}</span>
+              {/* ══ LIGNES DU DEVIS ══ */}
+              {(() => {
+                const lignes = devisSelectionne.lignes || devisSelectionne.lignesCommerciales || []
+                return lignes.length > 0 ? (
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>I. Détail des prestations</div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead style={{ background: '#1a4a9b', color: 'white' }}>
+                          <tr>
+                            <th className="px-3 py-2 text-center w-8">N°</th>
+                            <th className="px-3 py-2 text-left">Désignation</th>
+                            <th className="px-3 py-2 text-center w-10">U</th>
+                            <th className="px-3 py-2 text-center w-14">Qté</th>
+                            <th className="px-3 py-2 text-right w-28">P.U. (FCFA)</th>
+                            <th className="px-3 py-2 text-right w-32">Montant (FCFA)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {lignes.map((ligne, idx) => {
+                            const qte = parseFloat(ligne.qte || ligne.quantite || 0)
+                            const pu = parseFloat(ligne.pu || ligne.prixUnitaire || 0)
+                            const montant = ligne.montant || (qte * pu) || 0
+                            return (
+                              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                                <td className="px-3 py-2 text-center text-gray-500">{idx + 1}</td>
+                                <td className="px-3 py-2">
+                                  <span className="font-medium">{ligne.designation || '—'}</span>
+                                  {ligne.epaisseur ? <span className="text-xs text-blue-500 ml-1">· Ép. {ligne.epaisseur}mm</span> : null}
+                                  {ligne.typeTole ? <span className="text-xs text-blue-500 ml-1">· {ligne.typeTole}</span> : null}
+                                  {ligne.typeTuyau ? <span className="text-xs text-blue-500 ml-1">· {ligne.typeTuyau}</span> : null}
+                                </td>
+                                <td className="px-3 py-2 text-center text-gray-600">{ligne.dn || ligne.unite || 'U'}</td>
+                                <td className="px-3 py-2 text-center font-bold" style={{ color: '#06006E' }}>{qte}</td>
+                                <td className="px-3 py-2 text-right">{formatFCFA(pu)}</td>
+                                <td className="px-3 py-2 text-right font-bold" style={{ color: '#06006E' }}>{formatFCFA(montant)}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold" style={{ color: '#06006E' }}>TVA (18%):</span>
-                      <span className="font-bold text-lg">{formatFCFA(devisSelectionne.montantTVA)}</span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="font-bold text-xl" style={{ color: '#06006E' }}>Total TTC:</span>
-                      <span className="font-bold text-xl" style={{ color: '#E60000' }}>{formatFCFA(devisSelectionne.montantTTC)}</span>
-                    </div>
+                  </div>
+                ) : null
+              })()}
+
+              {/* ══ RÉCAPITULATIF FINANCIER ══ */}
+              <div className="border rounded-lg overflow-hidden">
+                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white flex items-center justify-between" style={{ background: '#06006E' }}>
+                  <span>Récapitulatif financier</span>
+                  <span className="text-xs opacity-70 font-normal">Montants en Francs CFA (FCFA)</span>
+                </div>
+                <table className="w-full text-sm">
+                  <tbody>
+                    {devisSelectionne.montantBrut > 0 && devisSelectionne.remise > 0 && (<>
+                      <tr className="border-b border-gray-100" style={{ background: '#f8f9ff' }}>
+                        <td className="px-4 py-2 text-gray-500">📋 Sous-total des prestations (avant remise)</td>
+                        <td className="px-4 py-2 text-right font-semibold text-gray-700 w-44">{formatFCFA(devisSelectionne.montantBrut)}</td>
+                      </tr>
+                      <tr className="border-b border-red-100" style={{ background: '#fff5f5' }}>
+                        <td className="px-4 py-2 text-red-600">🏷️ Remise commerciale accordée</td>
+                        <td className="px-4 py-2 text-right font-semibold text-red-600 w-44">− {formatFCFA(devisSelectionne.remise)}</td>
+                      </tr>
+                    </>)}
+                    <tr className="border-b border-blue-100" style={{ background: '#dce6f1' }}>
+                      <td className="px-4 py-2 font-semibold" style={{ color: '#06006E' }}>
+                        💼 Montant Hors Taxes (HT)
+                        <span className="ml-2 text-xs font-normal text-gray-500">— base imposable</span>
+                      </td>
+                      <td className="px-4 py-2 text-right font-bold w-44" style={{ color: '#06006E' }}>{formatFCFA(devisSelectionne.montantHT)}</td>
+                    </tr>
+                    {devisSelectionne.montantTVA > 0 && (
+                      <tr className="border-b border-orange-100" style={{ background: '#fff8f0' }}>
+                        <td className="px-4 py-2 text-orange-700">
+                          🧾 TVA appliquée (taux 18%)
+                          <span className="ml-2 text-xs font-normal text-gray-400">— taxe sur la valeur ajoutée</span>
+                        </td>
+                        <td className="px-4 py-2 text-right font-bold text-orange-700 w-44">{formatFCFA(devisSelectionne.montantTVA)}</td>
+                      </tr>
+                    )}
+                    <tr className="text-white" style={{ background: '#06006E' }}>
+                      <td className="px-4 py-3 font-bold text-base">
+                        ✅ MONTANT TOTAL À PAYER (TTC)
+                        <div className="text-xs font-normal opacity-75 mt-0.5">Toutes taxes comprises — net à régler</div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-lg w-44">{formatFCFA(devisSelectionne.montantTTC)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                {devisSelectionne.montantTTC > 0 && (
+                  <div className="px-4 py-2 text-xs text-gray-500 border-t" style={{ background: '#f8f9ff' }}>
+                    Acompte à la commande (30%) : <span className="font-bold" style={{ color: '#E05A00' }}>{formatFCFA(Math.round(devisSelectionne.montantTTC * 0.30))}</span>
+                    &nbsp;·&nbsp; Solde à la réception : <span className="font-bold" style={{ color: '#06006E' }}>{formatFCFA(Math.round(devisSelectionne.montantTTC * 0.70))}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* ══ NOTES / OBSERVATIONS ══ */}
+              {devisSelectionne.notes && (
+                <div className="border rounded-lg overflow-hidden" style={{ borderColor: '#f0c060' }}>
+                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest" style={{ background: '#fffbf0', color: '#E05A00', borderBottom: '1px solid #f0c060' }}>Notes / Observations</div>
+                  <div className="p-3 text-sm text-gray-700 leading-relaxed" style={{ background: '#fffbf0' }}>{devisSelectionne.notes}</div>
+                </div>
+              )}
+
+              {/* ══ CONDITIONS ══ */}
+              <div className="border rounded-lg overflow-hidden">
+                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>II. Conditions &amp; Validité</div>
+                <div className="p-3 text-xs text-gray-600 leading-loose" style={{ background: '#f8f9ff' }}>
+                  • Ce devis est valable <strong>trente (30) jours</strong> à compter de sa date d'émission.<br/>
+                  • Acompte de <strong>30%</strong> exigé à la commande avant tout démarrage des travaux.<br/>
+                  • Solde réglé à la livraison / réception des travaux.<br/>
+                  • Pour acceptation, retourner ce document <strong>signé et cacheté</strong>, accompagné de l'acompte.
+                </div>
+              </div>
+
+              {/* ══ SIGNATURES ══ */}
+              <div className="border rounded-lg overflow-hidden">
+                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>III. Signatures</div>
+                <div className="grid grid-cols-2 gap-0">
+                  <div className="p-4 text-center border-r">
+                    <p className="text-xs font-bold uppercase mb-1" style={{ color: '#06006E' }}>Lu et approuvé — Le Client</p>
+                    <p className="text-xs text-gray-500 mb-2">Nom &amp; Fonction : ___________________</p>
+                    <div className="h-12 border-b-2 mx-4 mb-2" style={{ borderColor: '#06006E' }}></div>
+                    <p className="text-xs text-gray-400">Date : ___ / ___ / _______</p>
+                    <p className="text-xs text-gray-400">Cachet &amp; Signature</p>
+                  </div>
+                  <div className="p-4 text-center" style={{ background: '#f0f4ff' }}>
+                    <p className="text-xs font-bold uppercase text-white mb-1 -mx-4 -mt-4 px-4 py-1.5" style={{ background: '#06006E' }}>Pour SIKA INDUSTRIE — Le Gérant</p>
+                    <p className="text-sm font-bold mt-1 mb-2" style={{ color: '#06006E' }}>KOMLAN AMEMATCHRON</p>
+                    <div className="h-12 border-b-2 mx-4 mb-2" style={{ borderColor: '#06006E' }}></div>
+                    <p className="text-xs text-gray-400">Date : ___ / ___ / _______</p>
+                    <p className="text-xs text-gray-400">Cachet &amp; Signature</p>
                   </div>
                 </div>
               </div>
