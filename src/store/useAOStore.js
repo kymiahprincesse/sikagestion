@@ -9,7 +9,7 @@ function toSupabaseRow(ao) {
     numero_devis: ao.numeroDevis,
     client: ao.client || null,
     client_id: ao.clientId || null,
-    objet: ao.objet || null,
+    objet: ao.objet || ao.prestationSouhaitee || ao.referenceAO || '-',
     date_devis: ao.dateDevis || new Date().toISOString().split('T')[0],
     date_reception_ao: ao.receptionAO || ao.dateReceptionAO || null,
     date_reponse_ao: ao.dateReponseAO || null,
@@ -46,9 +46,10 @@ export const useAOStore = create(
 
       addAO: async (ao) => {
         const { compteurNumero } = get();
+        const tempId = generateSecureId('AO');
         const nouvelAO = {
           ...ao,
-          id: generateSecureId('AO'),
+          id: tempId,
           numeroDevis: ao.numeroDevis || `AO-${String(compteurNumero).padStart(5, '0')}`,
           dateDevis: ao.dateDevis || new Date().toISOString().split('T')[0],
           statut: ao.statut || STATUTS_AO.A_CHIFFRER,
@@ -64,10 +65,16 @@ export const useAOStore = create(
         if (error) {
           console.error('Supabase addAO:', error.message);
           crudError(`Impossible de créer l'appel d'offres : ${error.message}`);
+          set((state) => ({
+            appelsDoffres: state.appelsDoffres.filter((a) => a.id !== tempId)
+          }));
+          return null;
         } else if (data) {
           crudSuccess(`Appel d'offres ${nouvelAO.numeroDevis} créé avec succès`);
           set((state) => ({
-            appelsDoffres: state.appelsDoffres.map((a) => a.id === nouvelAO.id ? { ...a, id: data.id } : a)
+            appelsDoffres: state.appelsDoffres.map((a) =>
+              a.id === tempId ? { ...a, id: data.id } : a
+            ).filter((a, i, arr) => arr.findIndex(x => x.id === a.id) === i)
           }));
           return { ...nouvelAO, id: data.id };
         }

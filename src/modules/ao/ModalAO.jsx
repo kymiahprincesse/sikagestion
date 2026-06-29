@@ -94,6 +94,7 @@ export default function ModalAO({ ao, onClose }) {
         success(`AO ${formData.numeroDevis || formData.referenceAO} modifié avec succès`);
       } else {
         const nouvelAO = await addAO(dataToSave);
+        if (!nouvelAO) return;
         addLog({
           module: 'Appels d\'offres',
           action: 'Création AO',
