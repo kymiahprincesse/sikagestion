@@ -47,7 +47,7 @@ export default function DashboardEnhanced() {
       totalRestant: totalCA - totalEncaisse,
       tauxEncaissement,
       nbFactures: factures.length,
-      nbDevis: devis.length,
+      nbDevis: devis.filter(isDevisVisibleDansListe).length,
       nbDevisEnAttente: devis.filter(d => isDevisVisibleDansListe(d) && isDevisEnAttente(d.statut)).length,
       nbAO: appelsDoffres.length,
       nbProjets: projets.length,
