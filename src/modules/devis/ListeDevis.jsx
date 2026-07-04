@@ -6,6 +6,7 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
+import { isDevisEnAttente, isDevisVisibleDansListe, normalizeDevisStatut, getDevisStatutLabel } from '../../utils/devisStatus'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, openPDFForPrint, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
@@ -15,7 +16,7 @@ import { useEscapeKey } from '../../hooks/useEscapeKey'
 import GestionDoublons from '../../components/GestionDoublons'
 import { useAuthStore } from '../../store/useAuthStore'
 
-const STATUTS = ['BROUILLON', 'VALIDE', 'FACTURE', 'ANNULE']
+const STATUTS = ['BROUILLON', 'EN_ATTENTE', 'VALIDE', 'FACTURE', 'ANNULE']
 const TYPES = ['CALORIFUGE', 'PLIAGE', 'RESERVOIR', 'SOUDURE', 'CHARPENTE', 'TUYAUTERIE', 'CHAUDRONNERIE']
 
 export default function ListeDevis() {
@@ -82,6 +83,7 @@ export default function ListeDevis() {
       const client = clients.find(c => c.id === d.clientId)
       // Assurer la compatibilité type/typeDevis - garder la valeur originale si elle existe
       const typeDevis = d.typeDevis || d.type || null
+      const statutNormalise = normalizeDevisStatut(d.statut)
       // Normaliser les montants (certains devis utilisent ttc, d'autres montantTTC)
       const ttc = d.ttc || d.montantTTC || d.montantTotal || 0
       const montantHT = d.montantHT || d.montantHt || 0
@@ -92,6 +94,7 @@ export default function ListeDevis() {
         ...d,
         id,
         typeDevis,
+        statut: statutNormalise,
         ttc,
         montantHT,
         montantTVA,
@@ -104,8 +107,7 @@ export default function ListeDevis() {
 
   const devisFiltres = useMemo(() => {
     return devisAvecClients.filter(d => {
-      // ✅ Filtrer les devis sans type (typeDevis est déjà normalisé depuis type dans devisAvecClients)
-      if (!d.typeDevis && !d.type) {
+      if (!isDevisVisibleDansListe(d)) {
         return false;
       }
 
@@ -115,7 +117,7 @@ export default function ListeDevis() {
         d.objet?.toLowerCase().includes(recherche.toLowerCase())
       
       const matchType = !filtreType || d.typeDevis === filtreType
-      const matchStatut = !filtreStatut || d.statut === filtreStatut
+      const matchStatut = !filtreStatut || d.statut === filtreStatut || (filtreStatut === 'EN_ATTENTE' && isDevisEnAttente(d.statut))
       const matchClient = !filtreClient || String(d.clientId) === String(filtreClient)
       
       const matchDate = (!filtreDateDebut || d.date >= filtreDateDebut) &&
@@ -179,6 +181,7 @@ export default function ListeDevis() {
         const row = info.row.original
         const configs = {
           'BROUILLON': { bg: 'bg-bleu', text: 'text-white', label: 'Brouillon' },
+          'EN_ATTENTE': { bg: 'bg-orange', text: 'text-white', label: 'En attente' },
           'VALIDE': { bg: 'bg-vert', text: 'text-white', label: 'Validé' },
           'FACTURE': { bg: 'bg-orange', text: 'text-white', label: 'Facturé' },
           'ANNULE': { bg: 'bg-rouge', text: 'text-white', label: 'Annulé' }
@@ -197,6 +200,7 @@ export default function ListeDevis() {
                 className="text-xs px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange bg-white"
               >
                 <option value="BROUILLON">📝 Brouillon</option>
+                <option value="EN_ATTENTE">⏳ En attente</option>
                 <option value="VALIDE">✅ Valider</option>
                 <option value="ANNULE">❌ Annuler</option>
               </select>
@@ -614,6 +618,7 @@ export default function ListeDevis() {
     // Récapitulatif des statuts
     const stats = {
       BROUILLON: devisFiltres.filter(d => d.statut === 'BROUILLON').length,
+      EN_ATTENTE: devisFiltres.filter(d => isDevisEnAttente(d.statut)).length,
       VALIDE: devisFiltres.filter(d => d.statut === 'VALIDE').length,
       FACTURE: devisFiltres.filter(d => d.statut === 'FACTURE').length,
       ANNULE: devisFiltres.filter(d => d.statut === 'ANNULE').length
@@ -626,7 +631,7 @@ export default function ListeDevis() {
     y += 6;
 
     doc.setFont('helvetica', 'normal');
-    doc.text(`Brouillon: ${stats.BROUILLON} | Validé: ${stats.VALIDE} | Facturé: ${stats.FACTURE} | Annulé: ${stats.ANNULE}`, MARGE_G, y);
+    doc.text(`Brouillon: ${stats.BROUILLON} | En attente: ${stats.EN_ATTENTE} | Validé: ${stats.VALIDE} | Facturé: ${stats.FACTURE} | Annulé: ${stats.ANNULE}`, MARGE_G, y);
     y += 10;
 
     // Total général
@@ -801,7 +806,7 @@ export default function ListeDevis() {
                 className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
               >
                 <option value="">Tous</option>
-                {STATUTS.map(statut => <option key={statut} value={statut}>{statut}</option>)}
+                {STATUTS.map(statut => <option key={statut} value={statut}>{statut === 'EN_ATTENTE' ? 'En attente' : statut}</option>)}
               </select>
             </div>
             <div>
@@ -1183,7 +1188,7 @@ export default function ListeDevis() {
 
               {/* Boutons d'action */}
               <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
-                {devisSelectionne.statut === 'BROUILLON' && (
+                {isDevisEnAttente(devisSelectionne.statut) && (
                   <button
                     onClick={() => {
                       handleChangerStatut(devisSelectionne, 'VALIDE')
@@ -1195,7 +1200,7 @@ export default function ListeDevis() {
                     ✅ Valider
                   </button>
                 )}
-                {devisSelectionne.statut === 'BROUILLON' && (
+                {isDevisEnAttente(devisSelectionne.statut) && (
                   <button
                     onClick={() => {
                       handleChangerStatut(devisSelectionne, 'ANNULE')

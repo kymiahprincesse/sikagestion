@@ -11,6 +11,7 @@ import { usePlanificationStore } from '../../store/usePlanificationStore'
 import { useCaisseStore } from '../../store/useCaisseStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { formatFCFA, formatNumberPoints } from '../../utils/format'
+import { isDevisEnAttente, isDevisVisibleDansListe } from '../../utils/devisStatus'
 
 const COULEURS = ['#1B2A4A', '#E60000', '#1F5C99', '#1A7A4A', '#C8C8D0', '#E8ECF4']
 
@@ -85,14 +86,16 @@ export default function Rapport() {
     })
   }, [factures])
 
+  const devisVisibles = useMemo(() => devis.filter(isDevisVisibleDansListe), [devis])
+
   const devisParType = useMemo(() => {
     const types = {}
-    devis.forEach(d => {
-      const t = d.typeDevis || 'AUTRE'
+    devisVisibles.forEach(d => {
+      const t = d.typeDevis || d.type || 'AUTRE'
       types[t] = (types[t] || 0) + 1
     })
     return Object.entries(types).map(([name, value]) => ({ name, value }))
-  }, [devis])
+  }, [devisVisibles])
 
   const budgetVsReel = useMemo(() =>
     projets
@@ -173,8 +176,8 @@ export default function Rapport() {
         />
         <KpiCard
           titre="Devis en attente"
-          valeur={devis.filter(d => d.statut === 'EN_ATTENTE' || d.statut === 'BROUILLON').length}
-          sous={`${devis.length} devis total`}
+          valeur={devisVisibles.filter(d => isDevisEnAttente(d.statut)).length}
+          sous={`${devisVisibles.length} devis visibles`}
           couleur="#E60000"
           icone="📄"
           onClick={() => navigate('/devis/liste')}

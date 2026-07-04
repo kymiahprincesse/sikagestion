@@ -9,6 +9,7 @@ import { useClientsStore } from '../store/useClientsStore'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import { TrendingUp, TrendingDown, DollarSign, FileText, Users, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { formatFCFA } from '../utils/format'
+import { isDevisEnAttente, isDevisVisibleDansListe } from '../utils/devisStatus'
 import BackendStatusIndicator from '../components/BackendStatusIndicator'
 import SyncButton from '../components/SyncButton'
 
@@ -47,6 +48,7 @@ export default function DashboardEnhanced() {
       tauxEncaissement,
       nbFactures: factures.length,
       nbDevis: devis.length,
+      nbDevisEnAttente: devis.filter(d => isDevisVisibleDansListe(d) && isDevisEnAttente(d.statut)).length,
       nbAO: appelsDoffres.length,
       nbProjets: projets.length,
       nbClients: clients.length,
