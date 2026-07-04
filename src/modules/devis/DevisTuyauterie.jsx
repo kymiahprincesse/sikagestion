@@ -118,7 +118,7 @@ export default function DevisTuyauterie() {
     }))
   }
 
-  const supprimerLigne = (id) => {
+  const supprimerLigne = async (id) => {
     if (devisData.lignes.length <= 1) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -128,6 +128,16 @@ export default function DevisTuyauterie() {
       })
       return
     }
+
+    const ok = await confirm({
+      title: 'Supprimer la ligne',
+      message: 'Voulez-vous vraiment supprimer cette ligne du devis ?',
+      type: 'warning',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    })
+    if (!ok) return
+
     setDevisData(prev => ({
       ...prev,
       lignes: prev.lignes.filter(l => l.id !== id)

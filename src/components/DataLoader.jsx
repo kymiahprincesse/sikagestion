@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useAuthStore } from '../store/useAuthStore'
 import { useClientsStore } from '../store/useClientsStore'
 import { useFacturesStore } from '../store/useFacturesStore'
 import { useDevisStore } from '../store/useDevisStore'
@@ -38,6 +39,8 @@ export default function DataLoader() {
   // Activer la sync temps réel améliorée avec reconnexion auto (couvre toutes les tables)
   useSupabaseRealtimeEnhanced()
 
+  const utilisateurConnecte = useAuthStore(state => state.utilisateurConnecte)
+  const isRefreshingRef = useRef(false)
   const setClients = useClientsStore(state => state.setClients)
   const setFactures = useFacturesStore(state => state.setFactures)
   const setDevis = useDevisStore(state => state.setDevis)
@@ -53,12 +56,15 @@ export default function DataLoader() {
   // Utilisateurs : mis à jour directement via useUtilisateursStore.setState dans loadAllData
   const genererNotifications = useNotificationsStore(state => state.genererNotifications)
 
-  useEffect(() => {
-    async function loadAllData() {
-      try {
-        
-        // Charger toutes les données en parallèle
-        const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, lignesDevisRes, achatsRes, ecrituresRes] = await Promise.all([
+  const loadAllData = useCallback(async (reason = 'initial') => {
+    if (!utilisateurConnecte) return
+    if (isRefreshingRef.current) return
+
+    isRefreshingRef.current = true
+
+    try {
+      // Charger toutes les données en parallèle
+      const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, lignesDevisRes, achatsRes, ecrituresRes] = await Promise.all([
           supabase.from('clients').select('*').order('id'),
           supabase.from('factures').select('*').order('id'),
           supabase.from('devis').select('*').order('id'),
@@ -426,11 +432,56 @@ export default function DataLoader() {
             });
           }).catch(() => {});
         }
+      } finally {
+        isRefreshingRef.current = false
+      }
+    }, [
+      utilisateurConnecte,
+      setClients,
+      setFactures,
+      setDevis,
+      setAppelsOffres,
+      setFournisseurs,
+      setProjets,
+      setTaches,
+      setRessourcesHebdo,
+      setEncaissements,
+      setMouvements,
+      setAchats,
+      setEcritures,
+      genererNotifications
+    ])
+
+  useEffect(() => {
+    if (!utilisateurConnecte) return
+    void loadAllData('initial')
+  }, [utilisateurConnecte, loadAllData])
+
+  useEffect(() => {
+    if (!utilisateurConnecte) return
+
+    const handleOnline = () => {
+      void loadAllData('online')
+    }
+    const handleFocus = () => {
+      void loadAllData('focus')
+    }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void loadAllData('visibility')
       }
     }
 
-    loadAllData()
-  }, [setClients, setFactures, setDevis, setAppelsOffres, setFournisseurs, setProjets, setTaches, setRessourcesHebdo, setEncaissements, setMouvements, setAchats, setEcritures, genererNotifications]) // eslint-disable-line react-hooks/exhaustive-deps
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [utilisateurConnecte, loadAllData])
 
   return null // Composant invisible
 }

@@ -220,7 +220,7 @@ export const useDevisStore = create(
         }
       },
 
-      deleteDevis: (id) => {
+      deleteDevis: async (id) => {
         const devisSupprime = get().devis.find((d) => d.id === id);
 
         set((state) => ({ devis: state.devis.filter((d) => d.id !== id) }));
@@ -240,17 +240,22 @@ export const useDevisStore = create(
           });
         }
 
-        supabase.from('devis').delete().eq('id', id).then(({ error }) => {
+        try {
+          await supabase.from('lignes_devis').delete().eq('devis_id', id);
+          const { error } = await supabase.from('devis').delete().eq('id', id);
           if (error) {
             logger.error('Supabase deleteDevis:', error.message);
             crudError(`Impossible de supprimer le devis : ${error.message}`);
-          } else {
-            crudSuccess(`Devis ${devisSupprime?.numero || ''} supprimé avec succès`);
+            return false;
           }
-        }).catch((err) => {
+
+          crudSuccess(`Devis ${devisSupprime?.numero || ''} supprimé avec succès`);
+          return true;
+        } catch (err) {
           logger.error('Erreur deleteDevis:', err.message);
           crudError(`Impossible de supprimer le devis : ${err.message}`);
-        });
+          return false;
+        }
       },
 
       getDevisById: (id) => get().devis.find((d) => d.id === id),

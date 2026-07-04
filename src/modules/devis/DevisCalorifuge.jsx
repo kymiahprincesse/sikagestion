@@ -33,7 +33,8 @@ const LIGNE_VIDE = {
   pt: 0,
   qte: 0,
   qteManuelle: false,
-  pu: 0
+  pu: 0,
+  montant: ''
 }
 const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
@@ -173,6 +174,9 @@ export default function DevisCalorifuge() {
   }
 
   const calculerMontant = (ligne) => {
+    if (ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null) {
+      return safeParseFloat(ligne.montant, 0)
+    }
     const qte = calculerQte(ligne)
     const pu = safeParseFloat(ligne.pu, 0)
     return qte * pu
@@ -196,7 +200,7 @@ export default function DevisCalorifuge() {
     }))
   }
 
-  const supprimerLigne = (id) => {
+  const supprimerLigne = async (id) => {
     if (devisData.lignes.length <= 1) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -206,6 +210,16 @@ export default function DevisCalorifuge() {
       })
       return
     }
+
+    const ok = await confirm({
+      title: 'Supprimer la ligne',
+      message: 'Voulez-vous vraiment supprimer cette ligne du devis ?',
+      type: 'warning',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    })
+    if (!ok) return
+
     setDevisData(prev => ({
       ...prev,
       lignes: prev.lignes.filter(l => l.id !== id)
@@ -628,6 +642,8 @@ export default function DevisCalorifuge() {
               <tbody>
                 {devisData.lignes.map((ligne, index) => {
                   const qte = calculerQte(ligne)
+                  const pu = safeParseFloat(ligne.pu, 0)
+                  const montantAuto = qte * pu
                   const montant = calculerMontant(ligne)
                   const suggestions = filtrerDesignations(designationSearch[ligne.id] || ligne.designation)
 
@@ -735,7 +751,19 @@ export default function DevisCalorifuge() {
                         />
                       </td>
                       <td className="border border-argent px-2 py-2 bg-orangeClair">
-                        <div className="text-right font-bold text-navy">{formatFCFA(montant)}</div>
+                        <input
+                          type="number"
+                          value={ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null ? ligne.montant : montantAuto || ''}
+                          onChange={(e) => modifierLigne(ligne.id, 'montant', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                          placeholder={montantAuto > 0 ? String(montantAuto) : '0'}
+                          min="0"
+                          step="1"
+                          className="w-full px-2 py-1 border border-orange rounded text-right font-bold text-navy focus:outline-none focus:ring-1 focus:ring-orange bg-white"
+                          title="Saisissable — laissez vide pour calculer automatiquement (Qte x PU)"
+                        />
+                        {(ligne.montant === '' || ligne.montant === undefined || ligne.montant === null) && montantAuto > 0 && (
+                          <div className="text-right text-xs text-gray-400 mt-0.5">= {qte}x{pu}</div>
+                        )}
                       </td>
                       <td className="border border-argent px-2 py-2">
                         <div className="flex gap-1 justify-center">

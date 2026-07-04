@@ -200,7 +200,26 @@ export default function DevisReservoir() {
     }))
   }
 
-  const supprimerLigneCommerciale = (id) => {
+  const supprimerLigneCommerciale = async (id) => {
+    if (devisData.lignesCommerciales.length <= 1) {
+      ajouterNotification({
+        type: 'ATTENTION',
+        icone: '⚠️',
+        titre: 'VALIDATION',
+        message: 'Le devis doit contenir au moins une ligne'
+      })
+      return
+    }
+
+    const ok = await confirm({
+      title: 'Supprimer la ligne',
+      message: 'Voulez-vous vraiment supprimer cette ligne du devis ?',
+      type: 'warning',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    })
+    if (!ok) return
+
     setDevisData(prev => ({
       ...prev,
       lignesCommerciales: prev.lignesCommerciales.filter(l => l.id !== id)

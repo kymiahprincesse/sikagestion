@@ -123,7 +123,7 @@ export default function DevisCharpente() {
     }))
   }
 
-  const supprimerLigne = (id) => {
+  const supprimerLigne = async (id) => {
     if (devisData.lignes.length <= 1) {
       ajouterNotification({
         type: 'ATTENTION',
@@ -133,6 +133,16 @@ export default function DevisCharpente() {
       })
       return
     }
+
+    const ok = await confirm({
+      title: 'Supprimer la ligne',
+      message: 'Voulez-vous vraiment supprimer cette ligne du devis ?',
+      type: 'warning',
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler'
+    })
+    if (!ok) return
+
     setDevisData(prev => ({
       ...prev,
       lignes: prev.lignes.filter(l => l.id !== id)
@@ -408,7 +418,7 @@ export default function DevisCharpente() {
               <thead>
                 <tr className="bg-navy text-white">
                   <th className="border border-argent px-4 py-2 text-left">DÉSIGNATION</th>
-                  <th className="border border-argent px-4 py-2 text-center w-40">SURFACE</th>
+                  <th className="border border-argent px-4 py-2 text-center w-40">UNITE</th>
                   <th className="border border-argent px-4 py-2 text-center w-24">QTÉ</th>
                   <th className="border border-argent px-4 py-2 text-right w-36">PU (FCFA/m)</th>
                   <th className="border border-argent px-4 py-2 text-right w-36">MONTANT (FCFA)</th>

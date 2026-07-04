@@ -91,8 +91,7 @@ export default function SyncButton() {
   const { jour, dateStr, heureStr } = formatDateTime(currentTime)
 
   return (
-    <div className="relative">
-      {/* Affichage Date et Heure */}
+    <div className="flex flex-col sm:flex-row items-stretch gap-3">
       <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-[#1B2A4A] text-white shadow-xl border-2 border-[#E60000]">
         <Clock className="w-8 h-8 text-[#E60000]" />
         <div className="flex flex-col items-start">
@@ -101,15 +100,21 @@ export default function SyncButton() {
         </div>
       </div>
 
-      {/* Bouton de synchronisation masqué mais fonctionnel */}
       <button
         onClick={handleSync}
         disabled={isSyncing}
-        className="hidden"
+        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#E60000] text-white font-semibold shadow-lg hover:bg-[#c30000] transition disabled:opacity-70"
       >
-        Sync
+        {isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+        {isSyncing ? 'Synchronisation…' : 'Synchroniser'}
       </button>
 
+      {showResult && syncResult && (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${syncResult.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {syncResult.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+          {syncResult.success ? 'Données à jour' : (syncResult.error || 'Échec de synchronisation')}
+        </div>
+      )}
     </div>
   )
 }
