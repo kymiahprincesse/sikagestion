@@ -213,7 +213,8 @@ export function generateDevisHTML(data, baseUrl = '') {
     /* ── Impression ── */
     @media print {
       @page {
-        margin: 0; /* Élimine les en-têtes et pieds par défaut du navigateur (ex: URL blob, date) */
+        size: A4 portrait;
+        margin: 15mm 15mm 28mm 15mm; /* Évite les en-têtes/pieds par défaut du navigateur, définit des marges propres */
       }
       html, body {
         background: #fff !important;
@@ -222,11 +223,21 @@ export function generateDevisHTML(data, baseUrl = '') {
       }
       .page {
         box-shadow: none !important;
-        padding: 10mm 15mm 10mm 15mm !important; /* Ajoute des marges intérieures pour le contenu imprimé */
+        padding: 0 !important; /* Marges gérées proprement par @page */
         max-width: 100% !important;
       }
       .no-print-bar { display: none !important; }
-      .pied-suite { display: block !important; }
+      
+      .page-footer {
+        display: block !important;
+        position: fixed;
+        bottom: 8mm; /* Positionné dans la marge basse de 28mm */
+        left: 15mm;  /* Aligné avec la marge gauche de 15mm */
+        right: 15mm; /* Aligné avec la marge droite de 15mm */
+        margin-top: 0;
+        background: #fff;
+        z-index: 9999;
+      }
     }
 
     /* ── Tables ── */
@@ -273,36 +284,35 @@ export function generateDevisHTML(data, baseUrl = '') {
     }
 
     /* ── Numéros de page ── */
-    @media print {
-      .page-footer { position: fixed; bottom: 0; width: 100%; }
-      .page-number::after { content: counter(page); }
-      .page-number-total::after { content: counter(pages); }
-    }
+    .page-number::after { content: counter(page); }
+    .page-number-total::after { content: counter(pages); }
 
-    /* ── Pied de suite — caché par défaut, visible si multi-page ── */
-    .pied-suite {
-      display: none;
+    /* ── Pied de page (Écran & Impression) ── */
+    .page-footer {
       width: 100%;
-      margin-top: 8px;
+      margin-top: 30px;
     }
+    
     .pied-suite-barre {
+      display: none; /* Masqué par défaut à l'écran, affiché si multi-page à l'impression via JS */
       background: #1A3A8F !important;
       color: white !important;
       font-size: 8pt;
       font-weight: bold;
       padding: 4px 12px;
-      display: flex;
       justify-content: space-between;
       align-items: center;
+      width: 100%;
+      margin-bottom: 4px;
     }
-    .pied-suite-img {
+    
+    .footer-img {
       width: 100%;
       display: block;
     }
 
-    /* ── Image entête / pied ── */
+    /* ── Image entête ── */
     .header-img { width: 100%; display: block; margin-bottom: 0; }
-    .footer-last-img { width: 100%; display: block; margin-top: 14px; }
   </style>
 </head>
 <body>
@@ -444,16 +454,13 @@ ${draftWatermark}
     <div style="position:absolute;bottom:6px;right:12px;font-size:8pt;color:#aaa;">(Saisie ou annotations manuelles complémentaires au besoin)</div>
   </div>
 
-  <!-- ══ PIED DE PAGE FINAL (dernière page) ══ -->
-  <img class="footer-last-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
-
-  <!-- ══ PIED DE SUITE — injecté par JS si multi-page ══ -->
-  <div class="pied-suite" id="pied-suite" style="display:none;">
-    <div class="pied-suite-barre">
+  <!-- ══ PIED DE PAGE UNIQUE ET AUTOMATIQUE ══ -->
+  <div class="page-footer" id="page-footer">
+    <div class="pied-suite-barre" id="pied-suite-barre">
       <span>Réf. : ${reference} &mdash; ${type || 'SIKA INDUSTRIE'} &mdash; Document confidentiel</span>
       <span>SIKA INDUSTRIE &bull; T&#233;l : (225) 07 97 25 25 26 &bull; Page <span class="page-number"></span></span>
     </div>
-    <img class="pied-suite-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
+    <img class="footer-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
   </div>
 
 </div>
@@ -465,9 +472,9 @@ ${draftWatermark}
     var body = document.body;
     var contentHeight = body.scrollHeight;
     if (contentHeight > A4_HEIGHT_PX * 1.05) {
-      // Multi-page détecté : afficher pied de suite à l'impression
+      // Multi-page détecté : afficher la barre de pied de suite à l'impression
       var style = document.createElement('style');
-      style.innerHTML = '@media print { .pied-suite { display: block !important; } }';
+      style.innerHTML = '@media print { .pied-suite-barre { display: flex !important; } }';
       document.head.appendChild(style);
     }
   });
