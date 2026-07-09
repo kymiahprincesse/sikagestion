@@ -7,7 +7,7 @@ import { useNotificationsStore } from '../store/useNotificationsStore';
 const getStore = () => {
   try {
     return useNotificationsStore.getState();
-  } catch (e) {
+  } catch {
     return null;
   }
 };

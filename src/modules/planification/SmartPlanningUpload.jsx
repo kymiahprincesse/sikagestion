@@ -24,7 +24,7 @@ const detecterColonne = (nomColonne) => {
   return null;
 };
 
-export default function SmartPlanningUpload({ onClose, onImport, projetId }) {
+export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
   const [etape, setEtape] = useState(1);
   const [fichier, setFichier] = useState(null);
   const [donneesBrutes, setDonneesBrutes] = useState([]);

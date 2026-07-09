@@ -6,7 +6,7 @@ import { useParametresStore } from '../../store/useParametresStore';
 import { useDevisStore } from '../../store/useDevisStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotificationsStore } from '../../store/useNotificationsStore';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line } from 'recharts';
+import { Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Line } from 'recharts';
 import * as XLSX from 'xlsx';
 import { createSikaPDF, addSikaHeaderFooterToAllPages, getSikaContentMargins } from '../../utils/pdfTemplate';
 import { formatFCFA, formatNumberPoints } from '../../utils/format';
@@ -128,7 +128,8 @@ export default function PlanificationProjet() {
     formTache.budgetSousTraitance,
     indemniteRepas,
     prixCarburant,
-    consommationMoyenne
+    consommationMoyenne,
+    calculerBudgetTache
   ]);
 
   const storeReady = calculerBudgetTache && getStatistiquesProjet && getTachesByProjet;
@@ -385,7 +386,7 @@ export default function PlanificationProjet() {
           console.error('autoTable non disponible');
           // Fallback: afficher le texte manuellement
           let y = margins.top + 75;
-          tableData.forEach((row, i) => {
+          tableData.forEach(row => {
             doc.setFontSize(8);
             doc.text(row.join(' | '), 14, y);
             y += 5;

@@ -8,7 +8,6 @@ import SikaFooter from '../../components/SikaFooter'
 import ConditionsPaiementSelector from '../../components/ConditionsPaiementSelector'
 import { Search, Plus, Edit2, Trash2, Eye, Phone, Mail, MapPin, Building2, Printer } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
-import { formatDateLong } from '../../utils/format'
 import enteteImg from '../../assets/ENTETE SIKApng1.png'
 import piedImg from '../../assets/ENTETE SIKA pied 1.png'
 
@@ -20,8 +19,17 @@ const escapeHtml = (text) => {
   return div.innerHTML;
 };
 
+const typesFournisseur = [
+  { value: 'MATERIEL', label: 'Matériel & Équipement', icon: '🔧' },
+  { value: 'MATIERE_PREMIERE', label: 'Matières Premières', icon: '📦' },
+  { value: 'SERVICE', label: 'Services', icon: '🛠️' },
+  { value: 'SOUS_TRAITANT', label: 'Sous-traitant', icon: '👷' },
+  { value: 'TRANSPORT', label: 'Transport & Logistique', icon: '🚚' },
+  { value: 'AUTRE', label: 'Autre', icon: '📋' }
+]
+
 export default function Fournisseurs() {
-  const { fournisseurs, addFournisseur, updateFournisseur, deleteFournisseur, getFournisseurById, setFournisseurs } = useFournisseursStore()
+  const { fournisseurs, setFournisseurs } = useFournisseursStore()
   const { addLog } = useAuditStore()
   const utilisateur = useAuthStore(state => state.utilisateurConnecte)
   const { success, error, confirmDelete } = useNotifications()
@@ -85,14 +93,7 @@ export default function Fournisseurs() {
     notes: ''
   })
 
-  const typesFournisseur = [
-    { value: 'MATERIEL', label: 'Matériel & Équipement', icon: '🔧' },
-    { value: 'MATIERE_PREMIERE', label: 'Matières Premières', icon: '📦' },
-    { value: 'SERVICE', label: 'Services', icon: '🛠️' },
-    { value: 'SOUS_TRAITANT', label: 'Sous-traitant', icon: '👷' },
-    { value: 'TRANSPORT', label: 'Transport & Logistique', icon: '🚚' },
-    { value: 'AUTRE', label: 'Autre', icon: '📋' }
-  ]
+
 
   const fournisseursFiltres = useMemo(() => {
     let resultat = [...fournisseurs]
@@ -202,7 +203,7 @@ export default function Fournisseurs() {
         addLog({ module: 'Fournisseurs', action: 'Modification fournisseur', utilisateur: utilisateur?.nom, details: `Fournisseur ${formData.nom} modifié` })
         success(`Fournisseur "${formData.nom}" modifié avec succès`)
       } else {
-        const { data: inserted, error: supaErr } = await supabase
+        const { error: supaErr } = await supabase
           .from('fournisseurs')
           .insert(payload)
           .select()

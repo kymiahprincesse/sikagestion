@@ -35,7 +35,6 @@ export function generateDevisHTML(data, baseUrl = '') {
     lignes = [],
     specifications = null,
     notes = '',
-    statut = 'BROUILLON',
     montantHT = 0,
     tva = 0,
     ttc = 0,
@@ -67,7 +66,7 @@ export function generateDevisHTML(data, baseUrl = '') {
     if (user && (!infos.etabliPar || infos.etabliPar === 'SIKA INDUSTRIE' || infos.etabliPar === 'Utilisateur')) {
       infos.etabliPar = user.nom;
     }
-  } catch (e) {
+  } catch {
     // Silencieusement ignoré hors du contexte React (ex: tests unitaires)
   }
 
@@ -582,7 +581,7 @@ export function printDevisHTML(data) {
     iframe.src = url;
     iframe.onload = () => {
       setTimeout(() => {
-        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch(e) { /* ignore print errors */ }
+        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch { /* ignore print errors */ }
         setTimeout(() => {
           document.body.removeChild(iframe);
           URL.revokeObjectURL(url);

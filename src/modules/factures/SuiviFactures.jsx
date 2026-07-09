@@ -7,7 +7,7 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
+import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant } from '../../utils/printUtils'
 
 const MOYENS_REGLEMENT = ['ESPECES', 'CHEQUE', 'VIREMENT', 'CARTE', 'TRAITE', 'AUTRE']
 const TAUX_TVA = 18
@@ -30,7 +30,6 @@ export default function SuiviFactures() {
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
   const { confirmDelete } = useNotifications()
-  const [showPaiementsHistory, setShowPaiementsHistory] = useState(false)
 
   const [recherche, setRecherche] = useState('')
   const [filtreClient, setFiltreClient] = useState('')
@@ -234,7 +233,7 @@ export default function SuiviFactures() {
 
   const handleViewPaiements = (facture) => {
     setCurrentFacture(facture)
-    setShowPaiementsHistory(true)
+    setShowViewModal(true)
   }
 
   const handleDelete = async (facture) => {
@@ -555,7 +554,7 @@ export default function SuiviFactures() {
         </div>
       )
     }
-  ], [clients])
+  ], [handleEdit, handleView, handlePrint, handleViewPaiements, handleDelete])
 
   const table = useReactTable({
     data: facturesFiltrees,

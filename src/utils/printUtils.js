@@ -12,7 +12,6 @@ const PAGE_W = 210;   // mm
 const PAGE_H = 297;   // mm
 const MARGE_G = 15;   // mm gauche
 const MARGE_D = 15;   // mm droite
-const PIED_H   = 22;  // mm hauteur zone pied de page
 const CONTENT_W = PAGE_W - MARGE_G - MARGE_D;
 
 /**

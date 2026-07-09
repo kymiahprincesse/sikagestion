@@ -9,7 +9,7 @@ import ClientSelect from '../../components/ClientSelect'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
+import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant } from '../../utils/printUtils'
 
 const MOYENS_REGLEMENT = ['ESPECES', 'CHEQUE', 'VIREMENT', 'CARTE', 'TRAITE', 'AUTRE']
 
@@ -476,7 +476,7 @@ export default function EncaissementParClient() {
         </div>
       )
     }
-  ], [clients])
+  ], [handleEdit, handleView, handlePrint, handleAddReglement, handleDelete])
 
   const table = useReactTable({
     data: encaissementsFiltres,

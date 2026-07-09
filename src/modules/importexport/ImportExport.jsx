@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
-import { Upload, Download, FileSpreadsheet, FileText, AlertCircle, CheckCircle2, X, ChevronDown } from 'lucide-react';
+import { Upload, Download, FileSpreadsheet, FileText, AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { createSikaPDF, addSikaHeaderFooterToAllPages, getSikaContentMargins } from '../../utils/pdfTemplate';
 import { useClientsStore } from '../../store/useClientsStore';
@@ -13,7 +12,6 @@ import { useAOStore } from '../../store/useAOStore';
 import { useCaisseStore } from '../../store/useCaisseStore';
 import { useJournalStore } from '../../store/useJournalStore';
 import { usePlanificationStore } from '../../store/usePlanificationStore';
-import { useParametresStore } from '../../store/useParametresStore';
 import { useNotifications } from '../../components/NotificationProvider';
 import GenerateExampleFile from './GenerateExampleFile';
 
@@ -199,7 +197,7 @@ const ImportExport = () => {
         const worksheet = workbook.Sheets[selectedSheet];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
         
-        const headers = jsonData[0];
+        const _headers = jsonData[0];
         const dataRows = jsonData.slice(1);
         
         let imported = 0;
@@ -374,7 +372,7 @@ const ImportExport = () => {
     
     XLSX.writeFile(wb, `SIKA_${config.label}_${new Date().toISOString().split('T')[0]}.xlsx`);
     success(`${data.length} lignes exportées avec succès`);
-    } catch (err) {
+    } catch {
       error('Erreur lors de l\'export Excel');
     }
   };
@@ -441,7 +439,7 @@ const ImportExport = () => {
     
     doc.save(`SIKA_${config.label}_${new Date().toISOString().split('T')[0]}.pdf`);
     success(`PDF généré avec succès (${data.length} lignes)`);
-    } catch (err) {
+    } catch {
       error('Erreur lors de l\'export PDF');
     }
   };
