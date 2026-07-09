@@ -43,3 +43,6 @@ vite-server.log
 # Windsurf / Qodo
 .windsurfignore
 .qodo/
+
+# Claude local configurations
+.claude/

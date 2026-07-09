@@ -10,7 +10,7 @@ export default function SyncStatusIndicator() {
   const { isConnected, isChecking, lastCheck, error, isOnline, pendingOperations, reconnectAttempts, forceReconnect } = useSupabaseSync()
   const [showDetails, setShowDetails] = useState(false)
   const [lastSync, setLastSync] = useState(null)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
 
   // Mise à jour du timestamp de dernière sync lorsque la connexion est confirmée
   useEffect(() => {

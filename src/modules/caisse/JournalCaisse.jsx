@@ -15,7 +15,6 @@ import {
   Wallet,
   Calendar
 } from 'lucide-react';
-import Breadcrumb from '../../components/Breadcrumb';
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils';
 import { formatFCFA } from '../../utils/format';
 import * as XLSX from 'xlsx';
@@ -336,13 +335,7 @@ const JournalCaisse = () => {
 
   return (
     <div className="min-h-screen bg-[#E8ECF4]">
-      <Breadcrumb
-        items={[
-          { label: 'Accueil', path: '/' },
-          { label: 'Caisse', path: '/caisse' },
-          { label: 'Journal de Caisse' },
-        ]}
-      />
+
 
       <div className="p-6 space-y-6">
 

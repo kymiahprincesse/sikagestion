@@ -159,7 +159,7 @@ export const useUtilisateursStore = create(
         return { success: true, code, nom: user.nom, hasAuthAccount: !!user.auth_user_id };
       },
 
-      reinitialiserAvecCode: (email, code, nouveauMdp) => {
+      reinitialiserAvecCode: async (email, code, nouveauMdp) => {
         const raw = sessionStorage.getItem('sika_recovery');
         if (!raw) return { success: false, message: 'Aucune demande de récupération active' };
         let recovery;
@@ -171,7 +171,7 @@ export const useUtilisateursStore = create(
         }
         if (recovery.code !== (code || '').trim()) return { success: false, message: 'Code incorrect' };
         if ((nouveauMdp || '').length < 6) return { success: false, message: 'Minimum 6 caractères requis' };
-        const result = get().reinitialiserMotDePasse(recovery.userId, nouveauMdp);
+        const result = await get().reinitialiserMotDePasse(recovery.userId, nouveauMdp);
         if (result.success) sessionStorage.removeItem('sika_recovery');
         return result;
       },

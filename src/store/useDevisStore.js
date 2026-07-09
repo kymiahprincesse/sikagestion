@@ -5,13 +5,14 @@ import { formatFCFA, getTodayISO, generateSecureId } from '../utils/format';
 import { quickCheck, findAllDuplicates, mergeDuplicates } from '../utils/duplicateDetector';
 import { logger } from '../utils/logger';
 import { crudSuccess, crudError } from '../utils/crudNotify';
+import { normalizeDevisStatut, detecterTypeDevis } from '../utils/devisStatus';
 
 function toSupabaseRow(devis) {
   return {
     numero: devis.numero,
     client_id: devis.clientId || null,
     client_nom: devis.clientNom || null,
-    type_devis: devis.typeDevis || null,
+    type_devis: devis.typeDevis || devis.type || detecterTypeDevis(devis),
     objet: devis.objet || null,
     montant_ht: devis.montantHT || 0,
     montant_tva: devis.montantTVA || 0,
@@ -105,7 +106,7 @@ export const useDevisStore = create(
           id: devis.id || generateSecureId('DEV'),
           numero: devis.numero || numero,
           dateCreation: devis.dateCreation || getTodayISO(),
-          statut: devis.statut || 'BROUILLON',
+          statut: normalizeDevisStatut(devis.statut || 'BROUILLON'),
           // Ajouter un hash unique pour traçabilité
           hashUnique: generateSecureId('hash')
         };
@@ -165,8 +166,12 @@ export const useDevisStore = create(
       },
 
       updateDevis: async (id, modifications, options = {}) => {
+        const normalizedModifications = modifications.statut
+          ? { ...modifications, statut: normalizeDevisStatut(modifications.statut) }
+          : modifications;
+
         set((state) => ({
-          devis: state.devis.map((d) => d.id === id ? { ...d, ...modifications } : d)
+          devis: state.devis.map((d) => d.id === id ? { ...d, ...normalizedModifications } : d)
         }));
 
         // Notifier le tableau de bord de la mise à jour
@@ -187,7 +192,7 @@ export const useDevisStore = create(
           });
         }
 
-        const { error } = await supabase.from('devis').update(toSupabaseRow({ ...devisMaj, ...modifications })).eq('id', id);
+        const { error } = await supabase.from('devis').update(toSupabaseRow({ ...devisMaj, ...normalizedModifications })).eq('id', id);
         if (error) {
           logger.error('Supabase updateDevis:', error.message);
           crudError(`Impossible de modifier le devis : ${error.message}`);
@@ -288,7 +293,9 @@ export const useDevisStore = create(
         }
       },
 
-      setDevis: (devis) => { set({ devis }); },
+      setDevis: (devis) => {
+        set({ devis: devis.map((d) => ({ ...d, statut: normalizeDevisStatut(d.statut) })) });
+      },
 
       // Fonctions pour Realtime (pas d'appel Supabase pour éviter boucle)
       addDevisFromRealtime: (devis) => {

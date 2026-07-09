@@ -10,7 +10,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import * as XLSX from 'xlsx';
 import { createSikaPDF, addSikaHeaderFooterToAllPages, getSikaContentMargins } from '../../utils/pdfTemplate';
 import { formatFCFA, formatNumberPoints } from '../../utils/format';
-import Breadcrumb from '../../components/Breadcrumb';
 import ActionButtons from '../../components/ActionButtons';
 import SmartPlanningUpload from './SmartPlanningUpload';
 
@@ -677,18 +676,8 @@ export default function PlanificationProjet() {
     }
   };
 
-  const breadcrumbItems = [
-    { label: 'Accueil', path: '/dashboard' },
-    { label: 'Planification', path: '/planification' }
-  ];
-  if (clientSelectionne) {
-    const client = getClientById(clientSelectionne);
-    breadcrumbItems.push({ label: client?.nom || 'Client' });
-  }
-
   return (
     <div className="p-6">
-      <Breadcrumb items={breadcrumbItems} />
 
       <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
         <h1 className="text-2xl font-bold text-navy mb-4">🚀 Pilotage Projets</h1>

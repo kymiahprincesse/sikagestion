@@ -67,13 +67,13 @@ export const FACTURE_STATUTS = {
 };
 
 // ── STATUTS DEVIS ───────────────────────────────────────
+// Aligné sur le workflow réel (voir ListeDevis.jsx + useDevisStore.js + devisStatus.js)
 export const DEVIS_STATUTS = {
   BROUILLON: 'BROUILLON',
-  ENVOYE: 'ENVOYE',
-  ACCEPTE: 'ACCEPTE',
-  REFUSE: 'REFUSE',
-  EXPIRE: 'EXPIRE',
-  TRANSFORME: 'TRANSFORME',
+  EN_ATTENTE: 'EN_ATTENTE',
+  VALIDE: 'VALIDE',
+  FACTURE: 'FACTURE',
+  ANNULE: 'ANNULE',
 };
 
 // ── ENVIRONNEMENT ───────────────────────────────────────

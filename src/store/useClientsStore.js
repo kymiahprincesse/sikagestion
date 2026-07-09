@@ -68,41 +68,66 @@ export const useClientsStore = create(
         }
       },
 
-      updateClient: (id, modifications) => {
-        set((state) => ({
-          clients: state.clients.map((client) => client.id === id ? { ...client, ...modifications } : client)
-        }));
+      updateClient: async (id, modifications) => {
+        const { clients } = get();
+        const clientMaj = clients.find((c) => c.id === id);
+        if (!clientMaj) return { success: false, message: 'Client non trouvé' };
 
-        const clientMaj = get().clients.find((c) => c.id === id);
-        if (clientMaj) {
-          supabase.from('clients').update(toSupabaseRow({ ...clientMaj, ...modifications })).eq('id', id).then(({ error }) => {
-            if (error) {
-              logger.error('Supabase updateClient:', error.message);
-              crudError(`Impossible de modifier le client : ${error.message}`);
-            } else {
-              crudSuccess(`Client "${clientMaj.nom}" modifié avec succès`);
-            }
-          }).catch((err) => {
-            logger.error('Erreur updateClient:', err.message);
-            crudError(`Impossible de modifier le client : ${err.message}`);
-          });
+        const updatedClientLocal = { ...clientMaj, ...modifications };
+
+        try {
+          const { error } = await supabase
+            .from('clients')
+            .update(toSupabaseRow(updatedClientLocal))
+            .eq('id', id);
+
+          if (error) {
+            logger.error('Supabase updateClient:', error.message);
+            crudError(`Impossible de modifier le client : ${error.message}`);
+            return { success: false, message: error.message };
+          }
+
+          set((state) => ({
+            clients: state.clients.map((client) => client.id === id ? updatedClientLocal : client)
+          }));
+
+          crudSuccess(`Client "${updatedClientLocal.nom}" modifié avec succès`);
+          return { success: true };
+        } catch (err) {
+          logger.error('Erreur updateClient:', err.message || err);
+          crudError(`Impossible de modifier le client : ${err.message || 'erreur inconnue'}`);
+          return { success: false, message: err.message || 'Erreur inconnue' };
         }
       },
 
-      deleteClient: (id) => {
-        const clientSupprime = get().clients.find((c) => c.id === id);
-        set((state) => ({ clients: state.clients.filter((client) => client.id !== id) }));
-        supabase.from('clients').delete().eq('id', id).then(({ error }) => {
+      deleteClient: async (id) => {
+        const { clients } = get();
+        const clientSupprime = clients.find((c) => c.id === id);
+        if (!clientSupprime) return { success: false, message: 'Client non trouvé' };
+
+        try {
+          const { error } = await supabase
+            .from('clients')
+            .delete()
+            .eq('id', id);
+
           if (error) {
             logger.error('Supabase deleteClient:', error.message);
             crudError(`Impossible de supprimer le client : ${error.message}`);
-          } else {
-            crudSuccess(`Client "${clientSupprime?.nom || ''}" supprimé avec succès`);
+            return { success: false, message: error.message };
           }
-        }).catch((err) => {
-          logger.error('Erreur deleteClient:', err.message);
-          crudError(`Impossible de supprimer le client : ${err.message}`);
-        });
+
+          set((state) => ({
+            clients: state.clients.filter((client) => client.id !== id)
+          }));
+
+          crudSuccess(`Client "${clientSupprime.nom}" supprimé avec succès`);
+          return { success: true };
+        } catch (err) {
+          logger.error('Erreur deleteClient:', err.message || err);
+          crudError(`Impossible de supprimer le client : ${err.message || 'erreur inconnue'}`);
+          return { success: false, message: err.message || 'Erreur inconnue' };
+        }
       },
 
       getClientByNom: (nom) => {

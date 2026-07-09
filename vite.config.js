@@ -35,6 +35,7 @@ export default defineConfig({
     __BUILD_TIMESTAMP__: JSON.stringify(BUILD_TIMESTAMP),
   },
   build: {
+    assetsInlineLimit: 8192, // Inline small assets (<8kB) to reduce HTTP request roundtrips
     rollupOptions: {
       output: {
         entryFileNames: 'assets/[name]-[hash].js',

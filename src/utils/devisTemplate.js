@@ -1,6 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
 // SIKA INDUSTRIE — TEMPLATE HTML UNIFIÉ POUR TOUS LES DEVIS
 // ═══════════════════════════════════════════════════════════════
+import { useClientsStore } from '../store/useClientsStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 /**
  * Génère le HTML complet d'un devis prêt à imprimer sur A4
@@ -24,7 +26,7 @@
  * @returns {string} HTML complet
  */
 export function generateDevisHTML(data, baseUrl = '') {
-  const {
+  let {
     reference = '',
     objet = '',
     type = '',
@@ -41,6 +43,34 @@ export function generateDevisHTML(data, baseUrl = '') {
     montantBrut = 0
   } = data;
 
+  // Enrichissement automatique du client et de l'utilisateur depuis les stores
+  try {
+    const clients = useClientsStore.getState().clients;
+    const user = useAuthStore.getState().utilisateurConnecte;
+    
+    // Rechercher le client pour récupérer ses informations enregistrées complètes
+    const dbClient = clients.find(c => c.nom === client.nom || c.id === client.id || c.id === data.clientId);
+    if (dbClient) {
+      client = {
+        ...dbClient,
+        ...client,
+        telephone: client.telephone || dbClient.contactTelephone || dbClient.telephone || '',
+        email: client.email || dbClient.contactEmail || dbClient.email || '',
+        adresse: client.adresse || dbClient.adresse || '',
+        ville: client.ville || dbClient.ville || '',
+        pays: client.pays || dbClient.pays || 'Côte d\'Ivoire',
+        raisonSociale: client.raisonSociale || dbClient.raisonSociale || ''
+      };
+    }
+
+    // Récupérer le nom de la personne connectée (qui édite le devis)
+    if (user && (!infos.etabliPar || infos.etabliPar === 'SIKA INDUSTRIE' || infos.etabliPar === 'Utilisateur')) {
+      infos.etabliPar = user.nom;
+    }
+  } catch (e) {
+    // Silencieusement ignoré hors du contexte React (ex: tests unitaires)
+  }
+
   const fmt = (val) => {
     if (!val && val !== 0) return '0';
     return new Intl.NumberFormat('fr-FR').format(Math.round(val));
@@ -53,24 +83,13 @@ export function generateDevisHTML(data, baseUrl = '') {
   };
 
   // ── Badge couleur par type ──
-  const typeBadge = type ? `<span style="display:inline-block;background:#E05A00;color:white;font-size:9pt;font-weight:bold;padding:3px 14px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;">${type}</span>` : '';
+  const typeBadge = type ? `<span style="display:inline-block;border:1.5px solid #1A3A8F;color:#1A3A8F;font-size:8.5pt;font-weight:bold;padding:2px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;background:transparent;">${type}</span>` : '';
 
-  // ── Badge statut ──
-  const statutColors = {
-    BROUILLON: '#6c757d',
-    VALIDE: '#28a745',
-    ANNULE: '#dc3545',
-    FACTURE: '#17a2b8',
-    EXPIRE: '#fd7e14'
-  };
-  const statutBadge = statut ? `<span style="display:inline-block;background:${statutColors[statut] || '#6c757d'};color:white;font-size:8pt;font-weight:bold;padding:2px 10px;border-radius:12px;letter-spacing:0.5px;text-transform:uppercase;margin-left:8px;">${statut}</span>` : '';
+  // ── Badge statut ── (Désactivé à la demande pour l'impression)
+  const statutBadge = '';
 
-  // ── Watermark brouillon ──
-  const draftWatermark = statut === 'BROUILLON' ? `
-  <div class="draft-watermark">
-    <div>BROUILLON</div>
-    <div style="font-size:14pt;font-weight:normal;opacity:0.7;margin-top:8px;">Document non contractuel</div>
-  </div>` : '';
+  // ── Watermark brouillon ── (Désactivé à la demande pour l'impression)
+  const draftWatermark = '';
 
   // ── Spécifications techniques (bloc gris) ──
   let specsHTML = '';
@@ -86,13 +105,13 @@ export function generateDevisHTML(data, baseUrl = '') {
           hauteur: 'Hauteur', typeCharpente: 'Type charpente'
         };
         return `<td style="padding:8px 14px;border-right:1px solid #dde;vertical-align:top;">
-          <div style="font-size:8pt;color:#E05A00;font-weight:bold;text-transform:uppercase;margin-bottom:3px;">${labels[k] || k}</div>
-          <div style="font-size:12pt;font-weight:bold;color:#06006E;">${v}${k === 'epaisseur' ? ' mm' : ''}</div>
+          <div style="font-size:8pt;color:#1A3A8F;font-weight:bold;text-transform:uppercase;margin-bottom:3px;">${labels[k] || k}</div>
+          <div style="font-size:12pt;font-weight:bold;color:#1A3A8F;">${v}${k === 'epaisseur' ? ' mm' : ''}</div>
         </td>`;
       }).join('');
     if (items) {
       specsHTML = `
-      <table width="100%" style="margin-bottom:10px;border:1px solid #06006E;">
+      <table width="100%" style="margin-bottom:10px;border:1px solid #1A3A8F;">
         <tr><td colspan="99" class="section-title">Spécifications techniques</td></tr>
         <tr style="background:#f8f9ff;">${items}</tr>
       </table>`;
@@ -114,17 +133,17 @@ export function generateDevisHTML(data, baseUrl = '') {
     if (ligne.pt && ligne.pt > 0) details.push(`PT: ${ligne.pt}`);
     if (ligne.surface && ligne.surface > 0) details.push(`${ligne.surface}m²`);
     if (details.length > 0) {
-      desig += `<br><span style="font-size:8pt;color:#4a6fa5;font-style:italic;padding-left:4px;border-left:2px solid #c8d4e8;">${details.join(' · ')}</span>`;
+      desig += `<br><span style="font-size:8pt;color:#555;font-style:italic;padding-left:4px;border-left:2px solid #1A3A8F;">${details.join(' · ')}</span>`;
     }
-    const bg = i % 2 === 0 ? '#ffffff' : '#f0f4f9';
+    const bg = i % 2 === 0 ? '#ffffff' : '#f7f7f7';
     const montant = ligne.montant || (ligne.qte * ligne.pu) || 0;
     return `<tr style="background:${bg};">
-      <td style="padding:6px 8px;border:1px solid #c8d4e8;font-size:9pt;text-align:center;color:#555;">${i + 1}</td>
-      <td style="padding:6px 8px;border:1px solid #c8d4e8;font-size:10pt;">${desig}</td>
-      <td style="padding:6px 8px;border:1px solid #c8d4e8;font-size:9pt;text-align:center;">${ligne.dn || ligne.unite || 'U'}</td>
-      <td style="padding:6px 8px;border:1px solid #c8d4e8;font-size:10pt;text-align:center;font-weight:bold;color:#06006E;">${fmt(ligne.qte || 0)}</td>
-      <td style="padding:6px 8px;border:1px solid #c8d4e8;font-size:10pt;text-align:right;">${fmt(ligne.pu || 0)}</td>
-      <td style="padding:6px 8px;border:1px solid #c8d4e8;font-size:10pt;text-align:right;font-weight:bold;color:#06006E;">${fmt(montant)}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;color:#555;">${i + 1}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;">${desig}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;">${ligne.dn || ligne.unite || 'U'}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#1A3A8F;">${fmt(ligne.qte || 0)}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;">${fmt(ligne.pu || 0)}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;font-weight:bold;color:#1A3A8F;">${fmt(montant)}</td>
     </tr>`;
   }).join('') : `<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;font-size:10pt;">Aucune ligne</td></tr>`;
 
@@ -181,7 +200,7 @@ export function generateDevisHTML(data, baseUrl = '') {
         position: sticky;
         top: 0;
         z-index: 999;
-        background: #06006E;
+        background: #1A3A8F;
         color: white;
         padding: 10px 20px;
         display: flex;
@@ -194,8 +213,19 @@ export function generateDevisHTML(data, baseUrl = '') {
 
     /* ── Impression ── */
     @media print {
-      html, body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
-      .page { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
+      @page {
+        margin: 0; /* Élimine les en-têtes et pieds par défaut du navigateur (ex: URL blob, date) */
+      }
+      html, body {
+        background: #fff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .page {
+        box-shadow: none !important;
+        padding: 10mm 15mm 10mm 15mm !important; /* Ajoute des marges intérieures pour le contenu imprimé */
+        max-width: 100% !important;
+      }
       .no-print-bar { display: none !important; }
       .pied-suite { display: block !important; }
     }
@@ -205,7 +235,7 @@ export function generateDevisHTML(data, baseUrl = '') {
 
     /* ── Titres de section ── */
     .section-title {
-      background: #06006E !important;
+      background: #1A3A8F !important;
       color: white !important;
       font-size: 9pt;
       font-weight: bold;
@@ -216,7 +246,7 @@ export function generateDevisHTML(data, baseUrl = '') {
     }
 
     /* ── Espace signature ── */
-    .sig-space { height: 55px; border-bottom: 2px solid #06006E; }
+    .sig-space { height: 55px; border-bottom: 2px solid #1A3A8F; }
 
     /* ── Sauts de page propres ── */
     tr { page-break-inside: avoid; break-inside: avoid; }
@@ -257,7 +287,7 @@ export function generateDevisHTML(data, baseUrl = '') {
       margin-top: 8px;
     }
     .pied-suite-barre {
-      background: #06006E !important;
+      background: #1A3A8F !important;
       color: white !important;
       font-size: 8pt;
       font-weight: bold;
@@ -280,7 +310,7 @@ export function generateDevisHTML(data, baseUrl = '') {
 
   <!-- ══ BARRE BOUTON (écran seulement) ══ -->
   <div class="no-print-bar">
-    <button onclick="window.print()" style="background:#E05A00;color:white;border:none;padding:8px 28px;font-size:10pt;font-weight:bold;border-radius:5px;cursor:pointer;">
+    <button onclick="window.print()" style="background:#1A3A8F;color:white;border:none;padding:8px 28px;font-size:10pt;font-weight:bold;border-radius:5px;cursor:pointer;">
       &#128424; Imprimer / Enregistrer PDF
     </button>
     <span style="font-size:9pt;opacity:0.85;">Raccourci clavier : Ctrl + P</span>
@@ -295,7 +325,7 @@ ${draftWatermark}
   <img class="header-img" src="${baseUrl}/entete-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
 
   <!-- ══ BANDEAU DEVIS ══ -->
-  <table width="100%" style="background:#06006E;color:white;margin-bottom:10px;">
+  <table width="100%" style="background:#1A3A8F;color:white;margin-bottom:10px;">
     <tr>
       <td style="padding:8px 14px;font-size:20pt;font-weight:bold;letter-spacing:2px;">DEVIS</td>
       <td style="padding:8px 14px;font-size:10pt;font-weight:bold;">${reference}</td>
@@ -308,166 +338,115 @@ ${draftWatermark}
   </table>
 
   <!-- ══ BLOCS CLIENT + INFOS ══ -->
-  <table width="100%" style="margin-bottom:10px;border:1px solid #c8d4e8;">
+  <table width="100%" style="margin-bottom:10px;border:1px solid #e2e8f0;">
     <tr>
-      <td width="52%" style="vertical-align:top;border-right:1px solid #c8d4e8;">
+      <td width="52%" style="vertical-align:top;border-right:1px solid #e2e8f0;">
         <div class="section-title">Client</div>
         <table width="100%" style="padding:6px 8px;">
-          <tr><td style="padding:3px 8px;font-size:12pt;font-weight:bold;color:#06006E;">${client.nom || client.entreprise || '—'}</td></tr>
+          <tr><td style="padding:3px 8px;font-size:12pt;font-weight:bold;color:#1A3A8F;">${client.nom || client.entreprise || '—'}</td></tr>
           ${client.raisonSociale && client.raisonSociale !== client.nom ? `<tr><td style="padding:1px 8px;font-size:8pt;color:#666;">${client.raisonSociale}</td></tr>` : ''}
           ${client.secteur ? `<tr><td style="padding:1px 8px;font-size:8pt;color:#888;">Secteur : <b>${client.secteur}</b></td></tr>` : ''}
           ${client.adresse || client.site || client.ville ? `<tr><td style="padding:2px 8px;font-size:8pt;color:#444;">&#128205; ${[client.adresse || client.site, client.ville, client.pays].filter(Boolean).join(', ')}</td></tr>` : ''}
-          ${client.interlocuteur || infos.demandePar ? `<tr><td style="padding:2px 8px;font-size:8pt;color:#444;">&#128100; Contact : <b>${client.interlocuteur || infos.demandePar}</b></td></tr>` : ''}
+          ${client.interlocuteur ? `<tr><td style="padding:2px 8px;font-size:8.5pt;color:#444;">&#128100; Contact : <b>${client.interlocuteur}</b></td></tr>` : ''}
+          ${infos.demandePar ? `<tr><td style="padding:2px 8px;font-size:8.5pt;color:#444;">&#128100; À la demande de : <b>${infos.demandePar}</b></td></tr>` : ''}
           ${client.telephone ? `<tr><td style="padding:1px 8px;font-size:8pt;color:#444;">&#128222; ${client.telephone}</td></tr>` : ''}
           ${client.email ? `<tr><td style="padding:1px 8px;font-size:8pt;color:#444;">&#9993; ${client.email}</td></tr>` : ''}
-          ${client.conditionsPaiement ? `<tr><td style="padding:2px 8px;font-size:8pt;color:#888;border-top:1px solid #eee;margin-top:4px;">Conditions paiement : <b>${client.conditionsPaiement} jours</b></td></tr>` : ''}
         </table>
       </td>
       <td width="48%" style="vertical-align:top;">
         <div class="section-title">Informations du devis</div>
         <table width="100%" style="padding:6px 8px;">
-          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#06006E;display:inline-block;width:85px;">R&#233;f&#233;rence :</b> <b>${reference}</b></td></tr>
-          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#06006E;display:inline-block;width:85px;">Date :</b> ${fmtDate(infos.date)}</td></tr>
-          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#06006E;display:inline-block;width:85px;">Validit&#233; :</b> ${infos.validite || '30 jours'}</td></tr>
-          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#06006E;display:inline-block;width:85px;">&#201;tabli par :</b> ${infos.etabliPar || 'SIKA INDUSTRIE'}</td></tr>
-          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#06006E;display:inline-block;width:85px;">T&#233;l :</b> ${infos.tel || '(225) 07 97 25 25 26'}</td></tr>
-          ${infos.demandePar ? `<tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#06006E;display:inline-block;width:85px;">Demand&#233; par :</b> ${infos.demandePar}</td></tr>` : ''}
+          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">R&#233;f&#233;rence :</b> <b>${reference}</b></td></tr>
+          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">Date :</b> ${fmtDate(infos.date)}</td></tr>
+          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">Validit&#233; :</b> ${infos.validite || '30 jours'}</td></tr>
+          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">&#201;tabli par :</b> ${infos.etabliPar || 'SIKA INDUSTRIE'}</td></tr>
+          <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">T&#233;l :</b> ${infos.tel || '(225) 07 97 25 25 26'}</td></tr>
+          ${infos.demandePar ? `<tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">À la demande de :</b> ${infos.demandePar}</td></tr>` : ''}
         </table>
       </td>
     </tr>
   </table>
 
   <!-- ══ OBJET ══ -->
-  ${objet ? `
-  <table width="100%" style="margin-bottom:10px;border-left:4px solid #06006E;background:#f0f4ff;">
-    <tr><td style="padding:4px 10px;font-size:8pt;font-weight:bold;color:#06006E;text-transform:uppercase;letter-spacing:1px;">Objet</td></tr>
-    <tr><td style="padding:2px 10px 8px;font-size:10pt;color:#222;">${objet}</td></tr>
-  </table>` : ''}
+  <table width="100%" style="margin-bottom:10px;border-left:4px solid #1A3A8F;background:#f0f4ff;">
+    <tr><td style="padding:4px 10px;font-size:8pt;font-weight:bold;color:#1A3A8F;text-transform:uppercase;letter-spacing:1px;">Objet du devis</td></tr>
+    <tr><td style="padding:4px 10px 8px;font-size:10pt;color:#222;font-weight:bold;">${objet || '____________________________________________________________________________________'}</td></tr>
+  </table>
 
   <!-- ══ SPÉCIFICATIONS TECHNIQUES ══ -->
   ${specsHTML}
 
   <!-- ══ I. TABLEAU DES PRESTATIONS ══ -->
   <div class="section-title" style="margin-bottom:0;">I. Détail des prestations</div>
-  <table width="100%" style="border:1px solid #c8d4e8;margin-bottom:0;">
+  <table width="100%" style="border:1px solid #1A3A8F;margin-bottom:0;">
     <thead>
-      <tr style="background:#1a4a9b;color:white;">
-        <th style="padding:6px 8px;border:1px solid #1a4a9b;font-size:8pt;width:24px;text-align:center;">N°</th>
-        <th style="padding:6px 8px;border:1px solid #1a4a9b;font-size:8pt;text-align:left;">DÉSIGNATION</th>
-        <th style="padding:6px 8px;border:1px solid #1a4a9b;font-size:8pt;width:40px;text-align:center;">U</th>
-        <th style="padding:6px 8px;border:1px solid #1a4a9b;font-size:8pt;width:45px;text-align:center;">QTÉ</th>
-        <th style="padding:6px 8px;border:1px solid #1a4a9b;font-size:8pt;width:95px;text-align:right;">P.U. (FCFA)</th>
-        <th style="padding:6px 8px;border:1px solid #1a4a9b;font-size:8pt;width:105px;text-align:right;">MONTANT (FCFA)</th>
+      <tr style="background:#1A3A8F;color:white;">
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:24px;text-align:center;">N°</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;text-align:left;">DÉSIGNATION</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:40px;text-align:center;">U</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:45px;text-align:center;">QTÉ</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:95px;text-align:right;">P.U. (FCFA)</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:105px;text-align:right;">MONTANT (FCFA)</th>
       </tr>
     </thead>
     <tbody>${lignesHTML}</tbody>
   </table>
 
   <!-- ══ RÉCAPITULATIF FINANCIER ══ -->
-  <table width="100%" style="border:1px solid #c8d4e8;border-top:none;margin-bottom:10px;">
+  <table width="100%" style="border:1px solid #e2e8f0;border-top:none;margin-bottom:10px;">
     ${montantBrut > 0 && remise > 0 ? `
-    <tr style="background:#f8f9ff;">
-      <td style="padding:5px 12px;border:1px solid #c8d4e8;font-size:9pt;color:#555;">
-        Sous-total des prestations <span style="font-size:8pt;color:#999;">(avant remise)</span>
-      </td>
-      <td style="padding:5px 12px;border:1px solid #c8d4e8;font-size:9pt;font-weight:bold;text-align:right;width:160px;color:#555;">${fmt(montantBrut)} FCFA</td>
-    </tr>
-    <tr style="background:#fff5f5;">
-      <td style="padding:5px 12px;border:1px solid #c8d4e8;font-size:9pt;color:#c53030;">
+    <tr style="background:#ffffff;">
+      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;color:#555;">
         Remise commerciale accord&#233;e
       </td>
-      <td style="padding:5px 12px;border:1px solid #c8d4e8;font-size:9pt;font-weight:bold;text-align:right;color:#c53030;">&#8722; ${fmt(remise)} FCFA</td>
+      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#555;">&#8722; ${fmt(remise)} FCFA</td>
     </tr>` : ''}
-    <tr style="background:#dce6f1;">
-      <td style="padding:6px 12px;border:1px solid #c8d4e8;font-size:9pt;font-weight:bold;color:#06006E;">
+    <tr style="background:#E8ECF4;">
+      <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;color:#1A3A8F;">
         Montant Hors Taxes (HT) <span style="font-size:8pt;font-weight:normal;color:#666;">&#8212; base imposable</span>
       </td>
-      <td style="padding:6px 12px;border:1px solid #c8d4e8;font-size:9pt;font-weight:bold;text-align:right;color:#06006E;">${fmt(montantHT)} FCFA</td>
+      <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#1A3A8F;">${fmt(montantHT)} FCFA</td>
     </tr>
     ${tva > 0 ? `
-    <tr style="background:#fff8f0;">
-      <td style="padding:5px 12px;border:1px solid #c8d4e8;font-size:9pt;color:#E05A00;">
+    <tr style="background:#ffffff;">
+      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;color:#555;">
         TVA appliqu&#233;e &#8212; taux 18% <span style="font-size:8pt;color:#aaa;">(taxe sur la valeur ajout&#233;e)</span>
       </td>
-      <td style="padding:5px 12px;border:1px solid #c8d4e8;font-size:9pt;font-weight:bold;text-align:right;color:#E05A00;">${fmt(tva)} FCFA</td>
+      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#555;">${fmt(tva)} FCFA</td>
     </tr>` : ''}
-    <tr style="background:#06006E;color:white;">
-      <td style="padding:8px 12px;border:1px solid #06006E;font-size:11pt;font-weight:bold;">
+    <tr style="background:#1A3A8F;color:white;">
+      <td style="padding:8px 12px;border:1px solid #1A3A8F;font-size:11pt;font-weight:bold;">
         MONTANT TOTAL &#192; PAYER (TTC)
         <div style="font-size:8pt;font-weight:normal;opacity:0.75;margin-top:2px;">Toutes taxes comprises &#8212; net &#224; r&#233;gler</div>
       </td>
-      <td style="padding:8px 12px;border:1px solid #06006E;font-size:12pt;font-weight:bold;text-align:right;">${fmt(ttc)} FCFA</td>
+      <td style="padding:8px 12px;border:1px solid #1A3A8F;font-size:12pt;font-weight:bold;text-align:right;">${fmt(ttc)} FCFA</td>
     </tr>
     ${ttc > 0 ? `
     <tr style="background:#f0f4ff;">
-      <td colspan="2" style="padding:6px 12px;font-size:8pt;color:#555;border:1px solid #c8d4e8;">
-        <b style="color:#E05A00;">Acompte &#224; la commande (30%)&nbsp;:</b> <b>${fmt(Math.round(ttc * 0.30))} FCFA</b>
+      <td colspan="2" style="padding:6px 12px;font-size:8pt;color:#555;border:1px solid #e2e8f0;">
+        <b style="color:#1A3A8F;">Acompte &#224; la commande (30%)&nbsp;:</b> <b>${fmt(Math.round(ttc * 0.30))} FCFA</b>
         &nbsp;&nbsp;&#183;&nbsp;&nbsp;
-        <b style="color:#06006E;">Solde &#224; la r&#233;ception (70%)&nbsp;:</b> <b>${fmt(Math.round(ttc * 0.70))} FCFA</b>
+        <b style="color:#1A3A8F;">Solde &#224; la r&#233;ception (70%)&nbsp;:</b> <b>${fmt(Math.round(ttc * 0.70))} FCFA</b>
       </td>
     </tr>` : ''}
   </table>
 
   <!-- ══ NOTES / OBSERVATIONS ══ -->
   ${notes ? `
-  <table width="100%" style="margin-bottom:10px;border:1px solid #f0c060;background:#fffbf0;">
-    <tr><td style="padding:4px 10px;font-size:8pt;font-weight:bold;color:#E05A00;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #f0c060;">Notes / Observations</td></tr>
+  <table width="100%" style="margin-bottom:10px;border:1px solid #e2e8f0;background:#fafafa;">
+    <tr><td style="padding:4px 10px;font-size:8pt;font-weight:bold;color:#1A3A8F;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e2e8f0;">Notes / Observations</td></tr>
     <tr><td style="padding:6px 10px;font-size:9pt;color:#333;line-height:1.6;">${notes}</td></tr>
   </table>` : ''}
 
-  <!-- ══ II. CONDITIONS & VALIDITÉ ══ -->
-  <div class="section-title" style="margin-bottom:0;">II. Conditions &amp; Modalit&#233;s de R&#232;glement</div>
-  <table width="100%" style="border:1px solid #c8d4e8;border-top:none;background:#f8f9ff;margin-bottom:10px;">
-    <tr><td style="padding:8px 14px;">
-      <table width="100%" style="font-size:9pt;color:#333;line-height:1.9;">
-        <tr>
-          <td width="18" style="vertical-align:top;color:#06006E;font-weight:bold;">1.</td>
-          <td>Ce devis est valable <b>trente (30) jours</b> &#224; compter de sa date d&#39;&#233;mission.</td>
-        </tr>
-        <tr>
-          <td style="vertical-align:top;color:#06006E;font-weight:bold;">2.</td>
-          <td>Un acompte de <b>30% du montant TTC</b> est exig&#233; &#224; la commande avant tout d&#233;marrage des travaux.</td>
-        </tr>
-        <tr>
-          <td style="vertical-align:top;color:#06006E;font-weight:bold;">3.</td>
-          <td>Le solde de <b>70%</b> est r&#233;gl&#233; &#224; la livraison ou &#224; la r&#233;ception des travaux.</td>
-        </tr>
-        <tr>
-          <td style="vertical-align:top;color:#06006E;font-weight:bold;">4.</td>
-          <td>Pour acceptation, retourner ce document <b>sign&#233; et cachett&#233;</b>, accompagn&#233; du versement de l&#39;acompte.</td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-
-  <!-- ══ III. SIGNATURES ══ -->
-  <div class="section-title" style="margin-bottom:0;">III. Bon pour Accord &#8212; Signatures</div>
-  <table width="100%" style="border:1px solid #c8d4e8;border-top:none;margin-bottom:14px;">
-    <tr>
-      <td width="50%" style="vertical-align:top;border-right:2px solid #c8d4e8;padding:12px 14px;text-align:center;background:#fafbff;">
-        <div style="font-size:8pt;font-weight:bold;color:#06006E;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #c8d4e8;padding-bottom:5px;margin-bottom:8px;">Lu et approuv&#233; — Le Client</div>
-        <div style="font-size:8pt;color:#777;margin-bottom:6px;">Nom &amp; Fonction : _______________________________</div>
-        <div class="sig-space"></div>
-        <div style="font-size:8pt;color:#aaa;margin-top:6px;letter-spacing:1px;">Date : ________ / ________ / ______________</div>
-        <div style="font-size:8pt;color:#aaa;margin-top:3px;font-style:italic;">Cachet &amp; Signature</div>
-      </td>
-      <td width="50%" style="vertical-align:top;padding:0;text-align:center;background:#f0f4ff;">
-        <div style="font-size:8pt;font-weight:bold;color:white;background:#06006E;text-transform:uppercase;letter-spacing:1px;padding:7px 14px;">Pour SIKA INDUSTRIE — Le G&#233;rant</div>
-        <div style="padding:8px 14px;">
-          <div style="font-size:11pt;font-weight:bold;color:#06006E;margin-bottom:6px;">KOMLAN AMEMATCHRON</div>
-          <div class="sig-space"></div>
-          <div style="font-size:8pt;color:#aaa;margin-top:6px;letter-spacing:1px;">Date : ________ / ________ / ______________</div>
-          <div style="font-size:8pt;color:#aaa;margin-top:3px;font-style:italic;">Cachet &amp; Signature</div>
-        </div>
-      </td>
-    </tr>
-  </table>
+  <!-- ══ CADRE D'ANNOTATIONS COMPLÉMENTAIRES ══ -->
+  <div class="section-title" style="margin-bottom:0; margin-top: 15px;">Cadre réservé aux annotations complémentaires</div>
+  <div style="border:1px dashed #1A3A8F;border-top:none;height:120px;background:#fafbfe;padding:12px;font-size:9.5pt;color:#555;font-style:italic;position:relative;margin-bottom:15px;">
+    Renseignements complémentaires, conditions spécifiques ou remarques manuelles :
+    <div style="position:absolute;bottom:6px;right:12px;font-size:8pt;color:#aaa;">(Saisie ou annotations manuelles complémentaires au besoin)</div>
+  </div>
 
   <!-- ══ PIED DE PAGE FINAL (dernière page) ══ -->
   <img class="footer-last-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
-  <div class="page-footer" style="text-align:center;font-size:8pt;color:#666;padding-top:6px;">
-    Page <span class="page-number"></span> / <span class="page-number-total"></span> &mdash; SIKA INDUSTRIE &mdash; Réf. ${reference}
-  </div>
 
   <!-- ══ PIED DE SUITE — injecté par JS si multi-page ══ -->
   <div class="pied-suite" id="pied-suite" style="display:none;">
@@ -613,4 +592,8 @@ export function printDevisHTML(data) {
   }
 }
 
-export default { generateDevisHTML, prepareDevisData, printDevisHTML };
+export default {
+  generateDevisHTML,
+  prepareDevisData,
+  printDevisHTML
+};

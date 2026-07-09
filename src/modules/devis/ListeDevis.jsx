@@ -6,7 +6,7 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
-import { isDevisEnAttente, isDevisVisibleDansListe, normalizeDevisStatut, getDevisStatutLabel } from '../../utils/devisStatus'
+import { isDevisEnAttente, isDevisVisibleDansListe, normalizeDevisStatut, getDevisStatutLabel, detecterTypeDevis } from '../../utils/devisStatus'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, openPDFForPrint, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
@@ -82,7 +82,7 @@ export default function ListeDevis() {
     return devis.map(d => {
       const client = clients.find(c => c.id === d.clientId)
       // Assurer la compatibilité type/typeDevis - garder la valeur originale si elle existe
-      const typeDevis = d.typeDevis || d.type || null
+      const typeDevis = d.typeDevis || d.type || detecterTypeDevis(d)
       const statutNormalise = normalizeDevisStatut(d.statut)
       // Normaliser les montants (certains devis utilisent ttc, d'autres montantTTC)
       const ttc = d.ttc || d.montantTTC || d.montantTotal || 0
@@ -323,7 +323,7 @@ export default function ListeDevis() {
     }
 
     // Utiliser typeDevis déjà normalisé, ou chercher dans type si non défini
-    const typeDevis = devis.typeDevis || devis.type || null
+    const typeDevis = devis.typeDevis || devis.type || detecterTypeDevis(devis)
 
     // Si toujours pas de type, on ne peut pas modifier
     if (!typeDevis || typeDevis === 'INCONNU') {

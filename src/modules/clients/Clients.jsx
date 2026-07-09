@@ -1,14 +1,11 @@
 import { useState, useMemo } from 'react'
-import { supabase } from '../../lib/supabaseClient'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useAuditStore } from '../../store/useAuditStore'
 import { useDevisStore } from '../../store/useDevisStore'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { usePlanificationStore } from '../../store/usePlanificationStore'
-import { Breadcrumb, ActionButtons, useNotifications } from '../../components'
-import ConfirmDialog from '../../components/ConfirmDialog'
+import { useNotifications } from '../../components'
 import ConditionsPaiementSelector from '../../components/ConditionsPaiementSelector'
-import { useNotificationsStore } from '../../store/useNotificationsStore'
 import * as XLSX from 'xlsx'
 import { formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate, openPDFForPrint } from '../../utils/printUtils'
@@ -49,10 +46,7 @@ export default function Clients() {
     notes: ''
   })
 
-  const breadcrumbItems = [
-    { label: 'Accueil', path: '/' },
-    { label: 'Clients' }
-  ]
+
 
   const secteurs = useMemo(() => {
     const set = new Set(clients.map(c => c.secteur).filter(Boolean))
@@ -184,12 +178,10 @@ export default function Clients() {
       }
 
       if (editingClient) {
-        const { error: supaErr } = await supabase
-          .from('clients')
-          .update(payload)
-          .eq('id', editingClient.id)
-        if (supaErr) throw supaErr
-        updateClient(editingClient.id, formData)
+        const result = await updateClient(editingClient.id, formData)
+        if (!result.success) {
+          throw new Error(result.message || 'Impossible de modifier le client')
+        }
         addLog({
           module: 'clients',
           action: 'Modification client',
@@ -224,12 +216,10 @@ export default function Clients() {
     const confirmed = await confirmDelete(client.nom)
     if (confirmed) {
       try {
-        const { error: supaErr } = await supabase
-          .from('clients')
-          .delete()
-          .eq('id', client.id)
-        if (supaErr) throw supaErr
-        deleteClient(client.id)
+        const result = await deleteClient(client.id)
+        if (!result.success) {
+          throw new Error(result.message || 'Impossible de supprimer le client')
+        }
         addLog({
           module: 'clients',
           action: 'Suppression client',
@@ -506,7 +496,6 @@ export default function Clients() {
 
   return (
     <div>
-      <Breadcrumb items={breadcrumbItems} />
 
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-navy mb-2">Référentiel Clients</h1>

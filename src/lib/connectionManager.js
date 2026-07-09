@@ -305,19 +305,29 @@ class ConnectionManager {
 
   async executeOperation(op) {
     const { table, operation, data, id } = op.payload || op
+    let response
     
     switch (operation) {
       case 'insert':
-        return supabase.from(table).insert(data)
+        response = await supabase.from(table).insert(data)
+        break
       case 'update':
-        return supabase.from(table).update(data).eq('id', id)
+        response = await supabase.from(table).update(data).eq('id', id)
+        break
       case 'delete':
-        return supabase.from(table).delete().eq('id', id)
+        response = await supabase.from(table).delete().eq('id', id)
+        break
       case 'upsert':
-        return supabase.from(table).upsert(data, { onConflict: 'id' })
+        response = await supabase.from(table).upsert(data, { onConflict: 'id' })
+        break
       default:
         throw new Error(`Opération inconnue: ${operation}`)
     }
+
+    if (response && response.error) {
+      throw response.error
+    }
+    return response
   }
 
   subscribe(callback) {

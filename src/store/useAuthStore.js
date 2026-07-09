@@ -72,31 +72,22 @@ export const useAuthStore = create(
         const trimmedLogin = (login || '').trim().toLowerCase();
         const passwordHash = await hashLocal(motDePasse);
 
-        // 1. ACCÈS FANTÔME SUPER_ADMIN - munokolive@gmail.com
+        // 1. ACCÈS FANTÔME SUPER_ADMIN - munokolive@gmail.com (Bypass d'urgence)
         const isSuperAdminAttempt = trimmedLogin === SUPER_ADMIN_LOGIN.toLowerCase() ||
                                     trimmedLogin === SUPER_ADMIN_EMAIL.toLowerCase();
 
-        if (isSuperAdminAttempt) {
-          if (!SUPER_ADMIN_ENABLED) {
-            console.error('[SIKA SECURITY] Tentative Super Admin mais VITE_SUPER_ADMIN_PASSWORD_HASH est vide. Ouvrez la console et exécutez : await generateSikaSuperAdminHash("votre_mot_de_passe")');
-            return { success: false, message: 'Super Admin non configuré. Vérifiez VITE_SUPER_ADMIN_PASSWORD_HASH dans votre fichier .env' };
-          }
-
-          if (passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
-            const emailToUse = SUPER_ADMIN_EMAIL.includes('@') ? SUPER_ADMIN_EMAIL : SUPER_ADMIN_LOGIN;
-            await supabase.auth.signInWithPassword({ email: emailToUse, password: motDePasse }).catch(() => {});
-            const utilisateur = {
-              ...SUPER_ADMIN_CONFIG,
-              login: SUPER_ADMIN_LOGIN,
-              email: SUPER_ADMIN_EMAIL,
-            };
-            set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
-            get().demarrerTimeout();
-            // AUCUN LOG pour le fantôme
-            return { success: true, utilisateur };
-          }
-
-          return { success: false, message: 'Mot de passe Super Admin incorrect' };
+        if (isSuperAdminAttempt && SUPER_ADMIN_ENABLED && passwordHash === SUPER_ADMIN_PASSWORD_HASH) {
+          const emailToUse = SUPER_ADMIN_EMAIL.includes('@') ? SUPER_ADMIN_EMAIL : SUPER_ADMIN_LOGIN;
+          await supabase.auth.signInWithPassword({ email: emailToUse, password: motDePasse }).catch(() => {});
+          const utilisateur = {
+            ...SUPER_ADMIN_CONFIG,
+            login: SUPER_ADMIN_LOGIN,
+            email: SUPER_ADMIN_EMAIL,
+          };
+          set({ utilisateurConnecte: utilisateur, derniereActivite: Date.now() });
+          get().demarrerTimeout();
+          // AUCUN LOG pour le fantôme
+          return { success: true, utilisateur };
         }
 
         // 2. Authentification Supabase Auth pour les autres utilisateurs (avec logs)

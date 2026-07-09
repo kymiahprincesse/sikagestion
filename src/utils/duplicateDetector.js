@@ -74,6 +74,11 @@ export class DuplicateDetector {
         const valNouvelle = this._getValeurChamp(nouvelle, champ);
         const valExistante = this._getValeurChamp(existante, champ);
         
+        if (valNouvelle === undefined || valNouvelle === null || valNouvelle === '' ||
+            valExistante === undefined || valExistante === null || valExistante === '') {
+          return false;
+        }
+        
         if (critère.comparaison === 'exact') {
           return valNouvelle === valExistante;
         } else if (critère.comparaison === 'normalisé') {
@@ -236,14 +241,14 @@ export const DuplicateConfigs = {
       {
         nom: 'Email existant',
         type: 'EMAIL_DUPLICATE',
-        champs: ['email'],
+        champs: ['contactEmail'],
         comparaison: 'normalisé',
         message: 'Un client avec cet email existe déjà'
       },
       {
         nom: 'Téléphone existant',
         type: 'PHONE_DUPLICATE',
-        champs: ['telephone'],
+        champs: ['contactTelephone'],
         comparaison: 'normalisé',
         message: 'Un client avec ce téléphone existe déjà'
       },
@@ -263,7 +268,7 @@ export const DuplicateConfigs = {
       {
         nom: 'Email existant',
         type: 'EMAIL_DUPLICATE',
-        champs: ['email'],
+        champs: ['contactEmail'],
         comparaison: 'normalisé',
         message: 'Un fournisseur avec cet email existe déjà'
       },
@@ -283,7 +288,7 @@ export const DuplicateConfigs = {
       {
         nom: 'Doublon commande',
         type: 'ORDER_DUPLICATE',
-        champs: ['fournisseurId', 'montantTotal', 'date'],
+        champs: ['fournisseurId', 'montantTTC', 'dateAchat'],
         comparaison: 'exact',
         fenêtreTemps: 300000, // 5 minutes
         message: 'Un achat similaire existe déjà pour ce fournisseur'

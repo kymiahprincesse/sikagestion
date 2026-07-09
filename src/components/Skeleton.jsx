@@ -4,7 +4,7 @@
  * Style: Animation pulse avec couleurs SIKA
  */
 
-import React, { memo } from 'react';
+import { memo } from 'react';
 
 // ── BASE SKELETON ───────────────────────────────────────
 const SkeletonBase = memo(function SkeletonBase({ 
