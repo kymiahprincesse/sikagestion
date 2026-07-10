@@ -53,6 +53,7 @@ function rowToUtilisateur(row, localUser = null) {
     nom: row.nom,
     login: row.login,
     email: row.email || '',
+    telephone: row.telephone || '',
     role: normalizeRole(row.role) || row.role,
     actif: row.is_actif,
     auth_user_id: row.auth_user_id || null,
@@ -209,8 +210,14 @@ export const useUtilisateursStore = create(
               nom: utilisateur.nom,
               login: utilisateur.login,
               role: roleToSend,
+              telephone: utilisateur.telephone || null,
             });
             const nouvelUtilisateur = rowToUtilisateur(result.user);
+            // Fallback: update telephone directly in case the edge function ignored it
+            if (utilisateur.telephone) {
+              await supabase.from('utilisateurs').update({ telephone: utilisateur.telephone }).eq('id', nouvelUtilisateur.id).catch(() => {});
+              nouvelUtilisateur.telephone = utilisateur.telephone;
+            }
             set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
             return { success: true, utilisateur: nouvelUtilisateur };
           }
@@ -230,6 +237,7 @@ export const useUtilisateursStore = create(
               nom: utilisateur.nom,
               login: utilisateur.login,
               email: utilisateur.email,
+              telephone: utilisateur.telephone || null,
               role: roleToSend,
               is_actif: true,
               auth_user_id: adminResult.data.user.id
@@ -272,6 +280,7 @@ export const useUtilisateursStore = create(
           email: modifies[index].email || null,
           role: modifies[index].role,
           is_actif: modifies[index].actif,
+          telephone: modifies[index].telephone || null,
           permissions: modifies[index].permissions || null,
         }).eq('id', id).then(({ error }) => {
           if (error) logger.error('Supabase modifierUtilisateur:', error.message);

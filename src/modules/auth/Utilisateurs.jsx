@@ -166,7 +166,7 @@ const Utilisateurs = () => {
   const handleEditer = (user) => {
     setModeEdition(user.id);
     setModeMotDePasse(null);
-    setFormData({ nom: user.nom, login: user.login, email: user.email || '', role: user.role });
+    setFormData({ nom: user.nom, login: user.login, email: user.email || '', role: user.role, telephone: user.telephone || '' });
   };
 
   const handleSauvegarderEdition = () => {
@@ -408,7 +408,7 @@ const Utilisateurs = () => {
                 ))}
               </div>
               <button
-                onClick={() => { setModeAjout(!modeAjout); setFormData({ nom: '', login: '', motDePasse: '', role: 'TECHNICIEN' }); setModeEdition(null); setModeMotDePasse(null); }}
+                onClick={() => { setModeAjout(!modeAjout); setFormData({ nom: '', login: '', motDePasse: '', role: 'TECHNICIEN', telephone: '' }); setModeEdition(null); setModeMotDePasse(null); }}
                 style={{ background: '#E60000', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}
               >
                 ➕ Nouvel utilisateur
@@ -426,6 +426,7 @@ const Utilisateurs = () => {
                   <InputField label="Nom complet" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} placeholder="Ex: KOUASSI Jean" required autoComplete="off" />
                   <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} placeholder="Ex: kouassi.j" required autoComplete="off" />
                   <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Ex: nom@sikaindustrie.ci" required autoComplete="off" />
+                  <InputField label="Téléphone" value={formData.telephone || ''} onChange={e => setFormData({ ...formData, telephone: e.target.value })} placeholder="Ex: 07 97 25 25 26" autoComplete="off" />
                   <div>
                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
                       Mot de passe <span style={{ color: '#E60000' }}>*</span>
@@ -499,6 +500,7 @@ const Utilisateurs = () => {
                             <InputField label="Nom" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} required autoComplete="off" />
                             <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} required autoComplete="off" />
                             <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="adresse@sikaindustrie.ci" autoComplete="off" />
+                            <InputField label="Téléphone" value={formData.telephone || ''} onChange={e => setFormData({ ...formData, telephone: e.target.value })} placeholder="07 97 25 25 26" autoComplete="off" />
                             <div>
                               <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>Rôle</label>
                               <select value={formData.role || ''} onChange={e => setFormData({ ...formData, role: e.target.value })}
@@ -574,6 +576,11 @@ const Utilisateurs = () => {
                             {user.email && (
                               <div style={{ fontSize: '11px', color: '#1F5C99', marginTop: '2px' }}>
                                 ✉️ {user.email}
+                              </div>
+                            )}
+                            {user.telephone && (
+                              <div style={{ fontSize: '11px', color: '#1A7A4A', marginTop: '2px' }}>
+                                📞 {user.telephone}
                               </div>
                             )}
                           </div>

@@ -65,6 +65,9 @@ export function generateDevisHTML(data, baseUrl = '') {
     // Récupérer le nom de la personne connectée (qui édite le devis)
     if (user && (!infos.etabliPar || infos.etabliPar === 'SIKA INDUSTRIE' || infos.etabliPar === 'Utilisateur')) {
       infos.etabliPar = user.nom;
+      if (user.telephone) {
+        infos.tel = user.telephone;
+      }
     }
   } catch {
     // Silencieusement ignoré hors du contexte React (ex: tests unitaires)
