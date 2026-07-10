@@ -526,8 +526,16 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
   const remise = parseFloat(devisData.remise) || (montantBrut * (tauxRemise / 100));
   const montantHT = parseFloat(devisData.montantHT) || (montantBrut - remise);
   const tvaActive = devisData.tvaActive !== false;
-  const tva = parseFloat(devisData.tva) || (tvaActive ? montantHT * 0.18 : 0);
-  const ttc = parseFloat(devisData.ttc) || (montantHT + tva);
+  
+  const savedTva = devisData.montantTVA !== undefined ? devisData.montantTVA : devisData.tva;
+  const tva = (savedTva !== undefined && savedTva !== null && savedTva !== '' && !isNaN(savedTva))
+    ? parseFloat(savedTva)
+    : (tvaActive ? montantHT * 0.18 : 0);
+
+  const savedTtc = devisData.montantTTC !== undefined ? devisData.montantTTC : devisData.ttc;
+  const ttc = (savedTtc !== undefined && savedTtc !== null && savedTtc !== '' && !isNaN(savedTtc))
+    ? parseFloat(savedTtc)
+    : (montantHT + tva);
 
   return {
     reference: devisData.numero,

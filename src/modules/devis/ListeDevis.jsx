@@ -675,9 +675,17 @@ export default function ListeDevis() {
     const montantBrut = parseFloat(devis.montantBrut) || lignes.reduce((s, l) => s + (l.montant !== undefined ? l.montant : l.qte * l.pu), 0);
     const tauxRemise = parseFloat(devis.tauxRemise) || 0;
     const remise = parseFloat(devis.remise) || montantBrut * (tauxRemise / 100);
-    const montantHT = parseFloat(devis.montantHT) || montantBrut - remise;
-    const tva = parseFloat(devis.tva) || (devis.tvaActive !== false ? montantHT * 0.18 : 0);
-    const ttc = parseFloat(devis.ttc) || montantHT + tva;
+    const montantHT = parseFloat(devis.montantHT) || (montantBrut - remise);
+    
+    const savedTva = devis.montantTVA !== undefined ? devis.montantTVA : devis.tva;
+    const tva = (savedTva !== undefined && savedTva !== null && savedTva !== '' && !isNaN(savedTva))
+      ? parseFloat(savedTva)
+      : (devis.tvaActive !== false ? montantHT * 0.18 : 0);
+
+    const savedTtc = devis.montantTTC !== undefined ? devis.montantTTC : devis.ttc;
+    const ttc = (savedTtc !== undefined && savedTtc !== null && savedTtc !== '' && !isNaN(savedTtc))
+      ? parseFloat(savedTtc)
+      : (montantHT + tva);
 
     const templateData = {
       reference: devis.numero,
