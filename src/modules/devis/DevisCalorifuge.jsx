@@ -976,14 +976,9 @@ export default function DevisCalorifuge() {
           </table>
 
           {/* Notes et signature */}
-          <div className="mb-6">
-            <div className="text-sm text-bleu font-medium mb-2">NB : Conditions de paiement</div>
             <div className="text-xs text-navy">
-              - Acompte de 30% à la commande<br />
-              - Solde à la livraison<br />
-              - Délai de paiement : 30 jours
+              - Délai de validité du devis : 30 jours
             </div>
-          </div>
 
           <div className="flex justify-end mt-8">
             <div className="text-center">

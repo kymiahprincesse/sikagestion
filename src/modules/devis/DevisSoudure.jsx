@@ -365,10 +365,21 @@ export default function DevisSoudure() {
           </div>
           
           {clientSelectionne && (
-            <div className="bg-orangeClair border-l-4 border-orange p-4 rounded">
+            <div className="bg-orangeClair border-l-4 border-orange p-4 rounded mb-4">
               <p className="text-sm text-navy"><strong>{clientSelectionne.nom}</strong> - {clientSelectionne.ville}</p>
             </div>
           )}
+
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-navy mb-2">Objet du devis</label>
+            <textarea
+              value={devisData.objet}
+              onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))}
+              placeholder="Ex: Travaux de soudure sur structure métallique ou tuyauterie industrielle..."
+              rows={2}
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange font-semibold text-navy resize-none"
+            />
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">

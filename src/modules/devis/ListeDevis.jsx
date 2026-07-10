@@ -655,7 +655,7 @@ export default function ListeDevis() {
     const lignesBrutes = devis.lignes || devis.lignesCommerciales || [];
     const lignes = lignesBrutes.map(l => ({
       designation: l.designation || '—',
-      dn: l.dn || l.unite || 'U',
+      dn: l.dn || l.unite || '—',
       qte: parseFloat(l.qte || l.quantite || l.longueur || 0),
       pu: parseFloat(l.pu || l.prixUnitaire || 0),
       montant: l.montant !== '' && l.montant !== undefined ? parseFloat(l.montant) : undefined,
@@ -1081,7 +1081,7 @@ export default function ListeDevis() {
                                   {ligne.typeTole ? <span className="text-xs text-blue-500 ml-1">· {ligne.typeTole}</span> : null}
                                   {ligne.typeTuyau ? <span className="text-xs text-blue-500 ml-1">· {ligne.typeTuyau}</span> : null}
                                 </td>
-                                <td className="px-3 py-2 text-center text-gray-600">{ligne.dn || ligne.unite || 'U'}</td>
+                                <td className="px-3 py-2 text-center text-gray-600">{ligne.dn || ligne.unite || '—'}</td>
                                 <td className="px-3 py-2 text-center font-bold" style={{ color: '#06006E' }}>{qte}</td>
                                 <td className="px-3 py-2 text-right">{formatFCFA(pu)}</td>
                                 <td className="px-3 py-2 text-right font-bold" style={{ color: '#06006E' }}>{formatFCFA(montant)}</td>
@@ -1138,12 +1138,7 @@ export default function ListeDevis() {
                     </tr>
                   </tbody>
                 </table>
-                {devisSelectionne.montantTTC > 0 && (
-                  <div className="px-4 py-2 text-xs text-gray-500 border-t" style={{ background: '#f8f9ff' }}>
-                    Acompte à la commande (30%) : <span className="font-bold" style={{ color: '#E05A00' }}>{formatFCFA(Math.round(devisSelectionne.montantTTC * 0.30))}</span>
-                    &nbsp;·&nbsp; Solde à la réception : <span className="font-bold" style={{ color: '#06006E' }}>{formatFCFA(Math.round(devisSelectionne.montantTTC * 0.70))}</span>
-                  </div>
-                )}
+
               </div>
 
               {/* ══ NOTES / OBSERVATIONS ══ */}
@@ -1159,9 +1154,7 @@ export default function ListeDevis() {
                 <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>II. Conditions &amp; Validité</div>
                 <div className="p-3 text-xs text-gray-600 leading-loose" style={{ background: '#f8f9ff' }}>
                   • Ce devis est valable <strong>trente (30) jours</strong> à compter de sa date d'émission.<br/>
-                  • Acompte de <strong>30%</strong> exigé à la commande avant tout démarrage des travaux.<br/>
-                  • Solde réglé à la livraison / réception des travaux.<br/>
-                  • Pour acceptation, retourner ce document <strong>signé et cacheté</strong>, accompagné de l'acompte.
+                  • Pour acceptation, retourner ce document <strong>signé et cacheté</strong>.
                 </div>
               </div>
 

@@ -139,7 +139,7 @@ export function generateDevisHTML(data, baseUrl = '') {
     return `<tr style="background:${bg};">
       <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;color:#555;">${i + 1}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;">${desig}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;">${ligne.dn || ligne.unite || 'U'}</td>
+      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;">${ligne.dn || ligne.unite || '—'}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#1A3A8F;">${fmt(ligne.qte || 0)}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;">${fmt(ligne.pu || 0)}</td>
       <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;font-weight:bold;color:#1A3A8F;">${fmt(montant)}</td>
@@ -430,14 +430,7 @@ ${draftWatermark}
       </td>
       <td style="padding:8px 12px;border:1px solid #1A3A8F;font-size:12pt;font-weight:bold;text-align:right;">${fmt(ttc)} FCFA</td>
     </tr>
-    ${ttc > 0 ? `
-    <tr style="background:#f0f4ff;">
-      <td colspan="2" style="padding:6px 12px;font-size:8pt;color:#555;border:1px solid #e2e8f0;">
-        <b style="color:#1A3A8F;">Acompte &#224; la commande (30%)&nbsp;:</b> <b>${fmt(Math.round(ttc * 0.30))} FCFA</b>
-        &nbsp;&nbsp;&#183;&nbsp;&nbsp;
-        <b style="color:#1A3A8F;">Solde &#224; la r&#233;ception (70%)&nbsp;:</b> <b>${fmt(Math.round(ttc * 0.70))} FCFA</b>
-      </td>
-    </tr>` : ''}
+
   </table>
 
   <!-- ══ NOTES / OBSERVATIONS ══ -->
@@ -447,12 +440,7 @@ ${draftWatermark}
     <tr><td style="padding:6px 10px;font-size:9pt;color:#333;line-height:1.6;">${notes}</td></tr>
   </table>` : ''}
 
-  <!-- ══ CADRE D'ANNOTATIONS COMPLÉMENTAIRES ══ -->
-  <div class="section-title" style="margin-bottom:0; margin-top: 15px;">Cadre réservé aux annotations complémentaires</div>
-  <div style="border:1px dashed #1A3A8F;border-top:none;height:120px;background:#fafbfe;padding:12px;font-size:9.5pt;color:#555;font-style:italic;position:relative;margin-bottom:15px;">
-    Renseignements complémentaires, conditions spécifiques ou remarques manuelles :
-    <div style="position:absolute;bottom:6px;right:12px;font-size:8pt;color:#aaa;">(Saisie ou annotations manuelles complémentaires au besoin)</div>
-  </div>
+
 
   <!-- ══ PIED DE PAGE UNIQUE ET AUTOMATIQUE ══ -->
   <div class="page-footer" id="page-footer">
@@ -515,7 +503,7 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
   } else if (devisData.lignesCommerciales && Array.isArray(devisData.lignesCommerciales)) {
     lignes = devisData.lignesCommerciales.map(l => ({
       designation: l.designation || '',
-      dn: l.unite || 'U',
+      dn: l.unite || '—',
       qte: parseFloat(l.qte) || 0,
       pu: parseFloat(l.pu) || 0,
       montant: parseFloat(l.qte) * parseFloat(l.pu) || 0,
