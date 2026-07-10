@@ -39,6 +39,7 @@ export default function ListeDevis() {
   const [devisSelectionne, setDevisSelectionne] = useState(null)
   const [showModalVoir, setShowModalVoir] = useState(false)
   const [showGestionDoublons, setShowGestionDoublons] = useState(false)
+  const [vueGroupee, setVueGroupee] = useState(false)
   const [heureOuverture, setHeureOuverture] = useState(null)
   const { utilisateurConnecte } = useAuthStore()
 
@@ -135,6 +136,44 @@ export default function ListeDevis() {
     const montantMoyen = total > 0 ? montantTotal / total : 0
     
     return { total, montantTotal, tauxTransformation, montantMoyen }
+  }, [devisFiltres])
+
+  const devisGroupes = useMemo(() => {
+    const groupes = {};
+    devisFiltres.forEach(d => {
+      const clientNom = d.clientNom || 'Client inconnu';
+      const type = d.typeDevis || d.type || 'AUTRE';
+      
+      if (!groupes[clientNom]) {
+        groupes[clientNom] = {
+          clientNom,
+          clientId: d.clientId,
+          totalTTC: 0,
+          categories: {},
+          totalDevis: 0
+        };
+      }
+      
+      if (!groupes[clientNom].categories[type]) {
+        groupes[clientNom].categories[type] = {
+          type,
+          totalTTC: 0,
+          liste: []
+        };
+      }
+      
+      groupes[clientNom].categories[type].liste.push(d);
+      groupes[clientNom].categories[type].totalTTC += (d.ttc || 0);
+      groupes[clientNom].totalTTC += (d.ttc || 0);
+      groupes[clientNom].totalDevis += 1;
+    });
+
+    return Object.values(groupes)
+      .map(g => ({
+        ...g,
+        categories: Object.values(g.categories).sort((a, b) => a.type.localeCompare(b.type))
+      }))
+      .sort((a, b) => a.clientNom.localeCompare(b.clientNom));
   }, [devisFiltres])
 
   const columns = useMemo(() => [
@@ -762,6 +801,13 @@ export default function ListeDevis() {
           >
             🔍 Doublons
           </button>
+          <button
+            onClick={() => setVueGroupee(prev => !prev)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition font-semibold ${vueGroupee ? 'bg-navy text-white border border-white' : 'bg-argent text-navy hover:bg-opacity-90'}`}
+            title="Grouper les devis par client et type"
+          >
+            {vueGroupee ? '📋 Vue Table' : '🗂️ Grouper Client & Type'}
+          </button>
           <div className="flex-1 min-w-[200px]">
             <input
               type="text"
@@ -851,69 +897,239 @@ export default function ListeDevis() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                {table.getHeaderGroups().map(headerGroup => (
-                  <tr key={headerGroup.id} className="bg-navy text-white">
-                    {headerGroup.headers.map(header => (
-                      <th
-                        key={header.id}
-                        className="px-4 py-3 text-left font-bold cursor-pointer hover:bg-opacity-90"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        <div className="flex items-center gap-2">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {header.column.getIsSorted() && (
-                            <span>{header.column.getIsSorted() === 'asc' ? '↑' : '↓'}</span>
-                          )}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {table.getRowModel().rows.map((row, index) => (
-                  <tr
-                    key={row.id}
-                    className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}
-                  >
-                    {row.getVisibleCells().map(cell => (
-                      <td key={cell.id} className="px-4 py-3 border-b border-argent">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {vueGroupee ? (
+          <div className="space-y-6">
+            {devisGroupes.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500 font-semibold">
+                Aucun devis ne correspond aux filtres appliqués.
+              </div>
+            ) : (
+              devisGroupes.map((groupeClient) => (
+                <div key={groupeClient.clientNom} className="bg-white rounded-lg shadow-md overflow-hidden border border-argent">
+                  {/* En-tête Client */}
+                  <div className="bg-navy text-white px-6 py-4 flex justify-between items-center flex-wrap gap-2">
+                    <h4 className="text-lg font-bold flex items-center gap-2">
+                      👤 {groupeClient.clientNom}
+                      <span className="text-xs bg-orange text-white px-2 py-0.5 rounded-full font-semibold">
+                        {groupeClient.totalDevis} devis
+                      </span>
+                    </h4>
+                    <span className="font-bold text-orange-400">
+                      Total cumulé : {formatFCFA(groupeClient.totalTTC)}
+                    </span>
+                  </div>
 
-          <div className="bg-navyClair px-4 py-3 flex items-center justify-between border-t border-argent">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="px-3 py-1 bg-bleu text-white rounded disabled:bg-argent disabled:cursor-not-allowed"
-              >
-                ← Précédent
-              </button>
-              <button
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="px-3 py-1 bg-bleu text-white rounded disabled:bg-argent disabled:cursor-not-allowed"
-              >
-                Suivant →
-              </button>
+                  <div className="p-4 space-y-6">
+                    {groupeClient.categories.map((cat) => (
+                      <div key={cat.type} className="border border-argent rounded-lg overflow-hidden">
+                        {/* En-tête Catégorie (Type) */}
+                        <div className="bg-navyClair px-4 py-2 flex justify-between items-center border-b border-argent">
+                          <span className="font-bold text-navy text-sm uppercase tracking-wider flex items-center gap-2">
+                            📂 {cat.type}
+                            <span className="text-xs bg-bleu text-white px-2 py-0.5 rounded-full font-semibold">
+                              {cat.liste.length}
+                            </span>
+                          </span>
+                          <span className="text-sm font-bold text-orange">
+                            Sous-total : {formatFCFA(cat.totalTTC)}
+                          </span>
+                        </div>
+
+                        {/* Liste des devis de cette catégorie */}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm border-collapse">
+                            <thead>
+                              <tr className="bg-gray-100 text-navy font-bold border-b border-argent">
+                                <th className="px-4 py-2 text-left">N° Devis</th>
+                                <th className="px-4 py-2 text-left">Date</th>
+                                <th className="px-4 py-2 text-left">Objet</th>
+                                <th className="px-4 py-2 text-left">Montant TTC</th>
+                                <th className="px-4 py-2 text-left">Statut</th>
+                                <th className="px-4 py-2 text-left">Établi par</th>
+                                <th className="px-4 py-2 text-left">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {cat.liste.map((d, index) => {
+                                const configs = {
+                                  'BROUILLON': { bg: 'bg-bleu', text: 'text-white', label: 'Brouillon' },
+                                  'EN_ATTENTE': { bg: 'bg-orange', text: 'text-white', label: 'En attente' },
+                                  'VALIDE': { bg: 'bg-vert', text: 'text-white', label: 'Validé' },
+                                  'FACTURE': { bg: 'bg-orange', text: 'text-white', label: 'Facturé' },
+                                  'ANNULE': { bg: 'bg-rouge', text: 'text-white', label: 'Annulé' }
+                                }
+                                const config = configs[d.statut] || { bg: 'bg-argent', text: 'text-gray-700', label: d.statut }
+
+                                return (
+                                  <tr key={d.id} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                                    <td className="px-4 py-2 font-bold text-navy border-b border-argent">{d.numero}</td>
+                                    <td className="px-4 py-2 border-b border-argent whitespace-nowrap">{formatDate(d.date)}</td>
+                                    <td className="px-4 py-2 border-b border-argent max-w-[200px] truncate" title={d.objet}>{d.objet || '—'}</td>
+                                    <td className="px-4 py-2 font-bold text-orange border-b border-argent whitespace-nowrap">{formatFCFA(d.ttc || 0)}</td>
+                                    <td className="px-4 py-2 border-b border-argent">
+                                      <div className="flex flex-col gap-1 max-w-[130px]">
+                                        <span className={`${config.bg} ${config.text} px-2 py-0.5 rounded-full text-xs font-bold text-center`}>
+                                          {config.label}
+                                        </span>
+                                        {d.statut !== 'FACTURE' && (
+                                          <select
+                                            value={d.statut}
+                                            onChange={(e) => handleChangerStatut(d, e.target.value)}
+                                            className="text-xs px-1 py-0.5 border border-argent rounded focus:outline-none focus:border-orange bg-white cursor-pointer"
+                                          >
+                                            <option value="BROUILLON">📝 Brouillon</option>
+                                            <option value="EN_ATTENTE">⏳ En attente</option>
+                                            <option value="VALIDE">✅ Valider</option>
+                                            <option value="ANNULE">❌ Annuler</option>
+                                          </select>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-2 border-b border-argent text-navy">{d.etabliPar || 'Utilisateur'}</td>
+                                    <td className="px-4 py-2 border-b border-argent">
+                                      <div className="flex gap-2 flex-wrap">
+                                        <button
+                                          onClick={() => handleVoir(d)}
+                                          className="px-2 py-1 bg-bleu text-white rounded hover:bg-opacity-90 text-xs"
+                                          title="Voir"
+                                        >
+                                          👁
+                                        </button>
+                                        <button
+                                          onClick={() => handleModifier(d)}
+                                          className="px-2 py-1 bg-orange text-white rounded hover:bg-opacity-90 text-xs"
+                                          title="Modifier"
+                                        >
+                                          📝
+                                        </button>
+                                        <button
+                                          onClick={() => handleExportPDF(d)}
+                                          className="px-2 py-1 bg-vert text-white rounded hover:bg-opacity-90 text-xs"
+                                          title="PDF"
+                                        >
+                                          📄
+                                        </button>
+                                        <button
+                                          onClick={() => handlePrintDevis(d)}
+                                          className="px-2 py-1 bg-navy text-white rounded hover:bg-opacity-90 text-xs"
+                                          title="Imprimer"
+                                        >
+                                          🖨️
+                                        </button>
+                                        {d.statut !== 'FACTURE' && (
+                                          <button
+                                            onClick={() => handleConvertirEnFacture(d)}
+                                            className="px-2 py-1 bg-orange text-white rounded hover:bg-opacity-90 text-xs"
+                                            title="Convertir en Facture"
+                                          >
+                                            🔄
+                                          </button>
+                                        )}
+                                        {d.statut === 'BROUILLON' && (
+                                          <button
+                                            onClick={() => handleChangerStatut(d, 'VALIDE')}
+                                            className="px-2 py-1 bg-vert text-white rounded hover:bg-opacity-90 text-xs"
+                                            title="Valider"
+                                          >
+                                            ✓
+                                          </button>
+                                        )}
+                                        {d.statut === 'BROUILLON' && (
+                                          <button
+                                            onClick={() => handleChangerStatut(d, 'ANNULE')}
+                                            className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
+                                            title="Annuler"
+                                          >
+                                            ✕
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => handleSupprimer(d)}
+                                          className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-opacity-90 text-xs"
+                                          title="Supprimer"
+                                        >
+                                          🗑️
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  {table.getHeaderGroups().map(headerGroup => (
+                    <tr key={headerGroup.id} className="bg-navy text-white">
+                      {headerGroup.headers.map(header => (
+                        <th
+                          key={header.id}
+                          className="px-4 py-3 text-left font-bold cursor-pointer hover:bg-opacity-90"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          <div className="flex items-center gap-2">
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {header.column.getIsSorted() && (
+                              <span>{header.column.getIsSorted() === 'asc' ? '↑' : '↓'}</span>
+                            )}
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody>
+                  {table.getRowModel().rows.map((row, index) => (
+                    <tr
+                      key={row.id}
+                      className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <td key={cell.id} className="px-4 py-3 border-b border-argent">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="text-sm text-navy font-semibold">
-              Page {table.getState().pagination.pageIndex + 1} sur {table.getPageCount()} | 
-              Total: {devisFiltres.length} devis
+
+            <div className="bg-navyClair px-4 py-3 flex items-center justify-between border-t border-argent">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                  className="px-3 py-1 bg-bleu text-white rounded disabled:bg-argent disabled:cursor-not-allowed"
+                >
+                  ← Précédent
+                </button>
+                <button
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                  className="px-3 py-1 bg-bleu text-white rounded disabled:bg-argent disabled:cursor-not-allowed"
+                >
+                  Suivant →
+                </button>
+              </div>
+              <div className="text-sm text-navy font-semibold">
+                Page {table.getState().pagination.pageIndex + 1} sur {table.getPageCount()} | 
+                Total: {devisFiltres.length} devis
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Modal Visualisation */}

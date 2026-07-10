@@ -52,9 +52,8 @@ export const useDevisStore = create(
         let numero = devis.numero;
         if (!numero) {
           numero = get().getNextNumero();
-          get().incrementCompteur();
+          devis.numero = numero;
         }
-        devis.numero = numero;
 
         // ═══ NOUVEAU SYSTÈME DE DÉTECTION DE DOUBLONS ═══
         if (!ignorerDoublons && !devis.id) {
@@ -100,6 +99,18 @@ export const useDevisStore = create(
           }
         }
         // ═══════════════════════════════════════════════
+
+        // Incrémentation intelligente du compteur global de devis si c'est un nouveau numéro standard
+        const match = numero.match(/N°(\d+)\/SIKA/);
+        if (match) {
+          const numSeq = parseInt(match[1], 10);
+          if (numSeq >= get().compteurGlobal) {
+            set({ compteurGlobal: numSeq + 1 });
+          }
+        } else {
+          // Si le numéro n'a pas le format standard, on incrémente pour garder le compteur à jour
+          get().incrementCompteur();
+        }
 
         const nouveauDevis = {
           ...devis,
