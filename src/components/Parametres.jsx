@@ -36,7 +36,7 @@ export default function Parametres() {
     delaiPaiementDefaut: store.delaiPaiementDefaut ?? 30,
     plafondAlerteCredit: store.plafondAlerteCredit ?? 5000000,
     tauxHoraireTechnicien: store.tauxHoraireTechnicien ?? 15000,
-    soldeInitialEncaissements: store.soldeInitialEncaissements ?? 200600,
+    soldeInitialEncaissements: store.soldeInitialEncaissements ?? 0,
   });
 
   const [budget, setBudget] = useState({

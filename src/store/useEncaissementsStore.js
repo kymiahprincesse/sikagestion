@@ -24,7 +24,7 @@ export const useEncaissementsStore = create(
   persist(
     (set, get) => ({
       encaissements: [],
-      soldeInitial: 200600,
+      soldeInitial: 0,
 
       addEncaissement: async (encaissement) => {
         const nouvelEncaissement = {

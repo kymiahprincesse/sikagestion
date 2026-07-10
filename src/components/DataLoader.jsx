@@ -316,6 +316,8 @@ export default function DataLoader() {
             type: m.type,
             categorie: m.categorie,
             description: m.description,
+            libelles: m.description || '',
+            caisse_nom: m.caisse_nom || 'Caisse Principale',
             montant: parseFloat(m.montant || 0),
             beneficiaire: m.beneficiaire,
             modePaiement: m.mode_paiement,

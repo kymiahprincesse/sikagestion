@@ -15,18 +15,45 @@ export default function EnregistrementCaisse() {
   const { ajouterNotification } = useNotificationsStore()
   const { confirmDelete } = useNotifications()
 
-  // Fonction pour vider toutes les données de caisse
-  const viderDonneesCaisse = () => {
-    setMouvements([])
-    const caisseStore = useCaisseStore.getState()
-    caisseStore.setSoldeCaisse(0)
-    caisseStore.setMouvements([])
-  }
+  const [loading, setLoading] = useState(false)
 
-  // Vider les données au chargement pour afficher une page propre
+  // Charger les données de caisse au montage pour s'assurer que c'est à jour
   useEffect(() => {
-    viderDonneesCaisse()
-  }, [])
+    const fetchMouvements = async () => {
+      setLoading(true)
+      try {
+        const { data, error } = await supabase
+          .from('mouvements_caisse')
+          .select('*')
+          .order('date', { ascending: true })
+          .order('id', { ascending: true })
+        if (!error && data) {
+          const mapped = data.map(m => ({
+            id: m.id,
+            date: m.date,
+            type: m.type,
+            categorie: m.categorie,
+            description: m.description,
+            libelles: m.description || '',
+            caisse_nom: m.caisse_nom || 'Caisse Principale',
+            montant: parseFloat(m.montant || 0),
+            beneficiaire: m.beneficiaire,
+            modePaiement: m.mode_paiement,
+            pieceJustificative: m.piece_justificative,
+            referenceProjet: m.reference_projet,
+            utilisateur: m.utilisateur,
+            dateCreation: m.date_creation
+          }))
+          setMouvements(mapped)
+        }
+      } catch (err) {
+        console.error('Erreur de chargement des mouvements de caisse:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchMouvements()
+  }, [setMouvements])
 
   const [recherche, setRecherche] = useState('')
   const [filtreType, setFiltreType] = useState('')
