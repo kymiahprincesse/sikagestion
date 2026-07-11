@@ -206,7 +206,6 @@ export function generateDevisHTML(data, baseUrl = '') {
       return `<tr style="background:${bg};">
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;color:#555;width:24px;">${i + 1}</td>
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;">${desig}</td>
-        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;width:35px;">${ligne.unite || '—'}</td>
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#444;width:40px;">${valMl}</td>
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#444;width:40px;">${valPt}</td>
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#1A3A8F;width:45px;">${fmt(ligne.qte || 0)}</td>
@@ -223,13 +222,12 @@ export function generateDevisHTML(data, baseUrl = '') {
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;font-weight:bold;color:#1A3A8F;width:105px;">${fmt(montant)}</td>
       </tr>`;
     }
-  }).join('') : `<tr><td colspan="${hasMlOrPt ? 8 : 6}" style="text-align:center;color:#999;padding:20px;font-size:10pt;">Aucune ligne</td></tr>`;
+  }).join('') : `<tr><td colspan="${hasMlOrPt ? 7 : 6}" style="text-align:center;color:#999;padding:20px;font-size:10pt;">Aucune ligne</td></tr>`;
 
   const tableHeaderHTML = hasMlOrPt ? `
       <tr style="background:#1A3A8F;color:white;">
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:24px;text-align:center;">N°</th>
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9.5pt;text-align:left;">DÉSIGNATION</th>
-        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:35px;text-align:center;">U</th>
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:40px;text-align:center;">ML</th>
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:40px;text-align:center;">PT</th>
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:45px;text-align:center;">QTÉ</th>

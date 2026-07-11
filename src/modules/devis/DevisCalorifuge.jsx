@@ -616,7 +616,6 @@ export default function DevisCalorifuge() {
               <thead>
                 <tr className="bg-navy text-white">
                   <th className="border border-argent px-4 py-3 text-left text-sm font-bold">DESIGNATION</th>
-                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-20">U</th>
                   <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-24">ML</th>
                   <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-24">PT</th>
                   <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-28">QTE</th>
@@ -668,15 +667,6 @@ export default function DevisCalorifuge() {
                             </>
                           )}
                         </div>
-                      </td>
-                      <td className="border border-argent px-2 py-2">
-                        <input
-                          type="text"
-                          value={ligne.unite || ''}
-                          onChange={(e) => modifierLigne(ligne.id, 'unite', e.target.value)}
-                          placeholder="—"
-                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
-                        />
                       </td>
                       <td className="border border-argent px-2 py-2">
                         <input
@@ -913,7 +903,6 @@ export default function DevisCalorifuge() {
             <thead>
               <tr className="bg-navy text-white">
                 <th className="border border-navy px-3 py-2 text-left text-sm">DESIGNATION</th>
-                <th className="border border-navy px-3 py-2 text-center text-sm w-16">U</th>
                 <th className="border border-navy px-3 py-2 text-center text-sm w-20">ML</th>
                 <th className="border border-navy px-3 py-2 text-center text-sm w-20">PT</th>
                 <th className="border border-navy px-3 py-2 text-center text-sm w-24">QTE</th>
@@ -926,7 +915,6 @@ export default function DevisCalorifuge() {
                 return (
                   <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
                     <td className="border border-argent px-3 py-2 text-sm">{ligne.designation}</td>
-                    <td className="border border-argent px-3 py-2 text-center text-sm">{ligne.unite || '—'}</td>
                     <td className="border border-argent px-3 py-2 text-center text-sm font-semibold">{ligne.ml || '—'}</td>
                     <td className="border border-argent px-3 py-2 text-center text-sm font-semibold">{ligne.pt || '—'}</td>
                     <td className="border border-argent px-3 py-2 text-center text-sm font-bold">{calculerQte(ligne)}</td>
@@ -938,27 +926,27 @@ export default function DevisCalorifuge() {
             </tbody>
             <tfoot>
               <tr className="bg-navyClair">
-                <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT BRUT HT</td>
+                <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT BRUT HT</td>
                 <td className="border border-navy px-3 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantBrut)}</td>
               </tr>
               {devisData.tauxRemise > 0 && (
                 <tr className="bg-white">
-                  <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-rouge">REMISE {devisData.tauxRemise}%</td>
+                  <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-rouge">REMISE {devisData.tauxRemise}%</td>
                   <td className="border border-navy px-3 py-2 text-right font-bold text-rouge">- {formatFCFA(totaux.remise)}</td>
                 </tr>
               )}
               <tr className="bg-orangeClair">
-                <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT TOTAL HT</td>
+                <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT TOTAL HT</td>
                 <td className="border border-navy px-3 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantHT)}</td>
               </tr>
               {devisData.tvaActive && (
                 <tr className="bg-white">
-                  <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-orange">TVA (18%)</td>
+                  <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-orange">TVA (18%)</td>
                   <td className="border border-navy px-3 py-2 text-right font-bold text-orange">{formatFCFA(totaux.tva)}</td>
                 </tr>
               )}
               <tr className="bg-navy text-white">
-                <td colSpan="6" className="border border-navy px-3 py-2 text-right font-bold text-lg">MONTANT TTC</td>
+                <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-lg">MONTANT TTC</td>
                 <td className="border border-navy px-3 py-2 text-right font-bold text-lg">{formatFCFA(totaux.ttc)}</td>
               </tr>
             </tfoot>
