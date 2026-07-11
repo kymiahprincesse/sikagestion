@@ -149,71 +149,71 @@ export default function DashboardEnhanced() {
       </div>
 
       {/* KPIs PRINCIPAUX */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow border-l-4" style={{ borderColor: '#06006E' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-in">
+        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: '#06006E' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium" style={{ color: '#06006E' }}>Chiffre d'Affaires</p>
+              <p className="text-sm font-semibold tracking-wide text-slate-500 uppercase">Chiffre d'Affaires</p>
               <p className="text-2xl font-bold mt-2" style={{ color: '#06006E' }}>
                 {formatFCFA(stats.totalCA)}
               </p>
-              <p className="text-xs mt-1" style={{ color: '#1A7A4A' }}>
+              <p className="text-xs mt-1.5 font-medium" style={{ color: '#1A7A4A' }}>
                 <TrendingUp size={14} className="inline mr-1" />
                 +12% vs mois dernier
               </p>
             </div>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E8ECF4' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: '#E8ECF4' }}>
               <DollarSign size={24} style={{ color: '#06006E' }} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow border-l-4" style={{ borderColor: '#1A7A4A' }}>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: '#1A7A4A' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium" style={{ color: '#1A7A4A' }}>Encaissé</p>
+              <p className="text-sm font-semibold tracking-wide text-slate-500 uppercase">Encaissé</p>
               <p className="text-2xl font-bold mt-2" style={{ color: '#06006E' }}>
                 {formatFCFA(stats.totalEncaisse)}
               </p>
-              <p className="text-xs mt-1" style={{ color: '#1A7A4A' }}>
+              <p className="text-xs mt-1.5 font-medium" style={{ color: '#1A7A4A' }}>
                 {stats.tauxEncaissement.toFixed(1)}% du CA
               </p>
             </div>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#E8F5E9' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: '#E8F5E9' }}>
               <CheckCircle size={24} style={{ color: '#1A7A4A' }} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow border-l-4" style={{ borderColor: '#E60000' }}>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: '#E60000' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium" style={{ color: '#E60000' }}>Reste à Encaisser</p>
+              <p className="text-sm font-semibold tracking-wide text-slate-500 uppercase">Reste à Encaisser</p>
               <p className="text-2xl font-bold mt-2" style={{ color: '#06006E' }}>
                 {formatFCFA(stats.totalRestant)}
               </p>
-              <p className="text-xs mt-1" style={{ color: '#E60000' }}>
+              <p className="text-xs mt-1.5 font-medium" style={{ color: '#E60000' }}>
                 {statsFactures.impayees} factures impayées
               </p>
             </div>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#FFE6E6' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: '#FFE6E6' }}>
               <Clock size={24} style={{ color: '#E60000' }} />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow border-l-4" style={{ borderColor: '#9C27B0' }}>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: '#9C27B0' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium" style={{ color: '#9C27B0' }}>Solde Caisse</p>
+              <p className="text-sm font-semibold tracking-wide text-slate-500 uppercase">Solde Caisse</p>
               <p className="text-2xl font-bold mt-2" style={{ color: '#06006E' }}>
                 {formatFCFA(stats.soldeCaisse)}
               </p>
-              <p className="text-xs mt-1" style={{ color: '#06006E' }}>
+              <p className="text-xs mt-1.5 font-medium" style={{ color: '#06006E' }}>
                 Disponible immédiatement
               </p>
             </div>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F3E5F5' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: '#F3E5F5' }}>
               <FileText size={24} style={{ color: '#9C27B0' }} />
             </div>
           </div>
@@ -222,28 +222,28 @@ export default function DashboardEnhanced() {
 
       {/* STATISTIQUES RAPIDES */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow text-center">
-          <p className="text-3xl font-bold" style={{ color: '#06006E' }}>{stats.nbClients}</p>
-          <p className="text-sm mt-1" style={{ color: '#06006E' }}>Clients</p>
+        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: '#06006E' }}>
+          <p className="text-3xl font-extrabold" style={{ color: '#06006E' }}>{stats.nbClients}</p>
+          <p className="text-xs font-semibold tracking-wider uppercase mt-1.5 text-slate-500">Clients</p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow text-center">
-          <p className="text-3xl font-bold" style={{ color: '#06006E' }}>{stats.nbProjets}</p>
-          <p className="text-sm mt-1" style={{ color: '#06006E' }}>Projets</p>
+        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: '#06006E' }}>
+          <p className="text-3xl font-extrabold" style={{ color: '#06006E' }}>{stats.nbProjets}</p>
+          <p className="text-xs font-semibold tracking-wider uppercase mt-1.5 text-slate-500">Projets</p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow text-center">
-          <p className="text-3xl font-bold" style={{ color: '#06006E' }}>{stats.nbDevis}</p>
-          <p className="text-sm mt-1" style={{ color: '#06006E' }}>Devis</p>
+        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: '#06006E' }}>
+          <p className="text-3xl font-extrabold" style={{ color: '#06006E' }}>{stats.nbDevis}</p>
+          <p className="text-xs font-semibold tracking-wider uppercase mt-1.5 text-slate-500">Devis</p>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow text-center">
-          <p className="text-3xl font-bold" style={{ color: '#06006E' }}>{stats.nbAO}</p>
-          <p className="text-sm mt-1" style={{ color: '#06006E' }}>Appels d'Offres</p>
+        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: '#06006E' }}>
+          <p className="text-3xl font-extrabold" style={{ color: '#06006E' }}>{stats.nbAO}</p>
+          <p className="text-xs font-semibold tracking-wider uppercase mt-1.5 text-slate-500">Appels d'Offres</p>
         </div>
       </div>
 
       {/* GRAPHIQUES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Évolution CA */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Évolution du Chiffre d'Affaires</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={evolutionCA}>
@@ -269,7 +269,7 @@ export default function DashboardEnhanced() {
         </div>
 
         {/* Répartition Factures */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Répartition des Factures</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -293,7 +293,7 @@ export default function DashboardEnhanced() {
         </div>
 
         {/* Top 5 Clients */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Top 5 Clients par CA</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topClients} layout="vertical">
@@ -307,7 +307,7 @@ export default function DashboardEnhanced() {
         </div>
 
         {/* Répartition AO */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Appels d'Offres par Statut</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={repartitionAO}>
@@ -327,21 +327,21 @@ export default function DashboardEnhanced() {
 
       {/* ALERTES ET ACTIONS RAPIDES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#06006E' }}>
             <AlertTriangle size={20} style={{ color: '#E60000' }} />
             Alertes et Notifications
           </h3>
           <div className="space-y-3">
             {statsFactures.impayees > 0 && (
-              <div className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: '#FFE6E6' }}>
+              <div className="p-3.5 rounded-lg flex items-center justify-between transition-all duration-300 hover:shadow-md border-l-4 border-red-600 bg-red-500/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#E60000' }}></div>
-                  <span style={{ color: '#06006E' }}>{statsFactures.impayees} facture(s) impayée(s)</span>
+                  <div className="w-2.5 h-2.5 rounded-full animate-pulse bg-red-600"></div>
+                  <span className="font-medium text-slate-800" style={{ color: '#06006E' }}>{statsFactures.impayees} facture(s) impayée(s)</span>
                 </div>
                 <button 
                   onClick={() => navigate('/factures')}
-                  className="text-sm font-semibold hover:underline" 
+                  className="text-sm font-bold hover:underline py-1 px-3 rounded bg-red-600/10" 
                   style={{ color: '#E60000' }}
                 >
                   Voir →
@@ -349,63 +349,63 @@ export default function DashboardEnhanced() {
               </div>
             )}
             {statsAO.aChiffrer > 0 && (
-              <div className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: '#E8ECF4' }}>
+              <div className="p-3.5 rounded-lg flex items-center justify-between transition-all duration-300 hover:shadow-md border-l-4 border-navy bg-navy/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#06006E' }}></div>
-                  <span style={{ color: '#06006E' }}>{statsAO.aChiffrer} AO à chiffrer</span>
+                  <div className="w-2.5 h-2.5 rounded-full animate-pulse bg-[#06006E]"></div>
+                  <span className="font-medium text-slate-800" style={{ color: '#06006E' }}>{statsAO.aChiffrer} AO à chiffrer</span>
                 </div>
                 <button 
                   onClick={() => navigate('/ao')}
-                  className="text-sm font-semibold hover:underline" 
+                  className="text-sm font-bold hover:underline py-1 px-3 rounded bg-[#06006E]/10" 
                   style={{ color: '#06006E' }}
                 >
                   Voir →
                 </button>
               </div>
             )}
-            <div className="p-3 rounded-lg flex items-center justify-between" style={{ backgroundColor: '#E8F5E9' }}>
+            <div className="p-3.5 rounded-lg flex items-center justify-between border-l-4 border-[#1A7A4A] bg-[#1A7A4A]/10">
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#1A7A4A' }}></div>
-                <span style={{ color: '#06006E' }}>Tout est à jour !</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-[#1A7A4A]"></div>
+                <span className="font-medium text-slate-800" style={{ color: '#06006E' }}>Tout est à jour !</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
           <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Actions Rapides</h3>
           <div className="grid grid-cols-2 gap-3">
             <button 
               onClick={() => navigate('/devis/liste')}
-              className="p-4 rounded-lg text-left transition-all hover:shadow-md" 
+              className="p-4 rounded-xl text-left border border-slate-200/50 hover:border-slate-300 hover:scale-[1.03] hover:shadow-md transition-all duration-300" 
               style={{ backgroundColor: '#E8ECF4' }}
             >
               <p className="text-2xl mb-2">📋</p>
-              <p className="font-semibold" style={{ color: '#06006E' }}>Nouveau Devis</p>
+              <p className="font-semibold text-sm tracking-wide" style={{ color: '#06006E' }}>Nouveau Devis</p>
             </button>
             <button 
               onClick={() => navigate('/factures')}
-              className="p-4 rounded-lg text-left transition-all hover:shadow-md" 
+              className="p-4 rounded-xl text-left border border-slate-200/50 hover:border-slate-300 hover:scale-[1.03] hover:shadow-md transition-all duration-300" 
               style={{ backgroundColor: '#FFE6E6' }}
             >
               <p className="text-2xl mb-2">🧾</p>
-              <p className="font-semibold" style={{ color: '#06006E' }}>Nouvelle Facture</p>
+              <p className="font-semibold text-sm tracking-wide" style={{ color: '#06006E' }}>Nouvelle Facture</p>
             </button>
             <button 
               onClick={() => navigate('/encaissements')}
-              className="p-4 rounded-lg text-left transition-all hover:shadow-md" 
+              className="p-4 rounded-xl text-left border border-slate-200/50 hover:border-slate-300 hover:scale-[1.03] hover:shadow-md transition-all duration-300" 
               style={{ backgroundColor: '#E8F5E9' }}
             >
               <p className="text-2xl mb-2">💰</p>
-              <p className="font-semibold" style={{ color: '#06006E' }}>Encaissement</p>
+              <p className="font-semibold text-sm tracking-wide" style={{ color: '#06006E' }}>Encaissement</p>
             </button>
             <button 
               onClick={() => navigate('/planification')}
-              className="p-4 rounded-lg text-left transition-all hover:shadow-md" 
+              className="p-4 rounded-xl text-left border border-slate-200/50 hover:border-slate-300 hover:scale-[1.03] hover:shadow-md transition-all duration-300" 
               style={{ backgroundColor: '#F3E5F5' }}
             >
               <p className="text-2xl mb-2">🚀</p>
-              <p className="font-semibold" style={{ color: '#06006E' }}>Nouveau Projet</p>
+              <p className="font-semibold text-sm tracking-wide" style={{ color: '#06006E' }}>Nouveau Projet</p>
             </button>
           </div>
         </div>

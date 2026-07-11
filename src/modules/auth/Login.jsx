@@ -200,15 +200,15 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#06006E' }}>
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'radial-gradient(circle at 50% 50%, #15274D 0%, #081125 100%)' }}>
       <div className="w-full max-w-md px-6">
 
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-8 animate-fade-in-up">
           <SikaLogo size="md" />
         </div>
 
-        <div className="bg-white shadow-2xl overflow-hidden" style={{ borderRadius: '16px' }}>
-          <div style={{ height: '4px', background: 'linear-gradient(90deg, #E60000 0%, #1B2A4A 100%)' }} />
+        <div className="glass-panel shadow-2xl overflow-hidden animate-scale-in" style={{ borderRadius: '16px', background: 'rgba(255, 255, 255, 0.92)' }}>
+          <div style={{ height: '4px', background: 'linear-gradient(90deg, #E60000 0%, #06006E 100%)' }} />
 
           <div style={{ padding: '32px' }}>
 

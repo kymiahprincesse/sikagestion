@@ -50,6 +50,17 @@ export default function Layout() {
 
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/')
 
+  const getSidebarItemStyles = (path) => {
+    if (isActive(path)) {
+      return {
+        background: 'linear-gradient(90deg, #E60000 0%, #B80000 100%)',
+        boxShadow: '0 4px 14px rgba(230, 0, 0, 0.35)',
+        borderLeft: '4px solid #ffffff'
+      }
+    }
+    return { color: '#C8C8D0' }
+  }
+
   const canAccess = (module) => {
     if (!utilisateurConnecte) return false
     const role = normalizeRole(utilisateurConnecte.role)
@@ -130,8 +141,8 @@ export default function Layout() {
 
       {/* SIDEBAR */}
       <aside
-        className={`fixed lg:sticky lg:top-0 z-30 flex flex-col h-screen transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ width: '280px', maxWidth: '85vw', backgroundColor: '#1B2A4A' }}
+        className={`fixed lg:sticky lg:top-0 z-30 flex flex-col h-screen transition-transform duration-300 lg:translate-x-0 glass-sidebar`}
+        style={{ width: '280px', maxWidth: '85vw' }}
       >
         {/* HEADER SIDEBAR - Logo + Utilisateur */}
         <div className="flex-shrink-0">
@@ -140,13 +151,13 @@ export default function Layout() {
             <div className="flex flex-col items-center">
               <SikaLogo size="sm" />
             </div>
-            <div className="h-0.5 mt-4" style={{ backgroundColor: '#E60000' }}></div>
+            <div className="h-[2px] mt-4 bg-gradient-to-r from-transparent via-[#E60000] to-transparent shadow-[0_0_8px_#E60000]"></div>
           </div>
 
           {/* Utilisateur connecté */}
           {utilisateurConnecte && (
             <div className="px-4 pb-3">
-              <div className="px-4 py-3 rounded-lg" style={{ backgroundColor: 'rgba(31, 92, 153, 0.25)' }}>
+              <div className="px-4 py-3 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md transition-all duration-300 hover:bg-white/10">
                 <p className="text-white font-semibold text-sm truncate">{utilisateurConnecte.nom}</p>
                 <p className="text-xs mt-0.5" style={{ color: '#8BA3C7' }}>{utilisateurConnecte.role}</p>
               </div>
@@ -155,35 +166,35 @@ export default function Layout() {
         </div>
 
         {/* Navigation - Scrollable */}
-        <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-700 scrollbar-track-transparent">
+        <nav className="flex-1 px-3 py-2 overflow-y-auto scrollbar-futur">
           {/* TABLEAU DE BORD */}
           <Link
             to="/dashboard"
             onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
               isActive('/dashboard')
                 ? 'text-white font-semibold'
-                : 'hover:bg-opacity-10 hover:bg-white'
+                : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
             }`}
-            style={isActive('/dashboard') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+            style={getSidebarItemStyles('/dashboard')}
           >
-            <span>📊</span>
-            <span className="text-sm">TABLEAU DE BORD</span>
+            <span className="text-base">📊</span>
+            <span className="text-sm font-semibold tracking-wide">TABLEAU DE BORD</span>
           </Link>
 
           {/* RAPPORT DE SYNTHÈSE */}
           <Link
             to="/rapport"
             onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
               isActive('/rapport')
                 ? 'text-white font-semibold'
-                : 'hover:bg-opacity-10 hover:bg-white'
+                : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
             }`}
-            style={isActive('/rapport') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+            style={getSidebarItemStyles('/rapport')}
           >
-            <span>📈</span>
-            <span className="text-sm">Rapport synthèse</span>
+            <span className="text-base">📈</span>
+            <span className="text-sm font-semibold tracking-wide">Rapport synthèse</span>
           </Link>
 
           {/* RÉFÉRENTIEL CLIENTS */}
@@ -191,15 +202,15 @@ export default function Layout() {
             <Link
               to="/clients"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/clients')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/clients') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/clients')}
             >
-              <span>👥</span>
-              <span className="text-sm">Référentiel clients</span>
+              <span className="text-base">👥</span>
+              <span className="text-sm font-semibold tracking-wide">Référentiel clients</span>
             </Link>
           )}
 
@@ -208,15 +219,15 @@ export default function Layout() {
             <Link
               to="/planification"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/planification')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/planification') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/planification')}
             >
-              <span>🚀</span>
-              <span className="text-sm">Pilotage Projets</span>
+              <span className="text-base">🚀</span>
+              <span className="text-sm font-semibold tracking-wide">Pilotage Projets</span>
             </Link>
           )}
 
@@ -225,24 +236,24 @@ export default function Layout() {
             <Link
               to="/ao"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/ao')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/ao') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/ao')}
             >
-              <span>📋</span>
-              <span className="text-sm">Appels d'offres</span>
+              <span className="text-base">📋</span>
+              <span className="text-sm font-semibold tracking-wide">Appels d'offres</span>
             </Link>
           )}
 
           {/* SÉPARATEUR DEVIS */}
-          <div className="mt-4 mb-2 px-4">
+          <div className="mt-5 mb-2.5 px-4">
             <div className="flex items-center gap-2">
-              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5A7CA8' }}>Devis</p>
-              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+              <div className="h-px flex-1 bg-white/10"></div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8]">Devis</p>
+              <div className="h-px flex-1 bg-white/10"></div>
             </div>
           </div>
 
@@ -251,18 +262,18 @@ export default function Layout() {
             <div>
               <button
                 onClick={() => setDevisExpanded(!devisExpanded)}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg mb-1 transition-all hover:bg-opacity-10 hover:bg-white"
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg mb-1 transition-all hover:bg-white/5 hover:translate-x-1"
                 style={{ color: '#C8C8D0' }}
               >
                 <div className="flex items-center gap-3">
-                  <span>📄</span>
-                  <span className="text-sm">Devis</span>
+                  <span className="text-base">📄</span>
+                  <span className="text-sm font-semibold tracking-wide">Devis</span>
                 </div>
                 {devisExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
 
               {devisExpanded && (
-                <div className="ml-4 mr-2 mb-2 py-2 pl-3 pr-2 rounded-lg" style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}>
+                <div className="ml-3 mr-1 mb-2.5 py-2 pl-3 pr-2 rounded-lg border border-white/5 bg-black/20">
                   <div className="space-y-1">
                     {[
                       { path: '/devis/calorifuge', label: 'Calorifuge', icon: '🔥' },
@@ -277,10 +288,10 @@ export default function Layout() {
                         key={item.path}
                         to={item.path}
                         onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-all ${
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all duration-300 ${
                           isActive(item.path)
-                            ? 'text-white font-medium bg-red-600'
-                            : 'text-gray-400 hover:text-white hover:bg-white/10'
+                            ? 'text-white font-medium bg-red-600/85 shadow-md shadow-red-600/20'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5 hover:translate-x-1'
                         }`}
                       >
                         <span className="text-xs">{item.icon}</span>
@@ -294,25 +305,25 @@ export default function Layout() {
               <Link
                 to="/devis/liste"
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                   isActive('/devis/liste')
                     ? 'text-white font-semibold'
-                    : 'hover:bg-opacity-10 hover:bg-white'
+                    : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
                 }`}
-                style={isActive('/devis/liste') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+                style={getSidebarItemStyles('/devis/liste')}
               >
-                <span>📋</span>
-                <span className="text-sm">Liste & Suivi Devis</span>
+                <span className="text-base">📋</span>
+                <span className="text-sm font-semibold tracking-wide">Liste & Suivi Devis</span>
               </Link>
             </div>
           )}
 
           {/* SÉPARATEUR FINANCE */}
-          <div className="mt-4 mb-2 px-4">
+          <div className="mt-5 mb-2.5 px-4">
             <div className="flex items-center gap-2">
-              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5A7CA8' }}>Finance</p>
-              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+              <div className="h-px flex-1 bg-white/10"></div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8]">Finance</p>
+              <div className="h-px flex-1 bg-white/10"></div>
             </div>
           </div>
 
@@ -321,15 +332,15 @@ export default function Layout() {
             <Link
               to="/factures"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/factures')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/factures') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/factures')}
             >
-              <span>🧾</span>
-              <span className="text-sm">Factures clients</span>
+              <span className="text-base">🧾</span>
+              <span className="text-sm font-semibold tracking-wide">Factures clients</span>
             </Link>
           )}
 
@@ -338,15 +349,15 @@ export default function Layout() {
             <Link
               to="/encaissements"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/encaissements')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/encaissements') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/encaissements')}
             >
-              <span>💰</span>
-              <span className="text-sm">Encaissements</span>
+              <span className="text-base">💰</span>
+              <span className="text-sm font-semibold tracking-wide">Encaissements</span>
             </Link>
           )}
 
@@ -355,15 +366,15 @@ export default function Layout() {
             <Link
               to="/caisse"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/caisse')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/caisse') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/caisse')}
             >
-              <span>🏦</span>
-              <span className="text-sm">Enregistrement Caisse</span>
+              <span className="text-base">🏦</span>
+              <span className="text-sm font-semibold tracking-wide">Enregistrement Caisse</span>
             </Link>
           )}
 
@@ -372,15 +383,15 @@ export default function Layout() {
             <Link
               to="/journal"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/journal')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/journal') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/journal')}
             >
-              <span>📒</span>
-              <span className="text-sm">Journal de Caisse</span>
+              <span className="text-base">📒</span>
+              <span className="text-sm font-semibold tracking-wide">Journal de Caisse</span>
             </Link>
           )}
 
@@ -389,15 +400,15 @@ export default function Layout() {
             <Link
               to="/fournisseurs"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/fournisseurs')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/fournisseurs') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/fournisseurs')}
             >
-              <span>🏭</span>
-              <span className="text-sm">Fournisseurs</span>
+              <span className="text-base">🏭</span>
+              <span className="text-sm font-semibold tracking-wide">Fournisseurs</span>
             </Link>
           )}
 
@@ -406,24 +417,24 @@ export default function Layout() {
             <Link
               to="/achats-depenses"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/achats-depenses')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/achats-depenses') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/achats-depenses')}
             >
-              <span>🛒💸</span>
-              <span className="text-sm">Achats & Dépenses</span>
+              <span className="text-base">🛒💸</span>
+              <span className="text-sm font-semibold tracking-wide">Achats & Dépenses</span>
             </Link>
           )}
 
           {/* SÉPARATEUR OUTILS */}
-          <div className="mt-4 mb-2 px-4">
+          <div className="mt-5 mb-2.5 px-4">
             <div className="flex items-center gap-2">
-              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5A7CA8' }}>Outils</p>
-              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+              <div className="h-px flex-1 bg-white/10"></div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8]">Outils</p>
+              <div className="h-px flex-1 bg-white/10"></div>
             </div>
           </div>
 
@@ -432,24 +443,24 @@ export default function Layout() {
             <Link
               to="/import-export"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/import-export')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/import-export') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/import-export')}
             >
-              <span>📥</span>
-              <span className="text-sm">Import / Export</span>
+              <span className="text-base">📥</span>
+              <span className="text-sm font-semibold tracking-wide">Import / Export</span>
             </Link>
           )}
 
           {/* SÉPARATEUR PILOTAGE */}
-          <div className="mt-4 mb-2 px-4">
+          <div className="mt-5 mb-2.5 px-4">
             <div className="flex items-center gap-2">
-              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#5A7CA8' }}>Pilotage</p>
-              <div className="h-px flex-1" style={{ backgroundColor: 'rgba(31, 92, 153, 0.4)' }}></div>
+              <div className="h-px flex-1 bg-white/10"></div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8]">Pilotage</p>
+              <div className="h-px flex-1 bg-white/10"></div>
             </div>
           </div>
 
@@ -458,15 +469,15 @@ export default function Layout() {
             <Link
               to="/utilisateurs"
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/utilisateurs')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/utilisateurs') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/utilisateurs')}
             >
-              <span>🔒</span>
-              <span className="text-sm">Utilisateurs</span>
+              <span className="text-base">🔒</span>
+              <span className="text-sm font-semibold tracking-wide">Utilisateurs</span>
             </Link>
           )}
 
@@ -474,15 +485,15 @@ export default function Layout() {
           {canAccess('UTILISATEURS') && (
             <Link
               to="/tour-de-controle"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/tour-de-controle')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/tour-de-controle') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/tour-de-controle')}
             >
-              <span>🛡️</span>
-              <span className="text-sm">Tour de Contrôle</span>
+              <span className="text-base">🛡️</span>
+              <span className="text-sm font-semibold tracking-wide">Tour de Contrôle</span>
             </Link>
           )}
 
@@ -490,25 +501,25 @@ export default function Layout() {
           {canAccess('UTILISATEURS') && (
             <Link
               to="/parametres"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/parametres')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-opacity-10 hover:bg-white'
+                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
               }`}
-              style={isActive('/parametres') ? { backgroundColor: '#E60000' } : { color: '#C8C8D0' }}
+              style={getSidebarItemStyles('/parametres')}
             >
-              <span>⚙️</span>
-              <span className="text-sm">Paramètres</span>
+              <span className="text-base">⚙️</span>
+              <span className="text-sm font-semibold tracking-wide">Paramètres</span>
             </Link>
           )}
         </nav>
 
         {/* FOOTER SIDEBAR - Déconnexion */}
-        <div className="flex-shrink-0 p-4 border-t" style={{ borderColor: 'rgba(31, 92, 153, 0.5)' }}>
+        <div className="flex-shrink-0 p-4 border-t border-white/10">
           <button
             onClick={handleDeconnexion}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-white transition-all hover:opacity-90 hover:shadow-lg"
-            style={{ backgroundColor: '#E60000' }}
+            className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg font-bold text-white transition-all duration-300 hover:opacity-95 shadow-md shadow-red-600/10 glow-hover-red"
+            style={{ background: 'linear-gradient(90deg, #E60000 0%, #B80000 100%)' }}
           >
             <LogOut size={18} />
             <span>Déconnexion</span>
@@ -519,7 +530,7 @@ export default function Layout() {
       {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* HEADER */}
-        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 shadow-sm sticky top-0 z-20">
+        <header className="glass-header px-4 sm:px-6 lg:px-8 py-3 sm:py-4 glow-blue sticky top-0 z-20">
           <div className="flex items-center justify-between gap-4">
             {/* Partie gauche - Menu mobile + Titre */}
             <div className="flex items-center gap-3">
@@ -575,7 +586,9 @@ export default function Layout() {
         <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
           <div className="max-w-7xl mx-auto">
             <Breadcrumb items={getBreadcrumbItems()} />
-            <Outlet />
+            <div key={location.pathname} className="animate-fade-in-up">
+              <Outlet />
+            </div>
           </div>
         </div>
       </main>
