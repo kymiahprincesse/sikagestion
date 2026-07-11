@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, Trash2, Info, AlertCircle } from 'lucide-react';
 
 export default function ConfirmDialog({ 

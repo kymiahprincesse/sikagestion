@@ -5,13 +5,10 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
-import TVABlock from '../../components/TVABlock'
-import { formatDateLong, formatFCFA, safeParseFloat, getTodayISO, generateSecureId } from '../../utils/format'
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
-import { useDuplicatePrevention } from '../../hooks/useDuplicatePrevention'
-import { AlertTriangle, CheckCircle } from 'lucide-react'
+import { formatDateLong, formatFCFA, safeParseFloat, generateSecureId } from '../../utils/format'
+import { printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useDuplicatePrevention } from '../../hooks/useDuplicatePrevention'
 
 const DESIGNATIONS_PREDEFINES = [
   'CONDUITE HUILE ROUGE',

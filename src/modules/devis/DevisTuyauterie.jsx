@@ -5,13 +5,11 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
-import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { formatFCFA, generateSecureId } from '../../utils/format'
+import { printDevisHTML } from '../../utils/devisTemplate'
+import { useLocation } from 'react-router-dom'
 
 const TYPES_TUYAU = ['Acier noir', 'Acier galvanisé', 'Inox 304', 'Inox 316', 'PVC', 'PEHD']
-const DIAMETRES_NOMINAUX = ['DN15', 'DN20', 'DN25', 'DN32', 'DN40', 'DN50', 'DN65', 'DN80', 'DN100', 'DN125', 'DN150', 'DN200', 'DN250', 'DN300']
 const TYPES_RACCORD = ['Coude 90°', 'Coude 45°', 'Té', 'Réduction', 'Manchon', 'Bride', 'Bouchon']
 const PRESSIONS = ['PN10', 'PN16', 'PN25', 'PN40']
 
@@ -26,7 +24,6 @@ const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisTuyauterie() {
   const pdfRef = useRef(null)
-  const navigate = useNavigate()
   const location = useLocation()
   const { addDevis, updateDevis, getNextNumero, getDevisById } = useDevisStore()
   const { addLog } = useAuditStore()

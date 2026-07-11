@@ -5,9 +5,8 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
-import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
+import { formatFCFA, generateSecureId } from '../../utils/format'
+import { printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_TRAVAUX = ['Découpe', 'Pliage', 'Roulage', 'Assemblage', 'Soudure', 'Finition']
@@ -26,7 +25,6 @@ const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisChaudronnerie() {
   const pdfRef = useRef(null)
-  const navigate = useNavigate()
   const location = useLocation()
   const { addDevis, updateDevis, getNextNumero, getDevisById } = useDevisStore()
   const { addLog } = useAuditStore()

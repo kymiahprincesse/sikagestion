@@ -45,26 +45,14 @@ export function generateDevisHTML(data, baseUrl = '') {
   } = data;
 
   let companyName = 'SIKA INDUSTRIE';
-  let companyAddress = 'Port-Bouët Anani, Rond-Point Carrefour';
   let companyTel = '(225) 07 97 25 25 26';
-  let companyTel2 = '01 02 31 29 81';
-  let companyEmail = 'infosikaindustrie@gmail.com';
-  let companyCapital = '1.000.000 FCFA';
-  let companyCC = '';
-  let companyRCCM = '';
 
   // Enrichissement automatique du client et de l'utilisateur depuis les stores
   try {
     const params = useParametresStore.getState();
     if (params) {
       companyName = params.nomEntreprise || companyName;
-      companyAddress = params.adresseEntreprise || companyAddress;
       companyTel = params.telephoneEntreprise || companyTel;
-      companyTel2 = params.telephone2 || companyTel2;
-      companyEmail = params.emailEntreprise || companyEmail;
-      companyCapital = params.capital || companyCapital;
-      companyCC = params.cc || companyCC;
-      companyRCCM = params.rccm || params.rcm || companyRCCM;
     }
 
     const clients = useClientsStore.getState().clients;

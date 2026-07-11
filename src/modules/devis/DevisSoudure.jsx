@@ -6,8 +6,7 @@ import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
+import { printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_SOUDURE = ['TIG', 'MIG/MAG', 'Arc électrique', 'Oxyacétylénique', 'Plasma']

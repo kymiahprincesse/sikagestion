@@ -6,8 +6,7 @@ import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
+import { printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_TOLE = [
@@ -32,7 +31,6 @@ const nouvelleLigne = () => ({ ...LIGNE_VIDE, id: generateSecureId('LIG') })
 
 export default function DevisPliage() {
   const pdfRef = useRef(null)
-  const navigate = useNavigate()
   const location = useLocation()
   const { addDevis, updateDevis, getNextNumero, getDevisById } = useDevisStore()
   const { addLog } = useAuditStore()
