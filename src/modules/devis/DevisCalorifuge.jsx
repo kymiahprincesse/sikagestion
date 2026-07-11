@@ -8,7 +8,7 @@ import ClientSelect from '../../components/ClientSelect'
 import TVABlock from '../../components/TVABlock'
 import { formatDateLong, formatFCFA, safeParseFloat, getTodayISO, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
+import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
 import { useDuplicatePrevention } from '../../hooks/useDuplicatePrevention'
 import { AlertTriangle, CheckCircle } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -28,7 +28,6 @@ const DESIGNATIONS_PREDEFINES = [
 
 const LIGNE_VIDE = {
   designation: '',
-  dn: '',
   ml: 0,
   pt: 0,
   qte: 0,
@@ -464,20 +463,7 @@ export default function DevisCalorifuge() {
         ttc: totaux.ttc
       };
 
-      // Générer le HTML avec le nouveau template
-      const htmlContent = generateDevisHTML(templateData);
-      
-      // Ouvrir dans une nouvelle fenêtre pour impression
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-      
-      // Attendre le chargement puis imprimer
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
-      };
+      printDevisHTML(templateData);
       
       ajouterNotification({
         type: 'INFO',
@@ -629,14 +615,14 @@ export default function DevisCalorifuge() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-navy text-white">
-                  <th className="border border-argent px-2 py-3 text-left text-sm font-bold">DESIGNATION</th>
-                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-24">DN</th>
+                  <th className="border border-argent px-4 py-3 text-left text-sm font-bold">DESIGNATION</th>
+                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-20">U</th>
                   <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-24">ML</th>
                   <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-24">PT</th>
-                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-24">QTE</th>
+                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-28">QTE</th>
                   <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-32">PU</th>
-                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-32">MONTANT</th>
-                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-32">ACTIONS</th>
+                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-36">MONTANT</th>
+                  <th className="border border-argent px-2 py-3 text-center text-sm font-bold w-40">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -644,13 +630,12 @@ export default function DevisCalorifuge() {
                   const qte = calculerQte(ligne)
                   const pu = safeParseFloat(ligne.pu, 0)
                   const montantAuto = qte * pu
-                  const montant = calculerMontant(ligne)
                   const suggestions = filtrerDesignations(designationSearch[ligne.id] || ligne.designation)
-
+ 
                   return (
                     <tr key={ligne.id} className="hover:bg-orangeClair transition-colors">
-                      <td className="border border-argent px-2 py-2">
-                        <div className="relative">
+                      <td className="border border-argent px-3 py-3">
+                        <div className="relative flex flex-col gap-2">
                           <input
                             type="text"
                             value={ligne.designation}
@@ -660,8 +645,8 @@ export default function DevisCalorifuge() {
                               setShowDesignationSuggestions(prev => ({ ...prev, [ligne.id]: true }))
                             }}
                             onFocus={() => setShowDesignationSuggestions(prev => ({ ...prev, [ligne.id]: true }))}
-                            placeholder="Saisir ou sélectionner..."
-                            className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:ring-1 focus:ring-orange"
+                            placeholder="Saisir ou sélectionner la désignation..."
+                            className="w-full px-2 py-1.5 border border-argent rounded focus:outline-none focus:ring-1 focus:ring-orange font-medium"
                           />
                           {showDesignationSuggestions[ligne.id] && suggestions.length > 0 && (
                             <>
@@ -687,16 +672,16 @@ export default function DevisCalorifuge() {
                       <td className="border border-argent px-2 py-2">
                         <input
                           type="text"
-                          value={ligne.dn}
-                          onChange={(e) => modifierLigne(ligne.id, 'dn', e.target.value)}
-                          placeholder="DN"
+                          value={ligne.unite || ''}
+                          onChange={(e) => modifierLigne(ligne.id, 'unite', e.target.value)}
+                          placeholder="—"
                           className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
                         />
                       </td>
                       <td className="border border-argent px-2 py-2">
                         <input
                           type="number"
-                          value={ligne.ml}
+                          value={ligne.ml || ''}
                           onChange={(e) => {
                             const val = parseFloat(e.target.value) || 0
                             modifierLigne(ligne.id, 'ml', val)
@@ -704,13 +689,14 @@ export default function DevisCalorifuge() {
                           }}
                           min="0"
                           step="0.01"
-                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
+                          placeholder="0"
+                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange font-semibold text-bleu"
                         />
                       </td>
                       <td className="border border-argent px-2 py-2">
                         <input
                           type="number"
-                          value={ligne.pt}
+                          value={ligne.pt || ''}
                           onChange={(e) => {
                             const val = parseFloat(e.target.value) || 0
                             modifierLigne(ligne.id, 'pt', val)
@@ -718,7 +704,8 @@ export default function DevisCalorifuge() {
                           }}
                           min="0"
                           step="0.01"
-                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
+                          placeholder="0"
+                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange font-semibold text-bleu"
                         />
                       </td>
                       <td className="border border-argent px-2 py-2 bg-navyClair">
@@ -926,26 +913,28 @@ export default function DevisCalorifuge() {
             <thead>
               <tr className="bg-navy text-white">
                 <th className="border border-navy px-3 py-2 text-left text-sm">DESIGNATION</th>
-                <th className="border border-navy px-3 py-2 text-center text-sm">DN</th>
-                <th className="border border-navy px-3 py-2 text-center text-sm">ML</th>
-                <th className="border border-navy px-3 py-2 text-center text-sm">PT</th>
-                <th className="border border-navy px-3 py-2 text-center text-sm">QTE</th>
-                <th className="border border-navy px-3 py-2 text-right text-sm">PU</th>
-                <th className="border border-navy px-3 py-2 text-right text-sm">MONTANT</th>
+                <th className="border border-navy px-3 py-2 text-center text-sm w-16">U</th>
+                <th className="border border-navy px-3 py-2 text-center text-sm w-20">ML</th>
+                <th className="border border-navy px-3 py-2 text-center text-sm w-20">PT</th>
+                <th className="border border-navy px-3 py-2 text-center text-sm w-24">QTE</th>
+                <th className="border border-navy px-3 py-2 text-right text-sm w-28">PU</th>
+                <th className="border border-navy px-3 py-2 text-right text-sm w-32">MONTANT</th>
               </tr>
             </thead>
             <tbody>
-              {devisData.lignes.map((ligne, index) => (
-                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
-                  <td className="border border-argent px-3 py-2 text-sm">{ligne.designation}</td>
-                  <td className="border border-argent px-3 py-2 text-center text-sm">{ligne.dn}</td>
-                  <td className="border border-argent px-3 py-2 text-center text-sm">{ligne.ml}</td>
-                  <td className="border border-argent px-3 py-2 text-center text-sm">{ligne.pt}</td>
-                  <td className="border border-argent px-3 py-2 text-center text-sm font-bold">{calculerQte(ligne).toFixed(2)}</td>
-                  <td className="border border-argent px-3 py-2 text-right text-sm">{formatFCFA(ligne.pu)}</td>
-                  <td className="border border-argent px-3 py-2 text-right text-sm font-bold">{formatFCFA(calculerMontant(ligne))}</td>
-                </tr>
-              ))}
+              {devisData.lignes.map((ligne, index) => {
+                return (
+                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                    <td className="border border-argent px-3 py-2 text-sm">{ligne.designation}</td>
+                    <td className="border border-argent px-3 py-2 text-center text-sm">{ligne.unite || '—'}</td>
+                    <td className="border border-argent px-3 py-2 text-center text-sm font-semibold">{ligne.ml || '—'}</td>
+                    <td className="border border-argent px-3 py-2 text-center text-sm font-semibold">{ligne.pt || '—'}</td>
+                    <td className="border border-argent px-3 py-2 text-center text-sm font-bold">{calculerQte(ligne)}</td>
+                    <td className="border border-argent px-3 py-2 text-right text-sm">{formatFCFA(ligne.pu)}</td>
+                    <td className="border border-argent px-3 py-2 text-right text-sm font-bold">{formatFCFA(calculerMontant(ligne))}</td>
+                  </tr>
+                )
+              })}
             </tbody>
             <tfoot>
               <tr className="bg-navyClair">

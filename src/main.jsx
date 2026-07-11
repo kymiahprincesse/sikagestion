@@ -39,6 +39,16 @@ if ('serviceWorker' in navigator) {
         updateViaCache: 'none',
       });
 
+      // Vérifier immédiatement les mises à jour au chargement
+      reg.update().catch(() => {});
+
+      // Vérifier les mises à jour à chaque retour sur l'application (tab focus)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          reg.update().catch(() => {});
+        }
+      });
+
       // Vérifie les mises à jour toutes les heures
       const updateInterval = setInterval(() => reg.update(), 60 * 60 * 1000);
 

@@ -269,7 +269,7 @@ export default function DevisCharpente() {
         typeProfil: l.typeProfil,
         surface: l.surface,
         longueur: l.longueur,
-        dn: l.surface || l.longueur ? `${l.longueur || 0}m - ${l.surface || ''}` : '—',
+        unite: l.surface || l.longueur ? `${l.longueur || 0}m - ${l.surface || ''}` : '—',
         qte: parseFloat(l.quantite) || 0,
         pu: parseFloat(l.pu) || 0,
         montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)

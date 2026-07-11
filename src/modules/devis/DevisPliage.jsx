@@ -7,7 +7,7 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
+import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_TOLE = [
@@ -356,7 +356,7 @@ export default function DevisPliage() {
         epaisseur: l.epaisseur,
         longueur: l.longueur,
         nombrePlis: l.nombrePlis,
-        dn: l.epaisseur ? `${l.epaisseur}mm` : '—',
+        unite: l.epaisseur ? `${l.epaisseur}mm` : '—',
         qte: parseFloat(l.qte) || 0,
         pu: parseFloat(l.pu) || 0,
         montant: (parseFloat(l.qte) || 0) * (parseFloat(l.pu) || 0)
@@ -387,20 +387,7 @@ export default function DevisPliage() {
         ttc: totaux.ttc
       };
 
-      // Générer le HTML avec le nouveau template
-      const htmlContent = generateDevisHTML(templateData);
-      
-      // Ouvrir dans une nouvelle fenêtre pour impression
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
-      
-      // Attendre le chargement puis imprimer
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
-      };
+      printDevisHTML(templateData);
       
       ajouterNotification({
         type: 'INFO',

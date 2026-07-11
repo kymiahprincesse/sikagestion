@@ -138,7 +138,6 @@ export default function DataLoader() {
               lignesMap[l.devis_id].push({
                 id: l.id,
                 designation: l.designation || '',
-                dn: l.unite || '',
                 unite: l.unite || '',
                 ml: parseFloat(l.ml || 0),
                 pt: parseFloat(l.pt || 0),

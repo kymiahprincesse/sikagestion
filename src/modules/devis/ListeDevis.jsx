@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import GestionDoublons from '../../components/GestionDoublons'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useUtilisateursStore } from '../../store/useUtilisateursStore'
 
 const STATUTS = ['BROUILLON', 'EN_ATTENTE', 'VALIDE', 'FACTURE', 'ANNULE']
 const TYPES = ['CALORIFUGE', 'PLIAGE', 'RESERVOIR', 'SOUDURE', 'CHARPENTE', 'TUYAUTERIE', 'CHAUDRONNERIE']
@@ -42,6 +43,7 @@ export default function ListeDevis() {
   const [vueGroupee, setVueGroupee] = useState(false)
   const [heureOuverture, setHeureOuverture] = useState(null)
   const { utilisateurConnecte } = useAuthStore()
+  const { utilisateurs } = useUtilisateursStore()
 
   // Fermer la modale avec la touche Escape
   useEscapeKey(showModalVoir, () => setShowModalVoir(false))
@@ -694,7 +696,7 @@ export default function ListeDevis() {
     const lignesBrutes = devis.lignes || devis.lignesCommerciales || [];
     const lignes = lignesBrutes.map(l => ({
       designation: l.designation || '—',
-      dn: l.dn || l.unite || '—',
+      unite: l.unite || '—',
       qte: parseFloat(l.qte || l.quantite || l.longueur || 0),
       pu: parseFloat(l.pu || l.prixUnitaire || 0),
       montant: l.montant !== '' && l.montant !== undefined ? parseFloat(l.montant) : undefined,
@@ -1216,7 +1218,18 @@ export default function ListeDevis() {
                     <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Référence :</span> {devisSelectionne.numero}</p>
                     <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Date :</span> {formatDate(devisSelectionne.date)}</p>
                     <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Validité :</span> 30 jours</p>
-                    <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Établi par :</span> SIKA INDUSTRIE</p>
+                    <p className="text-sm">
+                      <span className="font-semibold" style={{ color: '#06006E' }}>Établi par :</span> {devisSelectionne.etabliPar || 'SIKA INDUSTRIE'}
+                    </p>
+                    {(() => {
+                      const auteur = utilisateurs.find(u => 
+                        (u.nom && u.nom.toLowerCase() === devisSelectionne.etabliPar?.toLowerCase()) ||
+                        (u.login && u.login.toLowerCase() === devisSelectionne.etabliPar?.toLowerCase())
+                      );
+                      return auteur?.telephone ? (
+                        <p className="text-xs text-gray-500 pl-2">📞 {auteur.telephone}</p>
+                      ) : null;
+                    })()}
                     <hr className="my-1 border-gray-200"/>
                     <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: '#E05A00' }}>Consulté par</p>
                     <p className="text-sm font-bold" style={{ color: '#06006E' }}>
@@ -1301,11 +1314,13 @@ export default function ListeDevis() {
                                 <td className="px-3 py-2 text-center text-gray-500">{idx + 1}</td>
                                 <td className="px-3 py-2">
                                   <span className="font-medium">{ligne.designation || '—'}</span>
+                                  {ligne.ml ? <span className="text-xs text-blue-500 ml-1 font-semibold">· ML: {ligne.ml}</span> : null}
+                                  {ligne.pt ? <span className="text-xs text-blue-500 ml-1 font-semibold">· PT: {ligne.pt}</span> : null}
                                   {ligne.epaisseur ? <span className="text-xs text-blue-500 ml-1">· Ép. {ligne.epaisseur}mm</span> : null}
                                   {ligne.typeTole ? <span className="text-xs text-blue-500 ml-1">· {ligne.typeTole}</span> : null}
                                   {ligne.typeTuyau ? <span className="text-xs text-blue-500 ml-1">· {ligne.typeTuyau}</span> : null}
                                 </td>
-                                <td className="px-3 py-2 text-center text-gray-600">{ligne.dn || ligne.unite || '—'}</td>
+                                <td className="px-3 py-2 text-center text-gray-600">{ligne.unite || '—'}</td>
                                 <td className="px-3 py-2 text-center font-bold" style={{ color: '#06006E' }}>{qte}</td>
                                 <td className="px-3 py-2 text-right">{formatFCFA(pu)}</td>
                                 <td className="px-3 py-2 text-right font-bold" style={{ color: '#06006E' }}>{formatFCFA(montant)}</td>

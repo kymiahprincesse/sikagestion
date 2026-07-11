@@ -7,7 +7,7 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
+import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_TRAVAUX = ['Découpe', 'Pliage', 'Roulage', 'Assemblage', 'Soudure', 'Finition']
@@ -246,7 +246,7 @@ export default function DevisChaudronnerie() {
       materiau: l.materiau,
       epaisseur: l.epaisseur,
       surface: l.surface,
-      dn: `${l.surface || 0}m²`,
+      unite: `${l.surface || 0}m²`,
       qte: parseFloat(l.quantite) || 0,
       pu: parseFloat(l.pu) || 0,
       montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
@@ -277,20 +277,7 @@ export default function DevisChaudronnerie() {
       ttc: totaux.ttc
     };
 
-    // Générer le HTML avec le nouveau template
-    const htmlContent = generateDevisHTML(templateData);
-    
-    // Ouvrir dans une nouvelle fenêtre pour impression
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Attendre le chargement puis imprimer
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    };
+    printDevisHTML(templateData);
     
     addLog({ module: 'DEVIS_CHAUDRONNERIE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devisData.numero } });
     ajouterNotification({

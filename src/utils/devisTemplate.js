@@ -3,6 +3,8 @@
 // ═══════════════════════════════════════════════════════════════
 import { useClientsStore } from '../store/useClientsStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useParametresStore } from '../store/useParametresStore';
+import { useUtilisateursStore } from '../store/useUtilisateursStore';
 
 /**
  * Génère le HTML complet d'un devis prêt à imprimer sur A4
@@ -42,8 +44,29 @@ export function generateDevisHTML(data, baseUrl = '') {
     montantBrut = 0
   } = data;
 
+  let companyName = 'SIKA INDUSTRIE';
+  let companyAddress = 'Port-Bouët Anani, Rond-Point Carrefour';
+  let companyTel = '(225) 07 97 25 25 26';
+  let companyTel2 = '01 02 31 29 81';
+  let companyEmail = 'infosikaindustrie@gmail.com';
+  let companyCapital = '1.000.000 FCFA';
+  let companyCC = '';
+  let companyRCCM = '';
+
   // Enrichissement automatique du client et de l'utilisateur depuis les stores
   try {
+    const params = useParametresStore.getState();
+    if (params) {
+      companyName = params.nomEntreprise || companyName;
+      companyAddress = params.adresseEntreprise || companyAddress;
+      companyTel = params.telephoneEntreprise || companyTel;
+      companyTel2 = params.telephone2 || companyTel2;
+      companyEmail = params.emailEntreprise || companyEmail;
+      companyCapital = params.capital || companyCapital;
+      companyCC = params.cc || companyCC;
+      companyRCCM = params.rccm || params.rcm || companyRCCM;
+    }
+
     const clients = useClientsStore.getState().clients;
     const user = useAuthStore.getState().utilisateurConnecte;
     
@@ -62,11 +85,31 @@ export function generateDevisHTML(data, baseUrl = '') {
       };
     }
 
-    // Récupérer le nom de la personne connectée (qui édite le devis)
-    if (user && (!infos.etabliPar || infos.etabliPar === 'SIKA INDUSTRIE' || infos.etabliPar === 'Utilisateur')) {
-      infos.etabliPar = user.nom;
-      if (user.telephone) {
-        infos.tel = user.telephone;
+    const usersList = useUtilisateursStore.getState().utilisateurs || [];
+
+    // Récupérer le nom de la personne connectée (qui édite le devis) si générique
+    if (!infos.etabliPar || infos.etabliPar === 'SIKA INDUSTRIE' || infos.etabliPar === 'Utilisateur') {
+      if (user) {
+        infos.etabliPar = user.nom || companyName;
+        infos.tel = user.telephone || companyTel;
+      } else {
+        infos.etabliPar = companyName;
+        infos.tel = companyTel;
+      }
+    }
+
+    // Récupérer les informations de contact à jour de l'utilisateur ayant établi le devis
+    if (infos.etabliPar && infos.etabliPar !== 'SIKA INDUSTRIE' && infos.etabliPar !== 'Utilisateur') {
+      const existingUser = usersList.find(u => 
+        (u.nom && u.nom.toLowerCase() === infos.etabliPar.toLowerCase()) ||
+        (u.login && u.login.toLowerCase() === infos.etabliPar.toLowerCase())
+      );
+      if (existingUser) {
+        // L'utilisateur existe, on met à jour son numéro de téléphone en temps réel
+        infos.tel = existingUser.telephone || companyTel;
+      } else {
+        // L'utilisateur n'existe pas (supprimé ou autre), on repasse sur le numéro de l'entreprise
+        infos.tel = companyTel;
       }
     }
   } catch {
@@ -89,6 +132,8 @@ export function generateDevisHTML(data, baseUrl = '') {
 
   // ── Badge statut ── (Désactivé à la demande pour l'impression)
   const statutBadge = '';
+
+  const formattedRef = reference && (reference.startsWith('N°') || reference.startsWith('n°')) ? reference : `N° ${reference}`;
 
   // ── Watermark brouillon ── (Désactivé à la demande pour l'impression)
   const draftWatermark = '';
@@ -121,6 +166,12 @@ export function generateDevisHTML(data, baseUrl = '') {
   }
 
   // ── Lignes du tableau ──
+  const isCalorifuge = type && type.toUpperCase() === 'CALORIFUGE';
+  const hasMlOrPt = isCalorifuge || lignes.some(l => 
+    (l.ml !== undefined && l.ml !== null && l.ml !== '' && parseFloat(l.ml) > 0) || 
+    (l.pt !== undefined && l.pt !== null && l.pt !== '' && parseFloat(l.pt) > 0)
+  );
+
   const lignesHTML = lignes.length > 0 ? lignes.map((ligne, i) => {
     let desig = ligne.designation || '—';
     const details = [];
@@ -131,23 +182,68 @@ export function generateDevisHTML(data, baseUrl = '') {
     if (ligne.typeTuyau) details.push(ligne.typeTuyau);
     if (ligne.pression) details.push(ligne.pression);
     if (ligne.longueur && ligne.longueur > 0) details.push(`L: ${ligne.longueur}m`);
-    if (ligne.ml && ligne.ml > 0) details.push(`ML: ${ligne.ml}`);
-    if (ligne.pt && ligne.pt > 0) details.push(`PT: ${ligne.pt}`);
     if (ligne.surface && ligne.surface > 0) details.push(`${ligne.surface}m²`);
+    
+    // We no longer append ML and PT inline if they have their own columns
+    if (!hasMlOrPt) {
+      const mlPtParts = [];
+      if (ligne.ml && parseFloat(ligne.ml) > 0) mlPtParts.push(`ML: ${ligne.ml}`);
+      if (ligne.pt && parseFloat(ligne.pt) > 0) mlPtParts.push(`PT: ${ligne.pt}`);
+      if (mlPtParts.length > 0) {
+        desig += ` (${mlPtParts.join(' · ')})`;
+      }
+    }
+
     if (details.length > 0) {
       desig += `<br><span style="font-size:8pt;color:#555;font-style:italic;padding-left:4px;border-left:2px solid #1A3A8F;">${details.join(' · ')}</span>`;
     }
     const bg = i % 2 === 0 ? '#ffffff' : '#f7f7f7';
     const montant = ligne.montant || (ligne.qte * ligne.pu) || 0;
-    return `<tr style="background:${bg};">
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;color:#555;">${i + 1}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;">${desig}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;">${ligne.dn || ligne.unite || '—'}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#1A3A8F;">${fmt(ligne.qte || 0)}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;">${fmt(ligne.pu || 0)}</td>
-      <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;font-weight:bold;color:#1A3A8F;">${fmt(montant)}</td>
-    </tr>`;
-  }).join('') : `<tr><td colspan="6" style="text-align:center;color:#999;padding:20px;font-size:10pt;">Aucune ligne</td></tr>`;
+
+    if (hasMlOrPt) {
+      const valMl = (ligne.ml !== undefined && ligne.ml !== null && ligne.ml !== '') ? ligne.ml : '—';
+      const valPt = (ligne.pt !== undefined && ligne.pt !== null && ligne.pt !== '') ? ligne.pt : '—';
+      return `<tr style="background:${bg};">
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;color:#555;width:24px;">${i + 1}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;">${desig}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;width:35px;">${ligne.unite || '—'}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#444;width:40px;">${valMl}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#444;width:40px;">${valPt}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#1A3A8F;width:45px;">${fmt(ligne.qte || 0)}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;width:95px;">${fmt(ligne.pu || 0)}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;font-weight:bold;color:#1A3A8F;width:105px;">${fmt(montant)}</td>
+      </tr>`;
+    } else {
+      return `<tr style="background:${bg};">
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;color:#555;width:24px;">${i + 1}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;">${desig}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;width:40px;">${ligne.unite || '—'}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#1A3A8F;width:45px;">${fmt(ligne.qte || 0)}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;width:95px;">${fmt(ligne.pu || 0)}</td>
+        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;font-weight:bold;color:#1A3A8F;width:105px;">${fmt(montant)}</td>
+      </tr>`;
+    }
+  }).join('') : `<tr><td colspan="${hasMlOrPt ? 8 : 6}" style="text-align:center;color:#999;padding:20px;font-size:10pt;">Aucune ligne</td></tr>`;
+
+  const tableHeaderHTML = hasMlOrPt ? `
+      <tr style="background:#1A3A8F;color:white;">
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:24px;text-align:center;">N°</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9.5pt;text-align:left;">DÉSIGNATION</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:35px;text-align:center;">U</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:40px;text-align:center;">ML</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:40px;text-align:center;">PT</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:45px;text-align:center;">QTÉ</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:95px;text-align:right;">P.U. (FCFA)</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:105px;text-align:right;">MONTANT (FCFA)</th>
+      </tr>` : `
+      <tr style="background:#1A3A8F;color:white;">
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:24px;text-align:center;">N°</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9.5pt;text-align:left;">DÉSIGNATION</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:40px;text-align:center;">U</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:45px;text-align:center;">QTÉ</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:95px;text-align:right;">P.U. (FCFA)</th>
+        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:105px;text-align:right;">MONTANT (FCFA)</th>
+      </tr>`;
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -217,7 +313,7 @@ export function generateDevisHTML(data, baseUrl = '') {
     @media print {
       @page {
         size: A4 portrait;
-        margin: 15mm 15mm 28mm 15mm; /* Évite les en-têtes/pieds par défaut du navigateur, définit des marges propres */
+        margin: 12mm 15mm 28mm 15mm;
       }
       html, body {
         background: #fff !important;
@@ -234,10 +330,10 @@ export function generateDevisHTML(data, baseUrl = '') {
       .page-footer {
         display: block !important;
         position: fixed;
-        bottom: 8mm; /* Positionné dans la marge basse de 28mm */
-        left: 15mm;  /* Aligné avec la marge gauche de 15mm */
-        right: 15mm; /* Aligné avec la marge droite de 15mm */
-        margin-top: 0;
+        bottom: 8mm !important; /* Position sécurisée de 8mm pour être visible et ne pas être coupée par l'imprimante ou le PDF */
+        left: 15mm !important;  /* Aligné avec les marges gauche/droite */
+        right: 15mm !important;
+        width: calc(100% - 30mm) !important;
         background: #fff;
         z-index: 9999;
       }
@@ -339,9 +435,11 @@ ${draftWatermark}
   <!-- ══ BANDEAU DEVIS ══ -->
   <table width="100%" style="background:#1A3A8F;color:white;margin-bottom:10px;">
     <tr>
-      <td style="padding:8px 14px;font-size:20pt;font-weight:bold;letter-spacing:2px;">DEVIS</td>
-      <td style="padding:8px 14px;font-size:10pt;font-weight:bold;">${reference}</td>
-      <td style="padding:8px 14px;text-align:right;font-size:9pt;">
+      <td width="30%" style="padding:8px 14px;font-size:20pt;font-weight:bold;letter-spacing:2px;vertical-align:middle;">DEVIS</td>
+      <td width="40%" style="padding:8px 14px;font-size:16pt;font-weight:bold;text-align:center;letter-spacing:1px;vertical-align:middle;white-space:nowrap;">
+        ${formattedRef}
+      </td>
+      <td width="30%" style="padding:8px 14px;text-align:right;font-size:9pt;vertical-align:middle;line-height:1.4;">
         ${typeBadge}${statutBadge}<br/>
         <span style="opacity:0.9;">Abidjan, le ${fmtDate(infos.date)}</span><br/>
         <span style="opacity:0.8;">Validité : ${infos.validite || '30 jours'}</span>
@@ -392,14 +490,7 @@ ${draftWatermark}
   <div class="section-title" style="margin-bottom:0;">I. Détail des prestations</div>
   <table width="100%" style="border:1px solid #1A3A8F;margin-bottom:0;">
     <thead>
-      <tr style="background:#1A3A8F;color:white;">
-        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:24px;text-align:center;">N°</th>
-        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;text-align:left;">DÉSIGNATION</th>
-        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:40px;text-align:center;">U</th>
-        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:45px;text-align:center;">QTÉ</th>
-        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:95px;text-align:right;">P.U. (FCFA)</th>
-        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:8pt;width:105px;text-align:right;">MONTANT (FCFA)</th>
-      </tr>
+      ${tableHeaderHTML}
     </thead>
     <tbody>${lignesHTML}</tbody>
   </table>
@@ -448,8 +539,8 @@ ${draftWatermark}
   <!-- ══ PIED DE PAGE UNIQUE ET AUTOMATIQUE ══ -->
   <div class="page-footer" id="page-footer">
     <div class="pied-suite-barre" id="pied-suite-barre">
-      <span>Réf. : ${reference} &mdash; ${type || 'SIKA INDUSTRIE'} &mdash; Document confidentiel</span>
-      <span>SIKA INDUSTRIE &bull; T&#233;l : (225) 07 97 25 25 26 &bull; Page <span class="page-number"></span></span>
+      <span>Réf. : ${reference} &mdash; ${type || companyName} &mdash; Document confidentiel</span>
+      <span>${companyName} &bull; T&#233;l : ${companyTel} &bull; Page <span class="page-number"></span></span>
     </div>
     <img class="footer-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
   </div>
@@ -487,7 +578,7 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
   if (devisData.lignes && Array.isArray(devisData.lignes)) {
     lignes = devisData.lignes.map(l => ({
       designation: l.designation || '',
-      dn: l.dn || l.unite || '',
+      unite: l.unite || '',
       qte: parseFloat(l.qte) || 0,
       pu: parseFloat(l.pu) || 0,
       montant: parseFloat(l.montant) || (parseFloat(l.qte) * parseFloat(l.pu)) || 0,
@@ -506,7 +597,7 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
   } else if (devisData.lignesCommerciales && Array.isArray(devisData.lignesCommerciales)) {
     lignes = devisData.lignesCommerciales.map(l => ({
       designation: l.designation || '',
-      dn: l.unite || '—',
+      unite: l.unite || '—',
       qte: parseFloat(l.qte) || 0,
       pu: parseFloat(l.pu) || 0,
       montant: parseFloat(l.qte) * parseFloat(l.pu) || 0,
@@ -570,30 +661,36 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
 export function printDevisHTML(data) {
   const baseUrl = window.location.origin;
   const html = generateDevisHTML(data, baseUrl);
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  // Ouvrir dans un nouvel onglet — l'utilisateur voit la page complète
-  // avec le bouton "Imprimer" et peut aussi utiliser Ctrl+P
-  const win = window.open(url, '_blank');
+  
+  // Ouvrir dans une nouvelle fenêtre vide (sans URL blob) pour éviter d'afficher le lien blob:https://...
+  const win = window.open('', '_blank');
   if (win) {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
     win.focus();
-    // Révoquer le blob après chargement pour libérer la mémoire
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
   } else {
-    // Fallback si popup bloqué : iframe plein écran
+    // Fallback si popup bloqué : iframe temporaire
     const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;z-index:99999;background:#fff;';
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;border:none;visibility:hidden;z-index:-9999;';
     document.body.appendChild(iframe);
-    iframe.src = url;
-    iframe.onload = () => {
+    
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.error("Erreur lors de l'impression :", err);
+      }
       setTimeout(() => {
-        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch { /* ignore print errors */ }
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-          URL.revokeObjectURL(url);
-        }, 3000);
-      }, 800);
-    };
+        document.body.removeChild(iframe);
+      }, 3000);
+    }, 1000);
   }
 }
 

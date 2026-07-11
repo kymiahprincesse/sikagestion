@@ -263,7 +263,7 @@ export default function DevisSoudure() {
       materiau: l.materiau,
       epaisseur: l.epaisseur,
       longueur: l.longueur,
-      dn: l.epaisseur ? `Ép. ${l.epaisseur}mm` : `${l.longueur || 0}m`,
+      unite: l.epaisseur ? `Ép. ${l.epaisseur}mm` : `${l.longueur || 0}m`,
       qte: parseFloat(l.quantite) || 0,
       pu: parseFloat(l.pu) || 0,
       montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)

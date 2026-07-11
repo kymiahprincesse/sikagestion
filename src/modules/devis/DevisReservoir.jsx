@@ -369,7 +369,7 @@ export default function DevisReservoir() {
     // Préparer les données pour le template avec tous les détails
     const lignesAvecMontant = devisData.lignesCommerciales.map(l => ({
       designation: l.designation || 'Ligne de devis',
-      dn: 'U',
+      unite: 'U',
       qte: parseFloat(l.qte) || 0,
       pu: parseFloat(l.pu) || 0,
       montant: (parseFloat(l.qte) || 0) * (parseFloat(l.pu) || 0)

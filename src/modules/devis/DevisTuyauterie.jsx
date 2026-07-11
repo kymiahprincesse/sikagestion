@@ -7,7 +7,7 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatDateLong, formatFCFA, generateSecureId } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils'
-import { generateDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
+import { generateDevisHTML, prepareDevisData, printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const TYPES_TUYAU = ['Acier noir', 'Acier galvanisé', 'Inox 304', 'Inox 316', 'PVC', 'PEHD']
@@ -17,7 +17,6 @@ const PRESSIONS = ['PN10', 'PN16', 'PN25', 'PN40']
 
 const LIGNE_VIDE = {
   designation: '',
-  dn: 'DN50',
   typeTuyau: 'Acier noir',
   pression: 'PN16',
   longueur: 0,
@@ -252,14 +251,14 @@ export default function DevisTuyauterie() {
     
     // Préparer les données pour le template avec tous les détails
     const lignesAvecMontant = devisData.lignes.map(l => ({
-      designation: l.designation || `${l.typeTuyau || 'Tuyau'} ${l.dn || ''}`,
+      designation: l.designation || `${l.typeTuyau || 'Tuyau'}`,
       typeTuyau: l.typeTuyau,
       pression: l.pression,
       longueur: l.longueur,
-      dn: l.dn || '—',
-      qte: parseFloat(l.quantite) || 0,
+      unite: 'm',
+      qte: parseFloat(l.longueur) || 0,
       pu: parseFloat(l.pu) || 0,
-      montant: (parseFloat(l.quantite) || 0) * (parseFloat(l.pu) || 0)
+      montant: (parseFloat(l.longueur) || 0) * (parseFloat(l.pu) || 0)
     }));
     
     const templateData = {
@@ -287,20 +286,7 @@ export default function DevisTuyauterie() {
       ttc: totaux.ttc
     };
 
-    // Générer le HTML avec le nouveau template
-    const htmlContent = generateDevisHTML(templateData);
-    
-    // Ouvrir dans une nouvelle fenêtre pour impression
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    
-    // Attendre le chargement puis imprimer
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    };
+    printDevisHTML(templateData);
     
     addLog({ module: 'DEVIS_TUYAUTERIE', action: 'EXPORT_PDF', utilisateur: 'Utilisateur', apres: { numero: devisData.numero } });
     ajouterNotification({
@@ -395,12 +381,11 @@ export default function DevisTuyauterie() {
               <thead>
                 <tr className="bg-navy text-white">
                   <th className="border border-argent px-4 py-2 text-left">DÉSIGNATION</th>
-                  <th className="border border-argent px-4 py-2 text-center w-24">DN</th>
-                  <th className="border border-argent px-4 py-2 text-center w-32">TYPE TUYAU</th>
-                  <th className="border border-argent px-4 py-2 text-center w-24">PRESSION</th>
-                  <th className="border border-argent px-4 py-2 text-center w-24">LONG. (m)</th>
-                  <th className="border border-argent px-4 py-2 text-right w-32">PU (FCFA/m)</th>
-                  <th className="border border-argent px-4 py-2 text-right w-32">MONTANT (FCFA)</th>
+                  <th className="border border-argent px-4 py-2 text-center w-36">TYPE TUYAU</th>
+                  <th className="border border-argent px-4 py-2 text-center w-28">PRESSION</th>
+                  <th className="border border-argent px-4 py-2 text-center w-28">LONG. (m)</th>
+                  <th className="border border-argent px-4 py-2 text-right w-36">PU (FCFA/m)</th>
+                  <th className="border border-argent px-4 py-2 text-right w-36">MONTANT (FCFA)</th>
                   <th className="border border-argent px-4 py-2 text-center w-20">Actions</th>
                 </tr>
               </thead>
@@ -411,11 +396,6 @@ export default function DevisTuyauterie() {
                     <tr key={ligne.id} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
                       <td className="border border-argent px-4 py-2">
                         <input type="text" value={ligne.designation} onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange" placeholder="Désignation..." />
-                      </td>
-                      <td className="border border-argent px-4 py-2">
-                        <select value={ligne.dn} onChange={(e) => modifierLigne(ligne.id, 'dn', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange">
-                          {DIAMETRES_NOMINAUX.map(dn => <option key={dn} value={dn}>{dn}</option>)}
-                        </select>
                       </td>
                       <td className="border border-argent px-4 py-2">
                         <select value={ligne.typeTuyau} onChange={(e) => modifierLigne(ligne.id, 'typeTuyau', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange">
