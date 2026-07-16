@@ -1,17 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNotificationsStore } from '../store/useNotificationsStore';
-import { useFacturesStore } from '../store/useFacturesStore';
-import { useDevisStore } from '../store/useDevisStore';
-import { useAOStore } from '../store/useAOStore';
-import { usePlanificationStore } from '../store/usePlanificationStore';
-import { useFournisseursStore } from '../store/useFournisseursStore';
+
 
 export default function NotificationsPanel() {
   const [isOpen, setIsOpen] = useState(false);
   
   const {
     notifications,
-    genererNotifications,
+
     marquerCommeLue,
     marquerToutCommeLu,
     supprimerNotification,
@@ -20,12 +16,7 @@ export default function NotificationsPanel() {
     estLue
   } = useNotificationsStore();
 
-  const factures = useFacturesStore((state) => state.factures);
-  const devis = useDevisStore((state) => state.devis);
-  const appelsDoffres = useAOStore((state) => state.appelsDoffres);
-  const projets = usePlanificationStore((state) => state.projets);
-  const fournisseurs = useFournisseursStore((state) => state.fournisseurs);
-  const achats = useFournisseursStore((state) => state.achats);
+
 
   const compteurNonLues = getCompteurNonLues();
 
@@ -38,11 +29,11 @@ export default function NotificationsPanel() {
       case 'URGENT':
         return 'border-l-4 border-rouge bg-red-50';
       case 'ATTENTION':
-        return 'border-l-4 border-orange bg-orange-50';
+        return 'border-l-4 border-rouge bg-rouge-50';
       case 'INFO':
         return 'border-l-4 border-bleu bg-blue-50';
       default:
-        return 'border-l-4 border-argent bg-gray-50';
+        return 'border-l-4 border-argent bg-background';
     }
   };
 
@@ -84,7 +75,7 @@ export default function NotificationsPanel() {
             onClick={() => setIsOpen(false)}
           />
           
-          <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-lg shadow-2xl border border-argent z-50 max-h-[600px] flex flex-col">
+          <div className="absolute right-0 top-full mt-2 w-96 bg-surface rounded-lg shadow-2xl border border-argent z-50 max-h-[600px] flex flex-col">
             <div className="bg-navy text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
               <h3 className="font-bold text-lg">
                 Notifications {compteurNonLues > 0 && `(${compteurNonLues})`}
@@ -139,13 +130,13 @@ export default function NotificationsPanel() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className={`text-xs font-bold ${
                                 notif.type === 'URGENT' ? 'text-rouge' :
-                                notif.type === 'ATTENTION' ? 'text-orange' :
+                                notif.type === 'ATTENTION' ? 'text-rouge' :
                                 'text-bleu'
                               }`}>
                                 {notif.titre}
                               </span>
                               {!lue && (
-                                <span className="w-2 h-2 bg-orange rounded-full flex-shrink-0" />
+                                <span className="w-2 h-2 bg-rouge rounded-full flex-shrink-0" />
                               )}
                             </div>
                             
@@ -189,7 +180,7 @@ export default function NotificationsPanel() {
             </div>
 
             {notifications.length > 0 && (
-              <div className="bg-gray-50 px-4 py-2 rounded-b-lg border-t border-argent text-center">
+              <div className="bg-background px-4 py-2 rounded-b-lg border-t border-argent text-center">
                 <p className="text-xs text-gray-500">
                   {notifications.length} notification{notifications.length > 1 ? 's' : ''} au total
                 </p>

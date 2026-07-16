@@ -1,5 +1,12 @@
 import { supabase, checkConnection } from './supabaseClient'
 import { logger } from '../utils/logger'
+import Dexie from 'dexie'
+
+// Initialiser Dexie pour la file d'attente (évite la limite de 5Mo du localStorage)
+export const db = new Dexie('SikaGestionOfflineDB');
+db.version(1).stores({
+  offlineQueue: '++id, table, operation, payload, attempts, timestamp, status' 
+});
 
 /**
  * Gestionnaire de connexion Supabase robuste
@@ -45,7 +52,9 @@ class ConnectionManager {
     document.addEventListener('visibilitychange', this.boundHandleVisibility)
     
     this.startHeartbeat()
-    this.checkConnection()
+    this.loadPendingOperations().then(() => {
+      this.checkConnection()
+    })
   }
 
   /**
@@ -107,7 +116,7 @@ class ConnectionManager {
       
       this.notifyListeners()
       return this.isSupabaseConnected
-    } catch (err) {
+    } catch {
       this.isSupabaseConnected = false
       this.notifyListeners()
       this.scheduleReconnect()
@@ -238,37 +247,41 @@ class ConnectionManager {
   /**
    * Queue une opération pour exécution quand la connexion revient
    */
-  queueOperation(operation) {
-    this.pendingOperations.push({
+  async queueOperation(operation) {
+    const op = {
       ...operation,
       timestamp: Date.now(),
-      id: `${Date.now()}-${Math.random()}`
-    })
+      status: 'pending',
+      attempts: 0
+    }
+    this.pendingOperations.push(op)
     
-    // Sauvegarder dans localStorage pour persistance
-    this.savePendingOperations()
+    // Sauvegarder dans Dexie pour persistance illimitée
+    try {
+      const id = await db.offlineQueue.add(op)
+      op.id = id // Mettre à jour l'ID local avec l'ID généré par Dexie
+    } catch (e) {
+      logger.error('Erreur sauvegarde Dexie:', e)
+    }
+    
+    this.notifyListeners()
     
     if (this.isSupabaseConnected) {
       this.processPendingOperations()
     }
   }
 
-  savePendingOperations() {
-    try {
-      localStorage.setItem('sika_pending_ops', JSON.stringify(this.pendingOperations))
-    } catch (e) {
-      logger.error('Erreur sauvegarde opérations:', e)
-    }
+  async savePendingOperations() {
+    // La sauvegarde individuelle se fait via queueOperation, mais on peut forcer la synchro complète si besoin
   }
 
-  loadPendingOperations() {
+  async loadPendingOperations() {
     try {
-      const stored = localStorage.getItem('sika_pending_ops')
-      if (stored) {
-        this.pendingOperations = JSON.parse(stored)
-      }
+      const ops = await db.offlineQueue.where('status').equals('pending').toArray()
+      this.pendingOperations = ops
+      this.notifyListeners()
     } catch (e) {
-      logger.error('Erreur chargement opérations:', e)
+      logger.error('Erreur chargement opérations Dexie:', e)
     }
   }
 
@@ -278,28 +291,32 @@ class ConnectionManager {
     this.isProcessing = true
     const operations = [...this.pendingOperations]
     this.pendingOperations = []
-    this.savePendingOperations()
-
+    
     const failed = []
     for (const op of operations) {
       const attempts = (op.attempts || 0) + 1
       try {
         await this.executeOperation(op)
+        // Succès: on supprime de Dexie
+        await db.offlineQueue.delete(op.id)
       } catch (err) {
         logger.error('Erreur exécution opération:', err)
         if (attempts < 5) {
           failed.push({ ...op, attempts })
+          // Mettre à jour le nombre de tentatives dans Dexie
+          await db.offlineQueue.update(op.id, { attempts })
         } else {
           logger.error('Opération abandonnée après 5 échecs:', op)
+          await db.offlineQueue.update(op.id, { status: 'failed', attempts })
         }
       }
     }
 
     if (failed.length > 0) {
       this.pendingOperations = [...this.pendingOperations, ...failed]
-      this.savePendingOperations()
     }
-
+    
+    this.notifyListeners()
     this.isProcessing = false
   }
 

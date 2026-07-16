@@ -6,7 +6,7 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useNotifications } from '../../components/NotificationProvider'
 import {
   ShoppingCart, Receipt, Plus, Edit2, Trash2, Eye, Search, RefreshCw,
-  FileSpreadsheet, BookOpen, X, TrendingDown, BarChart2, Printer
+  FileSpreadsheet, BookOpen, X, BarChart2, Printer
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { createSikaPDF, sikaTable, finalizeSikaPDF, formatMontant, addDiagonalWatermark } from '../../utils/printUtils'
@@ -56,10 +56,10 @@ const fmt = (n) => formatFCFA(n || 0)
 
 function StatCard({ icon, label, value, color }) {
   return (
-    <div className="bg-white rounded-xl shadow p-5 border-l-4" style={{ borderColor: color }}>
+    <div className="bg-surface rounded-xl shadow p-5 border-l-4" style={{ borderColor: color }}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase" style={{ color: '#C8C8D0' }}>{label}</p>
+          <p className="text-xs font-semibold uppercase" style={{ color: 'var(--color-border)' }}>{label}</p>
           <p className="text-xl font-bold mt-1" style={{ color }}>{value}</p>
         </div>
         <span className="text-3xl">{icon}</span>
@@ -112,6 +112,7 @@ function OngletAchats() {
     setLoading(false)
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData() }, [loadData])
 
   const achatsFiltres = useMemo(() => achats.filter(a => {
@@ -391,71 +392,71 @@ function OngletAchats() {
     <div className="space-y-5">
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon="🛒" label="Total Achats"      value={stats.nb + ' achat(s)'} color="#1B2A4A" />
-        <StatCard icon="💰" label="Montant Total TTC" value={fmt(stats.total)}        color="#1F5C99" />
-        <StatCard icon="✅" label="Montant Payé"      value={fmt(stats.paye)}         color="#1A7A4A" />
-        <StatCard icon="⏳" label="En Attente"        value={fmt(stats.attente)}      color="#E60000" />
+        <StatCard icon="🛒" label="Total Achats"      value={stats.nb + ' achat(s)'} color="var(--color-primary)" />
+        <StatCard icon="💰" label="Montant Total TTC" value={fmt(stats.total)}        color="var(--color-secondary)" />
+        <StatCard icon="✅" label="Montant Payé"      value={fmt(stats.paye)}         color="var(--color-success)" />
+        <StatCard icon="⏳" label="En Attente"        value={fmt(stats.attente)}      color="var(--color-accent)" />
       </div>
 
       {/* Filtres */}
-      <div className="bg-white rounded-xl shadow p-5">
+      <div className="bg-surface rounded-xl shadow p-5">
         <div className="flex flex-wrap gap-3 items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-[#1B2A4A]">Filtres</h3>
+          <h3 className="text-sm font-bold text-textMain">Filtres</h3>
           <div className="flex gap-2">
-            <button onClick={loadData} className="bg-[#1F5C99] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
+            <button onClick={loadData} className="bg-secondary text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
               <RefreshCw size={13} /> Actualiser
             </button>
-            <button onClick={handleExcel} className="bg-[#1A7A4A] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
+            <button onClick={handleExcel} className="bg-success text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
               <FileSpreadsheet size={13} /> Excel
             </button>
-            <button onClick={handlePrintGlobal} className="bg-[#1B2A4A] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
+            <button onClick={handlePrintGlobal} className="bg-primary text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
               <Printer size={13} /> Imprimer
             </button>
-            <button onClick={() => handleOuvrir()} className="bg-[#E60000] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
+            <button onClick={() => handleOuvrir()} className="bg-accent text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
               <Plus size={13} /> Nouvel Achat
             </button>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="relative md:col-span-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8C8D0]" size={14} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" size={14} />
             <input type="text" placeholder="Rechercher fournisseur, facture, description…"
               value={recherche} onChange={e => setRecherche(e.target.value)}
-              className="w-full pl-8 pr-4 py-2 border border-[#C8C8D0] rounded-lg text-sm focus:outline-none focus:border-[#E60000]" />
+              className="w-full pl-8 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-[var(--color-accent)]" />
           </div>
           <select value={filtreStatut} onChange={e => setFiltreStatut(e.target.value)}
-            className="border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+            className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
             <option value="">Tous les statuts</option>
             {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <select value={filtreCategorie} onChange={e => setFiltreCategorie(e.target.value)}
-            className="border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+            className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
             <option value="">Toutes catégories</option>
             {CATEGORIES_ACHATS.map(c => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
           </select>
           <div className="flex gap-2">
             <input type="date" value={filtreDateDebut} onChange={e => setFiltreDateDebut(e.target.value)}
-              className="flex-1 border border-[#C8C8D0] rounded-lg px-2 py-2 text-sm focus:outline-none" />
+              className="flex-1 border border-border rounded-lg px-2 py-2 text-sm focus:outline-none" />
             <input type="date" value={filtreDateFin} onChange={e => setFiltreDateFin(e.target.value)}
-              className="flex-1 border border-[#C8C8D0] rounded-lg px-2 py-2 text-sm focus:outline-none" />
+              className="flex-1 border border-border rounded-lg px-2 py-2 text-sm focus:outline-none" />
           </div>
         </div>
-        <p className="text-xs text-[#C8C8D0] mt-2">{achatsFiltres.length} achat(s) affiché(s)</p>
+        <p className="text-xs text-textMuted mt-2">{achatsFiltres.length} achat(s) affiché(s)</p>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div className="bg-surface rounded-xl shadow overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-16"><RefreshCw size={32} className="animate-spin text-[#E60000]" /></div>
+          <div className="flex items-center justify-center py-16"><RefreshCw size={32} className="animate-spin text-accent" /></div>
         ) : achatsFiltres.length === 0 ? (
-          <div className="text-center py-16 text-[#C8C8D0]">
+          <div className="text-center py-16 text-textMuted">
             <ShoppingCart size={40} className="mx-auto mb-2 opacity-40" />
             <p className="font-semibold text-sm">Aucun achat trouvé</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              <thead className="bg-[#1B2A4A] text-white text-xs uppercase">
+              <thead className="bg-primary text-white text-xs uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3 text-left">N° Facture</th>
@@ -473,30 +474,30 @@ function OngletAchats() {
                   const statut = STATUTS.find(s => s.value === a.statut)
                   const cat    = CATEGORIES_ACHATS.find(c => c.value === a.categorie)
                   return (
-                    <tr key={a.id} className="hover:bg-[#FFE6E6] transition-colors border-b border-[#E8ECF4]"
+                    <tr key={a.id} className="hover:bg-[var(--color-accent-light)] transition-colors border-b border-surfaceMuted"
                       style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-[#1F5C99]">
+                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-secondary">
                         {new Date(a.date_achat).toLocaleDateString('fr-FR')}
                       </td>
-                      <td className="px-4 py-3 font-semibold text-[#1B2A4A]">
-                        {a.numero_facture || a.reference || <span className="text-[#C8C8D0]">—</span>}
+                      <td className="px-4 py-3 font-semibold text-textMain">
+                        {a.numero_facture || a.reference || <span className="text-textMuted">—</span>}
                       </td>
-                      <td className="px-4 py-3 max-w-xs"><p className="truncate text-[#1B2A4A]">{a.description || '—'}</p></td>
-                      <td className="px-4 py-3 text-[#1B2A4A]">{a.fournisseurs?.nom || <span className="text-[#C8C8D0]">—</span>}</td>
+                      <td className="px-4 py-3 max-w-xs"><p className="truncate text-textMain">{a.description || '—'}</p></td>
+                      <td className="px-4 py-3 text-textMain">{a.fournisseurs?.nom || <span className="text-textMuted">—</span>}</td>
                       <td className="px-4 py-3">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#E8ECF4] text-[#1B2A4A]">{cat?.icon} {cat?.label || a.categorie}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-surfaceMuted text-textMain">{cat?.icon} {cat?.label || a.categorie}</span>
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-[#E60000]">{fmt(a.montant_ttc)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-accent">{fmt(a.montant_ttc)}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
                           style={{ backgroundColor: statut?.bg, color: statut?.color }}>{statut?.label || a.statut}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         {a.mouvement_caisse_id ? (
-                          <span className="text-xs text-[#1A7A4A] font-semibold">✓ Enregistré</span>
+                          <span className="text-xs text-success font-semibold">✓ Enregistré</span>
                         ) : (
                           <button onClick={() => handleJournal(a)} title="Enregistrer dans le Journal"
-                            className="text-[#1F5C99] hover:text-[#E60000] transition-colors" disabled={a.statut === 'ANNULE'}>
+                            className="text-secondary hover:text-[var(--color-accent)] transition-colors" disabled={a.statut === 'ANNULE'}>
                             <BookOpen size={16} />
                           </button>
                         )}
@@ -504,21 +505,21 @@ function OngletAchats() {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => { setSelected(a); setShowDetail(true) }}
-                            className="p-1.5 rounded hover:bg-[#E8ECF4] text-[#1F5C99]" title="Voir"><Eye size={14} /></button>
+                            className="p-1.5 rounded hover:bg-[var(--color-surface-muted)] text-secondary" title="Voir"><Eye size={14} /></button>
                           <button onClick={() => handleOuvrir(a)}
-                            className="p-1.5 rounded hover:bg-[#E8ECF4] text-[#E60000]" title="Modifier"><Edit2 size={14} /></button>
+                            className="p-1.5 rounded hover:bg-[var(--color-surface-muted)] text-accent" title="Modifier"><Edit2 size={14} /></button>
                           <button onClick={() => handleDelete(a)}
-                            className="p-1.5 rounded hover:bg-[#FFE6E6] text-[#E60000]" title="Supprimer"><Trash2 size={14} /></button>
+                            className="p-1.5 rounded hover:bg-[var(--color-accent-light)] text-accent" title="Supprimer"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
                   )
                 })}
               </tbody>
-              <tfoot className="bg-[#E8ECF4]">
+              <tfoot className="bg-surfaceMuted">
                 <tr>
-                  <td colSpan={5} className="px-4 py-2 text-right font-bold text-[#1B2A4A] text-sm">Total affiché :</td>
-                  <td className="px-4 py-2 text-right font-bold text-[#E60000]">
+                  <td colSpan={5} className="px-4 py-2 text-right font-bold text-textMain text-sm">Total affiché :</td>
+                  <td className="px-4 py-2 text-right font-bold text-accent">
                     {fmt(achatsFiltres.reduce((s, a) => s + Number(a.montant_ttc || 0), 0))}
                   </td>
                   <td colSpan={3} />
@@ -532,120 +533,120 @@ function OngletAchats() {
       {/* Modal Création / Modification */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="bg-[#1B2A4A] text-white p-5 rounded-t-xl flex justify-between items-center">
+          <div className="bg-surface rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-primary text-white p-5 rounded-t-xl flex justify-between items-center">
               <h2 className="text-lg font-bold flex items-center gap-2">
-                <ShoppingCart size={20} className="text-[#E60000]" />
+                <ShoppingCart size={20} className="text-accent" />
                 {selected ? 'Modifier un Achat' : 'Nouvel Achat'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="hover:text-[#E60000]"><X size={20} /></button>
+              <button onClick={() => setShowModal(false)} className="hover:text-[var(--color-accent)]"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Date Achat *</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Date Achat *</label>
                   <input type="date" value={form.date_achat} onChange={e => handleFormChange('date_achat', e.target.value)}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">N° Facture <span className="text-[#1F5C99] font-normal">(auto)</span></label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">N° Facture <span className="text-secondary font-normal">(auto)</span></label>
                   <input type="text" value={form.numero_facture} onChange={e => handleFormChange('numero_facture', e.target.value)}
                     placeholder="FAC-2024-001"
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000] bg-[#F8F9FA]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)] bg-backgroundLight" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Référence interne <span className="text-[#1F5C99] font-normal">(auto)</span></label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Référence interne <span className="text-secondary font-normal">(auto)</span></label>
                   <input type="text" value={form.reference} onChange={e => handleFormChange('reference', e.target.value)}
                     placeholder="ACH-001"
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000] bg-[#F8F9FA]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)] bg-backgroundLight" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Description *</label>
+                <label className="block text-xs font-semibold text-textMain mb-1">Description *</label>
                 <input type="text" value={form.description} onChange={e => handleFormChange('description', e.target.value)}
                   placeholder="Nature de l'achat…"
-                  className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000]" />
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Fournisseur</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Fournisseur</label>
                   <select value={form.fournisseur_id} onChange={e => handleFormChange('fournisseur_id', e.target.value)}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     <option value="">— Aucun —</option>
                     {fournisseurs.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Catégorie *</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Catégorie *</label>
                   <select value={form.categorie} onChange={e => handleFormChange('categorie', e.target.value)}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     {CATEGORIES_ACHATS.map(c => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Type document</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Type document</label>
                   <select value={form.type_achat} onChange={e => handleFormChange('type_achat', e.target.value)}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     {TYPES_ACHAT.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Montant HT (FCFA)</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Montant HT (FCFA)</label>
                   <input type="number" value={form.montant_ht} onChange={e => handleFormChange('montant_ht', e.target.value)}
                     placeholder="0"
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">TVA (FCFA)</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">TVA (FCFA)</label>
                   <input type="number" value={form.montant_tva} onChange={e => handleFormChange('montant_tva', e.target.value)}
                     placeholder="0"
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Montant TTC * <span className="text-[#1F5C99] text-xs font-normal">(auto-calculé)</span></label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Montant TTC * <span className="text-secondary text-xs font-normal">(auto-calculé)</span></label>
                   <input type="number" value={form.montant_ttc} onChange={e => handleFormChange('montant_ttc', e.target.value)}
                     placeholder="0"
-                    className="w-full border-2 border-[#E60000] rounded-lg px-3 py-2 text-sm font-bold text-[#E60000] focus:outline-none" />
+                    className="w-full border-2 border-accent rounded-lg px-3 py-2 text-sm font-bold text-accent focus:outline-none" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Mode Paiement</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Mode Paiement</label>
                   <select value={form.mode_paiement} onChange={e => handleFormChange('mode_paiement', e.target.value)}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     {MODES_PAIEMENT.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Statut</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Statut</label>
                   <select value={form.statut} onChange={e => handleFormChange('statut', e.target.value)}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Projet lié</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Projet lié</label>
                   <select value={form.projet_id} onChange={e => handleFormChange('projet_id', e.target.value)}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     <option value="">— Aucun —</option>
                     {projets.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Notes</label>
+                <label className="block text-xs font-semibold text-textMain mb-1">Notes</label>
                 <textarea value={form.notes} onChange={e => handleFormChange('notes', e.target.value)}
                   rows={2} placeholder="Remarques éventuelles…"
-                  className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000] resize-none" />
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setShowModal(false)}
-                  className="px-6 py-2 border border-[#C8C8D0] rounded-lg text-sm text-[#1B2A4A] hover:bg-[#E8ECF4]">Annuler</button>
+                  className="px-6 py-2 border border-border rounded-lg text-sm text-textMain hover:bg-[var(--color-surface-muted)]">Annuler</button>
                 <button onClick={handleSave}
                   className="px-6 py-2 rounded-lg text-sm text-white font-semibold hover:opacity-90"
-                  style={{ backgroundColor: '#E60000' }}>
+                  style={{ backgroundColor: 'var(--color-accent)' }}>
                   {selected ? 'Enregistrer modifications' : "Créer l'achat"}
                 </button>
               </div>
@@ -657,14 +658,14 @@ function OngletAchats() {
       {/* Modal Détail */}
       {showDetail && selected && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
-            <div className="bg-[#1B2A4A] text-white p-5 rounded-t-xl flex justify-between items-center">
+          <div className="bg-surface rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="bg-primary text-white p-5 rounded-t-xl flex justify-between items-center">
               <h2 className="text-lg font-bold">Détail Achat #{selected.id}</h2>
               <div className="flex items-center gap-2">
-                <button onClick={() => handlePrintDetail(selected)} className="hover:text-[#E60000]" title="Imprimer">
+                <button onClick={() => handlePrintDetail(selected)} className="hover:text-[var(--color-accent)]" title="Imprimer">
                   <Printer size={18} />
                 </button>
-                <button onClick={() => setShowDetail(false)} className="hover:text-[#E60000]"><X size={20} /></button>
+                <button onClick={() => setShowDetail(false)} className="hover:text-[var(--color-accent)]"><X size={20} /></button>
               </div>
             </div>
             <div className="p-6 space-y-3">
@@ -684,19 +685,19 @@ function OngletAchats() {
                 ['Dans Journal', selected.mouvement_caisse_id ? '✓ Oui (réf #' + selected.mouvement_caisse_id + ')' : '✗ Non'],
                 ['Notes',        selected.notes || '—'],
               ].map(([label, val]) => (
-                <div key={label} className="flex justify-between border-b border-[#E8ECF4] pb-2">
-                  <span className="text-xs font-semibold text-[#C8C8D0] uppercase">{label}</span>
-                  <span className="text-sm font-medium text-[#1B2A4A] text-right max-w-xs">{val}</span>
+                <div key={label} className="flex justify-between border-b border-surfaceMuted pb-2">
+                  <span className="text-xs font-semibold text-textMuted uppercase">{label}</span>
+                  <span className="text-sm font-medium text-textMain text-right max-w-xs">{val}</span>
                 </div>
               ))}
               <div className="flex gap-2 mt-3">
                 <button onClick={() => handlePrintDetail(selected)}
-                  className="flex-1 bg-[#1B2A4A] text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-80">
+                  className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-80">
                   <Printer size={15} /> Imprimer la fiche
                 </button>
                 {!selected.mouvement_caisse_id && selected.statut !== 'ANNULE' && (
                   <button onClick={() => { handleJournal(selected); setShowDetail(false) }}
-                    className="flex-1 bg-[#1F5C99] text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90">
+                    className="flex-1 bg-secondary text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90">
                     <BookOpen size={16} /> Enregistrer Journal
                   </button>
                 )}
@@ -750,6 +751,7 @@ function OngletDepenses() {
     setLoading(false)
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadData() }, [loadData])
 
   const depensesFiltrees = useMemo(() => depenses.filter(d => {
@@ -974,31 +976,31 @@ function OngletDepenses() {
     <div className="space-y-5">
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard icon="💸" label="Total Dépenses"  value={stats.nb + ' dépense(s)'} color="#1B2A4A" />
-        <StatCard icon="📊" label="Montant Total"   value={fmt(stats.total)}          color="#E60000" />
-        <StatCard icon="✅" label="Montant Réglé"   value={fmt(stats.paye)}           color="#1A7A4A" />
-        <StatCard icon="📅" label="Mois courant"    value={fmt(stats.moisCou)}        color="#1F5C99" />
+        <StatCard icon="💸" label="Total Dépenses"  value={stats.nb + ' dépense(s)'} color="var(--color-primary)" />
+        <StatCard icon="📊" label="Montant Total"   value={fmt(stats.total)}          color="var(--color-accent)" />
+        <StatCard icon="✅" label="Montant Réglé"   value={fmt(stats.paye)}           color="var(--color-success)" />
+        <StatCard icon="📅" label="Mois courant"    value={fmt(stats.moisCou)}        color="var(--color-secondary)" />
       </div>
 
       {/* Répartition + Filtres */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow p-5 md:col-span-1">
-          <h3 className="text-sm font-bold text-[#1B2A4A] mb-3 flex items-center gap-2">
-            <BarChart2 size={16} className="text-[#E60000]" /> Répartition par catégorie
+        <div className="bg-surface rounded-xl shadow p-5 md:col-span-1">
+          <h3 className="text-sm font-bold text-textMain mb-3 flex items-center gap-2">
+            <BarChart2 size={16} className="text-accent" /> Répartition par catégorie
           </h3>
           <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
             {repartition.length === 0 ? (
-              <p className="text-xs text-[#C8C8D0] text-center py-4">Aucune donnée</p>
+              <p className="text-xs text-textMuted text-center py-4">Aucune donnée</p>
             ) : repartition.map(([cat, info]) => {
               const pct = totalFiltres > 0 ? Math.round((info.montant / totalFiltres) * 100) : 0
               return (
                 <div key={cat}>
                   <div className="flex justify-between text-xs mb-0.5">
-                    <span className="text-[#1B2A4A] font-medium truncate">{info.icon} {info.label}</span>
-                    <span className="text-[#E60000] font-bold ml-2 whitespace-nowrap">{pct}%</span>
+                    <span className="text-textMain font-medium truncate">{info.icon} {info.label}</span>
+                    <span className="text-accent font-bold ml-2 whitespace-nowrap">{pct}%</span>
                   </div>
-                  <div className="h-1.5 bg-[#E8ECF4] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#E60000] rounded-full transition-all" style={{ width: pct + '%' }} />
+                  <div className="h-1.5 bg-surfaceMuted rounded-full overflow-hidden">
+                    <div className="h-full bg-accent rounded-full transition-all" style={{ width: pct + '%' }} />
                   </div>
                 </div>
               )
@@ -1006,63 +1008,63 @@ function OngletDepenses() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow p-5 md:col-span-2">
+        <div className="bg-surface rounded-xl shadow p-5 md:col-span-2">
           <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-[#1B2A4A]">Filtres</h3>
+            <h3 className="text-sm font-bold text-textMain">Filtres</h3>
             <div className="flex gap-2">
-              <button onClick={loadData} className="bg-[#1F5C99] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
+              <button onClick={loadData} className="bg-secondary text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
                 <RefreshCw size={13} /> Actualiser
               </button>
-              <button onClick={handleExcel} className="bg-[#1A7A4A] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
+              <button onClick={handleExcel} className="bg-success text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
                 <FileSpreadsheet size={13} /> Excel
               </button>
-              <button onClick={handlePrintGlobal} className="bg-[#1B2A4A] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
+              <button onClick={handlePrintGlobal} className="bg-primary text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
                 <Printer size={13} /> Imprimer
               </button>
-              <button onClick={() => handleOuvrir()} className="bg-[#E60000] text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
+              <button onClick={() => handleOuvrir()} className="bg-accent text-white px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs hover:opacity-90">
                 <Plus size={13} /> Nouvelle Dépense
               </button>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="relative md:col-span-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8C8D0]" size={14} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" size={14} />
               <input type="text" placeholder="Rechercher libellé, bénéficiaire, référence…"
                 value={recherche} onChange={e => setRecherche(e.target.value)}
-                className="w-full pl-8 pr-4 py-2 border border-[#C8C8D0] rounded-lg text-sm focus:outline-none focus:border-[#E60000]" />
+                className="w-full pl-8 pr-4 py-2 border border-border rounded-lg text-sm focus:outline-none focus:border-[var(--color-accent)]" />
             </div>
             <select value={filtreStatut} onChange={e => setFiltreStatut(e.target.value)}
-              className="border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
               <option value="">Tous les statuts</option>
               {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             <select value={filtreCategorie} onChange={e => setFiltreCategorie(e.target.value)}
-              className="border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
               <option value="">Toutes catégories</option>
               {CATEGORIES_DEPENSES.map(c => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
             </select>
             <input type="date" value={filtreDateDebut} onChange={e => setFiltreDateDebut(e.target.value)}
-              className="border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none" />
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" />
             <input type="date" value={filtreDateFin} onChange={e => setFiltreDateFin(e.target.value)}
-              className="border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none" />
+              className="border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" />
           </div>
-          <p className="text-xs text-[#C8C8D0] mt-2">{depensesFiltrees.length} dépense(s) · Total : {fmt(totalFiltres)}</p>
+          <p className="text-xs text-textMuted mt-2">{depensesFiltrees.length} dépense(s) · Total : {fmt(totalFiltres)}</p>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow overflow-hidden">
+      <div className="bg-surface rounded-xl shadow overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center py-16"><RefreshCw size={32} className="animate-spin text-[#E60000]" /></div>
+          <div className="flex items-center justify-center py-16"><RefreshCw size={32} className="animate-spin text-accent" /></div>
         ) : depensesFiltrees.length === 0 ? (
-          <div className="text-center py-16 text-[#C8C8D0]">
+          <div className="text-center py-16 text-textMuted">
             <Receipt size={40} className="mx-auto mb-2 opacity-40" />
             <p className="font-semibold text-sm">Aucune dépense trouvée</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
-              <thead className="bg-[#1B2A4A] text-white text-xs uppercase">
+              <thead className="bg-primary text-white text-xs uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3 text-left">Référence</th>
@@ -1080,30 +1082,30 @@ function OngletDepenses() {
                   const statut = STATUTS.find(s => s.value === d.statut)
                   const cat    = CATEGORIES_DEPENSES.find(c => c.value === d.categorie)
                   return (
-                    <tr key={d.id} className="hover:bg-[#FFE6E6] transition-colors border-b border-[#E8ECF4]"
+                    <tr key={d.id} className="hover:bg-[var(--color-accent-light)] transition-colors border-b border-surfaceMuted"
                       style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-[#1F5C99]">
+                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-secondary">
                         {new Date(d.date_depense).toLocaleDateString('fr-FR')}
                       </td>
-                      <td className="px-4 py-3 text-[#1B2A4A] font-mono text-xs">
-                        {d.reference || <span className="text-[#C8C8D0]">—</span>}
+                      <td className="px-4 py-3 text-textMain font-mono text-xs">
+                        {d.reference || <span className="text-textMuted">—</span>}
                       </td>
-                      <td className="px-4 py-3 max-w-xs"><p className="truncate font-medium text-[#1B2A4A]">{d.libelle}</p></td>
-                      <td className="px-4 py-3 text-[#1B2A4A] text-xs">{d.beneficiaire || <span className="text-[#C8C8D0]">—</span>}</td>
+                      <td className="px-4 py-3 max-w-xs"><p className="truncate font-medium text-textMain">{d.libelle}</p></td>
+                      <td className="px-4 py-3 text-textMain text-xs">{d.beneficiaire || <span className="text-textMuted">—</span>}</td>
                       <td className="px-4 py-3">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#E8ECF4] text-[#1B2A4A]">{cat?.icon} {cat?.label || d.categorie}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-surfaceMuted text-textMain">{cat?.icon} {cat?.label || d.categorie}</span>
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-[#E60000]">{fmt(d.montant)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-accent">{fmt(d.montant)}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
                           style={{ backgroundColor: statut?.bg, color: statut?.color }}>{statut?.label || d.statut}</span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         {d.mouvement_caisse_id ? (
-                          <span className="text-xs text-[#1A7A4A] font-semibold">✓ Enregistré</span>
+                          <span className="text-xs text-success font-semibold">✓ Enregistré</span>
                         ) : (
                           <button onClick={() => handleJournal(d)} title="Enregistrer dans le Journal"
-                            className="text-[#1F5C99] hover:text-[#E60000] transition-colors" disabled={d.statut === 'ANNULE'}>
+                            className="text-secondary hover:text-[var(--color-accent)] transition-colors" disabled={d.statut === 'ANNULE'}>
                             <BookOpen size={16} />
                           </button>
                         )}
@@ -1111,21 +1113,21 @@ function OngletDepenses() {
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => { setSelected(d); setShowDetail(true) }}
-                            className="p-1.5 rounded hover:bg-[#E8ECF4] text-[#1F5C99]" title="Voir"><Eye size={14} /></button>
+                            className="p-1.5 rounded hover:bg-[var(--color-surface-muted)] text-secondary" title="Voir"><Eye size={14} /></button>
                           <button onClick={() => handleOuvrir(d)}
-                            className="p-1.5 rounded hover:bg-[#E8ECF4] text-[#E60000]" title="Modifier"><Edit2 size={14} /></button>
+                            className="p-1.5 rounded hover:bg-[var(--color-surface-muted)] text-accent" title="Modifier"><Edit2 size={14} /></button>
                           <button onClick={() => handleDelete(d)}
-                            className="p-1.5 rounded hover:bg-[#FFE6E6] text-[#E60000]" title="Supprimer"><Trash2 size={14} /></button>
+                            className="p-1.5 rounded hover:bg-[var(--color-accent-light)] text-accent" title="Supprimer"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
                   )
                 })}
               </tbody>
-              <tfoot className="bg-[#E8ECF4]">
+              <tfoot className="bg-surfaceMuted">
                 <tr>
-                  <td colSpan={5} className="px-4 py-2 text-right font-bold text-[#1B2A4A] text-sm">Total affiché :</td>
-                  <td className="px-4 py-2 text-right font-bold text-[#E60000]">{fmt(totalFiltres)}</td>
+                  <td colSpan={5} className="px-4 py-2 text-right font-bold text-textMain text-sm">Total affiché :</td>
+                  <td className="px-4 py-2 text-right font-bold text-accent">{fmt(totalFiltres)}</td>
                   <td colSpan={3} />
                 </tr>
               </tfoot>
@@ -1137,92 +1139,92 @@ function OngletDepenses() {
       {/* Modal Création / Modification */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="bg-[#1B2A4A] text-white p-5 rounded-t-xl flex justify-between items-center">
+          <div className="bg-surface rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-primary text-white p-5 rounded-t-xl flex justify-between items-center">
               <h2 className="text-lg font-bold flex items-center gap-2">
-                <Receipt size={20} className="text-[#E60000]" />
+                <Receipt size={20} className="text-accent" />
                 {selected ? 'Modifier la Dépense' : 'Nouvelle Dépense'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="hover:text-[#E60000]"><X size={20} /></button>
+              <button onClick={() => setShowModal(false)} className="hover:text-[var(--color-accent)]"><X size={20} /></button>
             </div>
             <div className="p-6 space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Date *</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Date *</label>
                   <input type="date" value={form.date_depense}
                     onChange={e => setForm(p => ({ ...p, date_depense: e.target.value }))}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Référence</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Référence</label>
                   <input type="text" value={form.reference} placeholder="DEP-001"
                     onChange={e => setForm(p => ({ ...p, reference: e.target.value }))}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Catégorie *</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Catégorie *</label>
                   <select value={form.categorie} onChange={e => setForm(p => ({ ...p, categorie: e.target.value }))}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     {CATEGORIES_DEPENSES.map(c => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Libellé *</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Libellé *</label>
                   <input type="text" value={form.libelle} placeholder="Description de la dépense…"
                     onChange={e => setForm(p => ({ ...p, libelle: e.target.value }))}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Bénéficiaire / Fournisseur</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Bénéficiaire / Fournisseur</label>
                   <input type="text" value={form.beneficiaire} placeholder="Nom bénéficiaire…"
                     onChange={e => setForm(p => ({ ...p, beneficiaire: e.target.value }))}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000]" />
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Montant (FCFA) *</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Montant (FCFA) *</label>
                   <input type="number" value={form.montant} placeholder="0"
                     onChange={e => setForm(p => ({ ...p, montant: e.target.value }))}
-                    className="w-full border-2 border-[#E60000] rounded-lg px-3 py-2 text-sm font-bold text-[#E60000] focus:outline-none" />
+                    className="w-full border-2 border-accent rounded-lg px-3 py-2 text-sm font-bold text-accent focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Mode Paiement</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Mode Paiement</label>
                   <select value={form.mode_paiement} onChange={e => setForm(p => ({ ...p, mode_paiement: e.target.value }))}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     {MODES_PAIEMENT.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Statut</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Statut</label>
                   <select value={form.statut} onChange={e => setForm(p => ({ ...p, statut: e.target.value }))}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     {STATUTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Projet lié</label>
+                  <label className="block text-xs font-semibold text-textMain mb-1">Projet lié</label>
                   <select value={form.projet_id} onChange={e => setForm(p => ({ ...p, projet_id: e.target.value }))}
-                    className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none">
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none">
                     <option value="">— Aucun —</option>
                     {projets.map(p => <option key={p.id} value={p.id}>{p.nom}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#1B2A4A] mb-1">Notes</label>
+                <label className="block text-xs font-semibold text-textMain mb-1">Notes</label>
                 <textarea value={form.notes} rows={2} placeholder="Remarques…"
                   onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                  className="w-full border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E60000] resize-none" />
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setShowModal(false)}
-                  className="px-6 py-2 border border-[#C8C8D0] rounded-lg text-sm text-[#1B2A4A] hover:bg-[#E8ECF4]">Annuler</button>
+                  className="px-6 py-2 border border-border rounded-lg text-sm text-textMain hover:bg-[var(--color-surface-muted)]">Annuler</button>
                 <button onClick={handleSave}
                   className="px-6 py-2 rounded-lg text-sm text-white font-semibold hover:opacity-90"
-                  style={{ backgroundColor: '#E60000' }}>
+                  style={{ backgroundColor: 'var(--color-accent)' }}>
                   {selected ? 'Enregistrer modifications' : 'Créer la dépense'}
                 </button>
               </div>
@@ -1234,12 +1236,12 @@ function OngletDepenses() {
       {/* Modal Détail */}
       {showDetail && selected && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
-            <div className="bg-[#1B2A4A] text-white p-5 rounded-t-xl flex justify-between items-center">
+          <div className="bg-surface rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="bg-primary text-white p-5 rounded-t-xl flex justify-between items-center">
               <h2 className="text-lg font-bold">Détail Dépense #{selected.id}</h2>
               <div className="flex items-center gap-2">
-                <button onClick={() => handlePrintDetail(selected)} className="hover:text-[#E60000]" title="Imprimer"><Printer size={18} /></button>
-                <button onClick={() => setShowDetail(false)} className="hover:text-[#E60000]"><X size={20} /></button>
+                <button onClick={() => handlePrintDetail(selected)} className="hover:text-[var(--color-accent)]" title="Imprimer"><Printer size={18} /></button>
+                <button onClick={() => setShowDetail(false)} className="hover:text-[var(--color-accent)]"><X size={20} /></button>
               </div>
             </div>
             <div className="p-6 space-y-3">
@@ -1255,19 +1257,19 @@ function OngletDepenses() {
                 ['Dans Journal', selected.mouvement_caisse_id ? '✓ Oui (réf #' + selected.mouvement_caisse_id + ')' : '✗ Non'],
                 ['Notes',        selected.notes || '—'],
               ].map(([label, val]) => (
-                <div key={label} className="flex justify-between border-b border-[#E8ECF4] pb-2">
-                  <span className="text-xs font-semibold text-[#C8C8D0] uppercase">{label}</span>
-                  <span className="text-sm font-medium text-[#1B2A4A] text-right max-w-xs">{val}</span>
+                <div key={label} className="flex justify-between border-b border-surfaceMuted pb-2">
+                  <span className="text-xs font-semibold text-textMuted uppercase">{label}</span>
+                  <span className="text-sm font-medium text-textMain text-right max-w-xs">{val}</span>
                 </div>
               ))}
               <div className="flex gap-2 mt-3">
                 <button onClick={() => handlePrintDetail(selected)}
-                  className="flex-1 bg-[#1B2A4A] text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-80">
+                  className="flex-1 bg-primary text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-80">
                   <Printer size={15} /> Imprimer la fiche
                 </button>
                 {!selected.mouvement_caisse_id && selected.statut !== 'ANNULE' && (
                   <button onClick={() => { handleJournal(selected); setShowDetail(false) }}
-                    className="flex-1 bg-[#1F5C99] text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90">
+                    className="flex-1 bg-secondary text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90">
                     <BookOpen size={16} /> Enregistrer Journal
                   </button>
                 )}
@@ -1287,38 +1289,38 @@ export default function AchatsDepenses() {
   const [onglet, setOnglet] = useState('achats')
 
   return (
-    <div className="min-h-screen bg-[#E8ECF4] p-6 space-y-5">
+    <div className="min-h-screen bg-surfaceMuted p-6 space-y-5">
 
       {/* Header */}
-      <div className="bg-[#1B2A4A] text-white p-6 rounded-xl shadow-lg">
+      <div className="bg-primary text-white p-6 rounded-xl shadow-lg">
         <h1 className="text-2xl font-bold flex items-center gap-3">
-          <ShoppingCart size={26} className="text-[#E60000]" />
-          <Receipt size={22} className="text-[#E60000] -ml-2" />
+          <ShoppingCart size={26} className="text-accent" />
+          <Receipt size={22} className="text-accent -ml-2" />
           Achats & Dépenses — SIKA INDUSTRIE
         </h1>
-        <p className="text-[#C8C8D0] mt-1 text-sm">Gestion centralisée des achats fournisseurs et des charges · Synchronisé Supabase</p>
+        <p className="text-textMuted mt-1 text-sm">Gestion centralisée des achats fournisseurs et des charges · Synchronisé Supabase</p>
       </div>
 
       {/* Onglets */}
-      <div className="flex gap-1 bg-white rounded-xl shadow p-1.5 w-fit">
+      <div className="flex gap-1 bg-surface rounded-xl shadow p-1.5 w-fit">
         <button
           onClick={() => setOnglet('achats')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             onglet === 'achats'
-              ? 'bg-[#1B2A4A] text-white shadow'
-              : 'text-[#C8C8D0] hover:text-[#1B2A4A] hover:bg-[#E8ECF4]'
+              ? 'bg-primary text-white shadow'
+              : 'text-textMuted hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-muted)]'
           }`}>
-          <ShoppingCart size={16} className={onglet === 'achats' ? 'text-[#E60000]' : ''} />
+          <ShoppingCart size={16} className={onglet === 'achats' ? 'text-accent' : ''} />
           Achats fournisseurs
         </button>
         <button
           onClick={() => setOnglet('depenses')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
             onglet === 'depenses'
-              ? 'bg-[#1B2A4A] text-white shadow'
-              : 'text-[#C8C8D0] hover:text-[#1B2A4A] hover:bg-[#E8ECF4]'
+              ? 'bg-primary text-white shadow'
+              : 'text-textMuted hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-muted)]'
           }`}>
-          <Receipt size={16} className={onglet === 'depenses' ? 'text-[#E60000]' : ''} />
+          <Receipt size={16} className={onglet === 'depenses' ? 'text-accent' : ''} />
           Dépenses & Charges
         </button>
       </div>

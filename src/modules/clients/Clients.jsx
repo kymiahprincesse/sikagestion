@@ -11,12 +11,12 @@ import { formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate, openPDFForPrint } from '../../utils/printUtils'
 
 export default function Clients() {
-  const { clients, addClient, updateClient, deleteClient, setClients } = useClientsStore()
+  const { clients, addClient, updateClient, deleteClient } = useClientsStore()
   const { addLog } = useAuditStore()
   const { devis } = useDevisStore()
   const { factures } = useFacturesStore()
   const { projets } = usePlanificationStore()
-  const { success, error, warning, confirmDelete } = useNotifications()
+  const { success, error, confirmDelete } = useNotifications()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [filterSecteur, setFilterSecteur] = useState('')
@@ -160,23 +160,6 @@ export default function Clients() {
     }
 
     try {
-      const payload = {
-        nom: formData.nom,
-        raison_sociale: formData.raisonSociale || null,
-        ncc: formData.ncc || null,
-        secteur: formData.secteur || null,
-        adresse: formData.adresse || null,
-        ville: formData.ville || null,
-        pays: formData.pays || null,
-        contact_nom: formData.contactNom || null,
-        contact_telephone: formData.contactTelephone || null,
-        contact_email: formData.contactEmail || null,
-        conditions_paiement: formData.conditionsPaiement || 30,
-        type: formData.type || 'CLIENT',
-        is_actif: formData.isActif !== undefined ? formData.isActif : true,
-        notes: formData.notes || null
-      }
-
       if (editingClient) {
         const result = await updateClient(editingClient.id, formData)
         if (!result.success) {
@@ -281,7 +264,7 @@ export default function Clients() {
       apres: { nbClients: filteredClients.length }
     })
     success(`${filteredClients.length} clients exportés avec succès`)
-    } catch (err) {
+    } catch {
       error('Erreur lors de l\'export Excel')
     }
   }
@@ -386,7 +369,7 @@ export default function Clients() {
   const handlePrintFiche = async (client) => {
     try {
       const ctx = await createSikaPDF(`FICHE CLIENT - ${client.nom}`)
-      const { doc, startY, MARGE_G, PAGE_W } = ctx
+      const { doc, startY, MARGE_G } = ctx
       const stats = getClientStats(client.id)
       
       let y = startY
@@ -502,11 +485,11 @@ export default function Clients() {
         <p className="text-bleu">Gestion complète de vos clients et fournisseurs</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-argent p-4 mb-6 sticky top-0 z-10">
+      <div className="bg-surface rounded-lg shadow-sm border border-argent p-4 mb-6 sticky top-0 z-10">
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => handleOpenModal()}
-            className="px-4 py-2 bg-orange text-white rounded-lg font-medium hover:bg-orange/90 transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-rouge text-white rounded-lg font-medium hover:bg-rouge/90 transition-colors flex items-center gap-2"
           >
             <span>➕</span>
             <span>Nouveau Client</span>
@@ -542,20 +525,20 @@ export default function Clients() {
               placeholder="🔍 Rechercher (nom, NCC, contact, email, téléphone, ville, secteur...)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             />
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-argent p-4 mb-6">
+      <div className="bg-surface rounded-lg shadow-sm border border-argent p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label className="text-sm font-medium text-navy block mb-1">Secteur</label>
             <select
               value={filterSecteur}
               onChange={(e) => setFilterSecteur(e.target.value)}
-              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             >
               <option value="">Tous les secteurs</option>
               {secteurs.map(s => (
@@ -569,7 +552,7 @@ export default function Clients() {
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             >
               <option value="">Tous les types</option>
               <option value="CLIENT">CLIENT</option>
@@ -583,7 +566,7 @@ export default function Clients() {
             <select
               value={filterVille}
               onChange={(e) => setFilterVille(e.target.value)}
-              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             >
               <option value="">Toutes les villes</option>
               {villes.map(v => (
@@ -597,7 +580,7 @@ export default function Clients() {
             <select
               value={filterActif}
               onChange={(e) => setFilterActif(e.target.value)}
-              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             >
               <option value="tous">Tous</option>
               <option value="actif">Actifs</option>
@@ -616,11 +599,11 @@ export default function Clients() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-argent overflow-hidden">
+      <div className="bg-surface rounded-lg shadow-sm border border-argent overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b-2 border-orange bg-navyClair">
+              <tr className="border-b-2 border-rouge bg-navyClair">
                 <th className="text-left py-3 px-4 text-navy font-bold">Nom</th>
                 <th className="text-left py-3 px-4 text-navy font-bold">NCC</th>
                 <th className="text-left py-3 px-4 text-navy font-bold">Secteur</th>
@@ -645,7 +628,7 @@ export default function Clients() {
                   return (
                     <tr 
                       key={client.id} 
-                      className="border-b border-argent hover:bg-orangeClair transition-colors"
+                      className="border-b border-argent hover:bg-rougeClair transition-colors"
                     >
                       <td className="py-3 px-4">
                         <div className="font-medium text-navy">{client.nom}</div>
@@ -688,7 +671,7 @@ export default function Clients() {
                           </button>
                           <button
                             onClick={() => handleViewHistory(client)}
-                            className="px-2 py-1 bg-orange text-white rounded text-xs hover:bg-orange/90"
+                            className="px-2 py-1 bg-rouge text-white rounded text-xs hover:bg-rouge/90"
                             title="Voir historique"
                           >
                             👁
@@ -726,7 +709,7 @@ export default function Clients() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-navy/80" onClick={handleCloseModal}></div>
           
-          <div className="relative bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-surface rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-navy text-white p-6 rounded-t-lg">
               <h2 className="text-2xl font-bold">
                 {editingClient ? 'Modifier le client' : 'Nouveau client'}
@@ -743,7 +726,7 @@ export default function Clients() {
                     type="text"
                     value={formData.nom}
                     onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                     required
                   />
                 </div>
@@ -756,7 +739,7 @@ export default function Clients() {
                     type="text"
                     value={formData.raisonSociale}
                     onChange={(e) => setFormData({ ...formData, raisonSociale: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -768,7 +751,7 @@ export default function Clients() {
                     type="text"
                     value={formData.ncc}
                     onChange={(e) => setFormData({ ...formData, ncc: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -780,7 +763,7 @@ export default function Clients() {
                     type="text"
                     value={formData.secteur}
                     onChange={(e) => setFormData({ ...formData, secteur: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -792,7 +775,7 @@ export default function Clients() {
                     type="text"
                     value={formData.adresse}
                     onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -804,7 +787,7 @@ export default function Clients() {
                     type="text"
                     value={formData.ville}
                     onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -816,7 +799,7 @@ export default function Clients() {
                     type="text"
                     value={formData.pays}
                     onChange={(e) => setFormData({ ...formData, pays: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -828,7 +811,7 @@ export default function Clients() {
                     type="text"
                     value={formData.contactNom}
                     onChange={(e) => setFormData({ ...formData, contactNom: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -840,7 +823,7 @@ export default function Clients() {
                     type="tel"
                     value={formData.contactTelephone}
                     onChange={(e) => setFormData({ ...formData, contactTelephone: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -852,7 +835,7 @@ export default function Clients() {
                     type="email"
                     value={formData.contactEmail}
                     onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
 
@@ -873,7 +856,7 @@ export default function Clients() {
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   >
                     <option value="CLIENT">CLIENT</option>
                     <option value="FOURNISSEUR">FOURNISSEUR</option>
@@ -887,7 +870,7 @@ export default function Clients() {
                       type="checkbox"
                       checked={formData.isActif}
                       onChange={(e) => setFormData({ ...formData, isActif: e.target.checked })}
-                      className="w-5 h-5 text-orange border-argent rounded focus:ring-orange"
+                      className="w-5 h-5 text-rouge border-argent rounded focus:ring-rouge"
                     />
                     <span className="ml-2 text-sm font-medium text-navy">Client actif</span>
                   </label>
@@ -901,7 +884,7 @@ export default function Clients() {
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+                    className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   />
                 </div>
               </div>
@@ -916,7 +899,7 @@ export default function Clients() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-orange text-white rounded-lg font-medium hover:bg-orange/90 transition-colors"
+                  className="flex-1 px-4 py-2 bg-rouge text-white rounded-lg font-medium hover:bg-rouge/90 transition-colors"
                 >
                   {editingClient ? 'Mettre à jour' : 'Créer'}
                 </button>
@@ -930,12 +913,12 @@ export default function Clients() {
         <div className="fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-navy/80" onClick={() => setShowHistory(false)}></div>
           
-          <div className="relative ml-auto bg-white w-full max-w-2xl h-full overflow-y-auto shadow-2xl">
+          <div className="relative ml-auto bg-surface w-full max-w-2xl h-full overflow-y-auto shadow-2xl">
             <div className="sticky top-0 bg-navy text-white p-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold">Historique - {selectedClient.nom}</h2>
               <button
                 onClick={() => setShowHistory(false)}
-                className="text-white hover:text-orange text-2xl"
+                className="text-white hover:text-rouge text-2xl"
               >
                 ✕
               </button>
@@ -947,7 +930,7 @@ export default function Clients() {
                 return (
                   <>
                     <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="bg-orangeClair p-4 rounded-lg border border-orange">
+                      <div className="bg-rougeClair p-4 rounded-lg border border-rouge">
                         <div className="text-sm text-bleu mb-1">CA Total</div>
                         <div className="text-2xl font-bold text-navy">
                           {formatFCFA(stats.caTotal)}
@@ -962,7 +945,7 @@ export default function Clients() {
                     </div>
 
                     <div className="mb-6">
-                      <h3 className="text-lg font-bold text-navy mb-3 border-b-2 border-orange pb-2">
+                      <h3 className="text-lg font-bold text-navy mb-3 border-b-2 border-rouge pb-2">
                         Devis ({stats.nbDevis})
                       </h3>
                       {stats.devis.length === 0 ? (
@@ -981,7 +964,7 @@ export default function Clients() {
                                   <span className={`px-2 py-1 rounded-full text-xs ${
                                     d.statut === 'Accepté' ? 'bg-vert/10 text-vert' :
                                     d.statut === 'Refusé' ? 'bg-rouge/10 text-rouge' :
-                                    'bg-orange/10 text-orange'
+                                    'bg-rouge/10 text-rouge'
                                   }`}>
                                     {d.statut}
                                   </span>
@@ -994,7 +977,7 @@ export default function Clients() {
                     </div>
 
                     <div className="mb-6">
-                      <h3 className="text-lg font-bold text-navy mb-3 border-b-2 border-orange pb-2">
+                      <h3 className="text-lg font-bold text-navy mb-3 border-b-2 border-rouge pb-2">
                         Factures ({stats.nbFactures})
                       </h3>
                       {stats.factures.length === 0 ? (
@@ -1013,7 +996,7 @@ export default function Clients() {
                                   <span className={`px-2 py-1 rounded-full text-xs ${
                                     f.statut === 'Payé' ? 'bg-vert/10 text-vert' :
                                     f.statut === 'Retard' ? 'bg-rouge/10 text-rouge' :
-                                    'bg-orange/10 text-orange'
+                                    'bg-rouge/10 text-rouge'
                                   }`}>
                                     {f.statut}
                                   </span>
@@ -1026,7 +1009,7 @@ export default function Clients() {
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-bold text-navy mb-3 border-b-2 border-orange pb-2">
+                      <h3 className="text-lg font-bold text-navy mb-3 border-b-2 border-rouge pb-2">
                         Projets de planification ({stats.nbProjets})
                       </h3>
                       {stats.projets.length === 0 ? (

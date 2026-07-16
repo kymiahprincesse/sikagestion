@@ -40,8 +40,8 @@ export function TouchButton({
   };
 
   const variantClasses = {
-    default: 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100',
-    primary: 'bg-[#1B2A4A] text-white hover:bg-[#2a3a5e] active:bg-[#1a2340]',
+    default: 'bg-surface border border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100',
+    primary: 'bg-primary text-white hover:bg-[#2a3a5e] active:bg-[#1a2340]',
     danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
     ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 active:bg-gray-200',
   };

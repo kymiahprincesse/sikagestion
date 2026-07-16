@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNotifications } from '../../components/NotificationProvider'
 import { useFacturesStore } from '../../store/useFacturesStore'
 import { useAuditStore } from '../../store/useAuditStore'
@@ -168,7 +168,7 @@ export default function SuiviFactures() {
     resetForm()
   }
 
-  const handleAddReglement = (facture) => {
+  const handleAddReglement = useCallback((facture) => {
     setCurrentFacture(facture)
     const montantRestant = (facture.montantTTC || 0) - (facture.montantPaye || 0)
     setFormData({
@@ -179,7 +179,7 @@ export default function SuiviFactures() {
       referencePaiement: ''
     })
     setShowReglementModal(true)
-  }
+  }, [])
 
   const handleSaveReglement = () => {
     const montantPaiement = parseFloat(formData.montantPaiement) || 0
@@ -231,30 +231,30 @@ export default function SuiviFactures() {
     })
   }
 
-  const handleViewPaiements = (facture) => {
+  const handleViewPaiements = useCallback((facture) => {
     setCurrentFacture(facture)
     setShowViewModal(true)
-  }
+  }, [])
 
-  const handleDelete = async (facture) => {
+  const handleDelete = useCallback(async (facture) => {
     const ok = await confirmDelete(`la facture ${facture.reference}`)
     if (!ok) return
     deleteFacture(facture.id)
     addLog({ module: 'FACTURE', action: 'DELETE', utilisateur: 'Utilisateur', avant: facture })
-  }
+  }, [confirmDelete, deleteFacture, addLog])
 
-  const handleEdit = (facture) => {
+  const handleEdit = useCallback((facture) => {
     setCurrentFacture(facture)
     setFormData(facture)
     setShowModal(true)
-  }
+  }, [])
 
-  const handleView = (facture) => {
+  const handleView = useCallback((facture) => {
     setCurrentFacture(facture)
     setShowViewModal(true)
-  }
+  }, [])
 
-  const handlePrint = async (facture) => {
+  const handlePrint = useCallback(async (facture) => {
     const client = clients.find(c => c.id === facture.clientId)
     const ctx = await createSikaPDF(`FACTURE ${facture.numero || facture.reference}`)
     const { doc, startY, MARGE_G, PAGE_W } = ctx
@@ -338,7 +338,7 @@ export default function SuiviFactures() {
     const refPDF = facture.numero || facture.reference || String(facture.id)
     await finalizeSikaPDF(ctx, `SIKA_Facture_${refPDF.replace(/\//g, '_')}.pdf`)
     addLog({ module: 'FACTURE', action: 'PRINT', utilisateur: 'Utilisateur', apres: { factureId: facture.id, reference: refPDF } })
-  }
+  }, [clients, addLog])
 
   const resetForm = () => {
     setFormData({
@@ -554,8 +554,9 @@ export default function SuiviFactures() {
         </div>
       )
     }
-  ], [handleEdit, handleView, handlePrint, handleViewPaiements, handleDelete])
+  ], [handleEdit, handleView, handlePrint, handleViewPaiements, handleDelete, handleAddReglement])
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: facturesFiltrees,
     columns,

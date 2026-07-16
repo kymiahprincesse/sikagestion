@@ -1,4 +1,4 @@
-import { format, parse } from 'date-fns'
+import { format } from 'date-fns'
 
 export default function DatePickerFR({ value, onChange, label }) {
   const handleChange = (e) => {
@@ -15,7 +15,7 @@ export default function DatePickerFR({ value, onChange, label }) {
         type="date"
         value={value || ''}
         onChange={handleChange}
-        className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+        className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
       />
       {value && (
         <span className="text-xs text-bleu mt-1">

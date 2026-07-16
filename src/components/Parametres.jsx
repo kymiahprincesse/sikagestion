@@ -61,7 +61,7 @@ export default function Parametres() {
     tachesRetard: store.notifTachesRetard ?? true,
   });
 
-  useEffect(() => { fetchLogs(); }, []);
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
   const handleSaveEntreprise = () => {
     store.updateInfosEntreprise({
@@ -171,7 +171,7 @@ export default function Parametres() {
     <div style={{ padding: '20px', background: '#F8F9FC', minHeight: '100vh' }}>
       <NotificationToast notifications={toasts} onClose={removeNotification} />
 
-      <div style={{ background: '#1B2A4A', borderRadius: '12px',
+      <div style={{ background: 'var(--color-primary)', borderRadius: '12px',
                     padding: '24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -180,12 +180,12 @@ export default function Parametres() {
               <h1 style={{ color: 'white', margin: 0, fontSize: '22px', fontWeight: 'bold' }}>
                 PARAMÈTRES SYSTÈME
               </h1>
-              <p style={{ color: '#C8C8D0', margin: 0, fontSize: '13px' }}>
+              <p style={{ color: 'var(--color-border)', margin: 0, fontSize: '13px' }}>
                 Configuration globale de SIKAGESTION
               </p>
             </div>
           </div>
-          <button onClick={handleReset} style={{ ...btnAction, background: '#E60000' }}>
+          <button onClick={handleReset} style={{ ...btnAction, background: 'var(--color-accent)' }}>
             🔄 Réinitialiser
           </button>
         </div>
@@ -258,7 +258,7 @@ export default function Parametres() {
       <Section titre="Session & Sécurité" icone="�">
         <div style={{ display: 'grid', gap: '20px' }}>
           <div>
-            <label style={{ display: 'block', fontWeight: 'bold', color: '#1B2A4A', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--color-primary)', marginBottom: '8px' }}>
               Timeout session (minutes) : {securite.timeoutSession} min
             </label>
             <input type="range" min="5" max="120" value={securite.timeoutSession}
@@ -299,11 +299,11 @@ export default function Parametres() {
       </Section>
 
       <Section titre="Tour de contrôle & Audit" icone="�️">
-        <div style={{ marginBottom: '16px', padding: '14px', background: '#E8ECF4',
+        <div style={{ marginBottom: '16px', padding: '14px', background: 'var(--color-surface-muted)',
                       borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ fontSize: '28px' }}>�📊</span>
           <div>
-            <div style={{ fontWeight: 'bold', color: '#1B2A4A', fontSize: '20px' }}>{logs.length} actions</div>
+            <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '20px' }}>{logs.length} actions</div>
             <div style={{ color: '#555', fontSize: '12px' }}>enregistrées dans le journal d'audit</div>
           </div>
         </div>
@@ -311,14 +311,14 @@ export default function Parametres() {
           <button onClick={handleExportPDF} style={btnAction}>📄 Exporter PDF</button>
           <button onClick={handleExportExcel} style={btnAction}>📊 Exporter Excel</button>
           {!confirmVider ? (
-            <button onClick={handleViderLogs} style={{ ...btnAction, background: '#E60000' }}>
+            <button onClick={handleViderLogs} style={{ ...btnAction, background: 'var(--color-accent)' }}>
               🗑️ Vider les logs &gt; 6 mois
             </button>
           ) : (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center',
-                          padding: '8px 12px', background: '#FFE6E6', borderRadius: '8px' }}>
-              <span style={{ fontSize: '13px', color: '#E60000', fontWeight: 'bold' }}>⚠️ Confirmer la suppression ?</span>
-              <button onClick={handleViderLogs} style={{ ...btnAction, background: '#E60000', padding: '6px 12px', fontSize: '12px' }}>✅ Oui</button>
+                          padding: '8px 12px', background: 'var(--color-accent-light)', borderRadius: '8px' }}>
+              <span style={{ fontSize: '13px', color: 'var(--color-accent)', fontWeight: 'bold' }}>⚠️ Confirmer la suppression ?</span>
+              <button onClick={handleViderLogs} style={{ ...btnAction, background: 'var(--color-accent)', padding: '6px 12px', fontSize: '12px' }}>✅ Oui</button>
               <button onClick={() => setConfirmVider(false)} style={{ ...btnAction, background: '#666', padding: '6px 12px', fontSize: '12px' }}>❌ Annuler</button>
             </div>
           )}
@@ -332,7 +332,7 @@ function Section({ titre, icone, children }) {
   return (
     <div style={{ background: 'white', borderRadius: '12px', padding: '24px',
                   marginBottom: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-      <h2 style={{ color: '#1B2A4A', fontSize: '18px', fontWeight: 'bold',
+      <h2 style={{ color: 'var(--color-primary)', fontSize: '18px', fontWeight: 'bold',
                    marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <span style={{ fontSize: '24px' }}>{icone}</span>
         {titre}
@@ -345,14 +345,14 @@ function Section({ titre, icone, children }) {
 function Field({ label, value, onChange, type = 'text' }) {
   return (
     <div>
-      <label style={{ display: 'block', fontWeight: 'bold', color: '#1B2A4A',
+      <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--color-primary)',
                       marginBottom: '6px', fontSize: '13px' }}>
         {label}
       </label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)}
         style={{ width: '100%', padding: '10px', borderRadius: '8px',
-                 border: '1.5px solid #E8ECF4', fontSize: '13px',
-                 color: '#1B2A4A', outline: 'none' }} />
+                 border: '1.5px solid var(--color-surface-muted)', fontSize: '13px',
+                 color: 'var(--color-primary)', outline: 'none' }} />
     </div>
   );
 }
@@ -364,7 +364,7 @@ function Toggle({ label, checked, onChange, disabled = false }) {
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
         disabled={disabled}
         style={{ width: '20px', height: '20px', cursor: disabled ? 'not-allowed' : 'pointer' }} />
-      <label style={{ fontSize: '13px', color: '#1B2A4A', fontWeight: '500',
+      <label style={{ fontSize: '13px', color: 'var(--color-primary)', fontWeight: '500',
                       cursor: disabled ? 'not-allowed' : 'pointer',
                       opacity: disabled ? 0.5 : 1 }}>
         {label}
@@ -375,14 +375,14 @@ function Toggle({ label, checked, onChange, disabled = false }) {
 
 const btnSave = {
   marginTop: '16px', padding: '12px 24px', borderRadius: '8px',
-  border: 'none', background: '#1A7A4A', color: 'white',
+  border: 'none', background: 'var(--color-success)', color: 'white',
   fontWeight: 'bold', cursor: 'pointer', fontSize: '14px',
   boxShadow: '0 2px 6px rgba(26,122,74,0.3)',
 };
 
 const btnAction = {
   padding: '10px 20px', borderRadius: '8px', border: 'none',
-  background: '#1F5C99', color: 'white', fontWeight: 'bold',
+  background: 'var(--color-secondary)', color: 'white', fontWeight: 'bold',
   cursor: 'pointer', fontSize: '13px',
   boxShadow: '0 2px 4px rgba(31,92,153,0.3)',
 };

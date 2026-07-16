@@ -26,9 +26,7 @@ export default function TourDeControle() {
       fetchLogs({ module: filtreModule, action: filtreAction,
                   dateDebut: filtreDateDeb, dateFin: filtreDateFin });
     }
-  }, [filtreModule, filtreAction, filtreDateDeb, filtreDateFin, user]);
-
-  useEffect(() => { setPage(1); }, [filtreModule, filtreAction, filtreDateDeb, filtreDateFin, recherche]);
+  }, [filtreModule, filtreAction, filtreDateDeb, filtreDateFin, user, fetchLogs]);
 
   const logsFiltres = logs.filter(l => {
     const q = recherche.toLowerCase();
@@ -84,7 +82,7 @@ export default function TourDeControle() {
   return (
     <div style={{ padding: '20px', background: '#F8F9FC', minHeight: '100vh' }}>
 
-      <div style={{ background: '#1B2A4A', borderRadius: '12px',
+      <div style={{ background: 'var(--color-primary)', borderRadius: '12px',
                     padding: '24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <span style={{ fontSize: '32px' }}>🛡️</span>
@@ -92,36 +90,36 @@ export default function TourDeControle() {
             <h1 style={{ color: 'white', margin: 0, fontSize: '22px', fontWeight: 'bold' }}>
               TOUR DE CONTRÔLE
             </h1>
-            <p style={{ color: '#C8C8D0', margin: 0, fontSize: '13px' }}>
+            <p style={{ color: 'var(--color-border)', margin: 0, fontSize: '13px' }}>
               Journal d'audit complet — Accès réservé aux Administrateurs
             </p>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ color: '#E60000', fontWeight: 'bold', fontSize: '24px' }}>{logs.length}</div>
-              <div style={{ color: '#C8C8D0', fontSize: '12px' }}>actions enregistrées</div>
+              <div style={{ color: 'var(--color-accent)', fontWeight: 'bold', fontSize: '24px' }}>{logs.length}</div>
+              <div style={{ color: 'var(--color-border)', fontSize: '12px' }}>actions enregistrées</div>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => fetchLogs({ module: filtreModule, action: filtreAction, dateDebut: filtreDateDeb, dateFin: filtreDateFin })}
                 style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                         fontSize: '12px', fontWeight: 'bold', background: '#1F5C99', color: 'white' }}>
+                         fontSize: '12px', fontWeight: 'bold', background: 'var(--color-secondary)', color: 'white' }}>
                 🔄 Actualiser
               </button>
               <button onClick={handleExportExcel}
                 style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                         fontSize: '12px', fontWeight: 'bold', background: '#1A7A4A', color: 'white' }}>
+                         fontSize: '12px', fontWeight: 'bold', background: 'var(--color-success)', color: 'white' }}>
                 📥 Excel
               </button>
               <button onClick={handlePurge} disabled={purgeLoading}
                 style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
                          fontSize: '12px', fontWeight: 'bold',
-                         background: confirmPurge ? '#E60000' : '#C8C8D0',
-                         color: confirmPurge ? 'white' : '#1B2A4A' }}>
+                         background: confirmPurge ? 'var(--color-accent)' : 'var(--color-border)',
+                         color: confirmPurge ? 'white' : 'var(--color-primary)' }}>
                 {purgeLoading ? '⏳...' : confirmPurge ? '✅ Confirmer purge' : '🗑️ Purger > 6 mois'}
               </button>
               {confirmPurge && <button onClick={() => setConfirmPurge(false)}
                 style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                         fontSize: '12px', background: '#E8ECF4', color: '#1B2A4A' }}>Annuler</button>}
+                         fontSize: '12px', background: 'var(--color-surface-muted)', color: 'var(--color-primary)' }}>Annuler</button>}
             </div>
           </div>
         </div>
@@ -137,8 +135,8 @@ export default function TourDeControle() {
             style={{
               padding: '10px 20px', borderRadius: '8px', border: 'none',
               fontWeight: 'bold', cursor: 'pointer', fontSize: '13px',
-              background: onglet === o.id ? '#E60000' : 'white',
-              color:      onglet === o.id ? 'white'   : '#1B2A4A',
+              background: onglet === o.id ? 'var(--color-accent)' : 'white',
+              color:      onglet === o.id ? 'white'   : 'var(--color-primary)',
               boxShadow:  '0 2px 4px rgba(0,0,0,0.1)',
             }}>
             {o.label}
@@ -153,17 +151,17 @@ export default function TourDeControle() {
                         gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
 
             <input placeholder="🔍 Rechercher (nom, action, cible...)"
-              value={recherche} onChange={e => setRecherche(e.target.value)}
+              value={recherche} onChange={e => { setRecherche(e.target.value); setPage(1); }}
               style={inputStyle} />
 
-            <select value={filtreModule} onChange={e => setFiltreModule(e.target.value)}
+            <select value={filtreModule} onChange={e => { setFiltreModule(e.target.value); setPage(1); }}
               style={inputStyle}>
               <option value="">📦 Tous les modules</option>
               {Object.values(AUDIT_MODULES).map(m =>
                 <option key={m} value={m}>{m}</option>)}
             </select>
 
-            <select value={filtreAction} onChange={e => setFiltreAction(e.target.value)}
+            <select value={filtreAction} onChange={e => { setFiltreAction(e.target.value); setPage(1); }}
               style={inputStyle}>
               <option value="">⚡ Toutes les actions</option>
               {Object.keys(AUDIT_ACTIONS).map(a =>
@@ -171,15 +169,15 @@ export default function TourDeControle() {
             </select>
 
             <input type="date" value={filtreDateDeb}
-              onChange={e => setFiltreDateDeb(e.target.value)} style={inputStyle} />
+              onChange={e => { setFiltreDateDeb(e.target.value); setPage(1); }} style={inputStyle} />
             <input type="date" value={filtreDateFin}
-              onChange={e => setFiltreDateFin(e.target.value)} style={inputStyle} />
+              onChange={e => { setFiltreDateFin(e.target.value); setPage(1); }} style={inputStyle} />
 
             <button onClick={() => {
               setFiltreModule(''); setFiltreAction('');
-              setFiltreDateDeb(''); setFiltreDateFin(''); setRecherche('');
-            }} style={{ ...inputStyle, background: '#E8ECF4', cursor: 'pointer',
-                        color: '#1B2A4A', fontWeight: 'bold' }}>
+              setFiltreDateDeb(''); setFiltreDateFin(''); setRecherche(''); setPage(1);
+            }} style={{ ...inputStyle, background: 'var(--color-surface-muted)', cursor: 'pointer',
+                        color: 'var(--color-primary)', fontWeight: 'bold' }}>
               ↺ Réinitialiser
             </button>
           </div>
@@ -189,7 +187,7 @@ export default function TourDeControle() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ background: '#1B2A4A', color: 'white' }}>
+                  <tr style={{ background: 'var(--color-primary)', color: 'white' }}>
                     {['Date & Heure', 'Utilisateur', 'Rôle', 'Module',
                       'Action', 'Cible', 'Détails', 'IP'].map(h => (
                       <th key={h} style={{ padding: '12px 10px', textAlign: 'left',
@@ -204,10 +202,10 @@ export default function TourDeControle() {
                     return (
                       <tr key={log.id || i}
                         style={{ background: i % 2 === 0 ? 'white' : '#F8F9FC',
-                                 borderBottom: '1px solid #E8ECF4' }}>
+                                 borderBottom: '1px solid var(--color-surface-muted)' }}>
 
                         <td style={{ padding: '10px', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontWeight: 'bold', color: '#1B2A4A', fontSize: '12px' }}>
+                          <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '12px' }}>
                             {log.dateJour}
                           </div>
                           <div style={{ color: '#666', fontSize: '11px' }}>
@@ -216,7 +214,7 @@ export default function TourDeControle() {
                         </td>
 
                         <td style={{ padding: '10px' }}>
-                          <div style={{ fontWeight: 'bold', color: '#1B2A4A' }}>
+                          <div style={{ fontWeight: 'bold', color: 'var(--color-primary)' }}>
                             {log.userNom}
                           </div>
                           <div style={{ color: '#888', fontSize: '11px' }}>
@@ -225,14 +223,14 @@ export default function TourDeControle() {
                         </td>
 
                         <td style={{ padding: '10px' }}>
-                          <span style={{ background: '#E8ECF4', color: '#1F5C99',
+                          <span style={{ background: 'var(--color-surface-muted)', color: 'var(--color-secondary)',
                                          padding: '2px 8px', borderRadius: '10px',
                                          fontSize: '11px', fontWeight: 'bold' }}>
                             {log.userRole}
                           </span>
                         </td>
 
-                        <td style={{ padding: '10px', color: '#1F5C99', fontWeight: '500' }}>
+                        <td style={{ padding: '10px', color: 'var(--color-secondary)', fontWeight: '500' }}>
                           {log.module}
                         </td>
 
@@ -246,7 +244,7 @@ export default function TourDeControle() {
                         </td>
 
                         <td style={{ padding: '10px', maxWidth: '180px' }}>
-                          <div style={{ color: '#1B2A4A', fontSize: '12px',
+                          <div style={{ color: 'var(--color-primary)', fontSize: '12px',
                                         overflow: 'hidden', textOverflow: 'ellipsis',
                                         whiteSpace: 'nowrap' }}>
                             {log.cible || '—'}
@@ -281,25 +279,25 @@ export default function TourDeControle() {
 
             {totalPages > 1 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            padding: '12px 16px', borderTop: '1px solid #E8ECF4', background: '#F8F9FC' }}>
+                            padding: '12px 16px', borderTop: '1px solid var(--color-surface-muted)', background: '#F8F9FC' }}>
                 <span style={{ fontSize: '12px', color: '#666' }}>
                   Page {page} / {totalPages} — {logsFiltres.length} entrée{logsFiltres.length > 1 ? 's' : ''}
                 </span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button onClick={() => setPage(1)} disabled={page === 1}
-                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #C8C8D0',
+                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--color-border)',
                              background: page === 1 ? '#F0F0F0' : 'white', cursor: page === 1 ? 'default' : 'pointer',
                              fontSize: '12px' }}>«</button>
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #C8C8D0',
+                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--color-border)',
                              background: page === 1 ? '#F0F0F0' : 'white', cursor: page === 1 ? 'default' : 'pointer',
                              fontSize: '12px' }}>‹</button>
                   <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #C8C8D0',
+                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--color-border)',
                              background: page === totalPages ? '#F0F0F0' : 'white', cursor: page === totalPages ? 'default' : 'pointer',
                              fontSize: '12px' }}>›</button>
                   <button onClick={() => setPage(totalPages)} disabled={page === totalPages}
-                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid #C8C8D0',
+                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--color-border)',
                              background: page === totalPages ? '#F0F0F0' : 'white', cursor: page === totalPages ? 'default' : 'pointer',
                              fontSize: '12px' }}>»</button>
                 </div>
@@ -319,12 +317,12 @@ export default function TourDeControle() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
               {[
-                { label: 'Total actions',       val: stats.totalActions,          icon: '📊', color: '#1F5C99' },
-                { label: 'Connexions',           val: stats.connexions,            icon: '🟢', color: '#1A7A4A' },
-                { label: 'Impressions/PDF',      val: stats.impressions,           icon: '🖨️', color: '#E60000' },
-                { label: 'Suppressions',         val: stats.suppressions,          icon: '🗑️', color: '#E60000' },
-                { label: 'Échecs connexion',     val: stats.connexionsEchec,       icon: '🔴', color: '#E60000' },
-                { label: 'Utilisateurs actifs',  val: stats.utilisateursActifs,    icon: '👤', color: '#1F5C99' },
+                { label: 'Total actions',       val: stats.totalActions,          icon: '📊', color: 'var(--color-secondary)' },
+                { label: 'Connexions',           val: stats.connexions,            icon: '🟢', color: 'var(--color-success)' },
+                { label: 'Impressions/PDF',      val: stats.impressions,           icon: '🖨️', color: 'var(--color-accent)' },
+                { label: 'Suppressions',         val: stats.suppressions,          icon: '🗑️', color: 'var(--color-accent)' },
+                { label: 'Échecs connexion',     val: stats.connexionsEchec,       icon: '🔴', color: 'var(--color-accent)' },
+                { label: 'Utilisateurs actifs',  val: stats.utilisateursActifs,    icon: '👤', color: 'var(--color-secondary)' },
               ].map(s => (
                 <div key={s.label} style={{ background: 'white', borderRadius: '12px',
                                             padding: '20px', textAlign: 'center',
@@ -340,19 +338,19 @@ export default function TourDeControle() {
             {moduleBreakdown.length > 0 && (
               <div style={{ background: 'white', borderRadius: '12px', padding: '24px',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-                <h3 style={{ color: '#1B2A4A', margin: '0 0 16px 0', fontSize: '15px', fontWeight: 'bold' }}>
+                <h3 style={{ color: 'var(--color-primary)', margin: '0 0 16px 0', fontSize: '15px', fontWeight: 'bold' }}>
                   📦 Actions par module
                 </h3>
                 {moduleBreakdown.map(({ mod, count }) => (
                   <div key={mod} style={{ marginBottom: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between',
                                   fontSize: '13px', marginBottom: '4px' }}>
-                      <span style={{ color: '#1B2A4A', fontWeight: '500' }}>{mod}</span>
-                      <span style={{ color: '#1F5C99', fontWeight: 'bold' }}>{count}</span>
+                      <span style={{ color: 'var(--color-primary)', fontWeight: '500' }}>{mod}</span>
+                      <span style={{ color: 'var(--color-secondary)', fontWeight: 'bold' }}>{count}</span>
                     </div>
-                    <div style={{ background: '#E8ECF4', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
+                    <div style={{ background: 'var(--color-surface-muted)', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
                       <div style={{ width: `${(count / maxCount) * 100}%`, height: '100%',
-                                    background: '#1B2A4A', borderRadius: '4px',
+                                    background: 'var(--color-primary)', borderRadius: '4px',
                                     transition: 'width 0.4s ease' }} />
                     </div>
                   </div>
@@ -365,23 +363,23 @@ export default function TourDeControle() {
 
       {onglet === 'alertes' && (
         <div>
-          <h3 style={{ color: '#E60000', marginBottom: '16px' }}>
+          <h3 style={{ color: 'var(--color-accent)', marginBottom: '16px' }}>
             🚨 Tentatives de connexion échouées
           </h3>
           {Object.entries(alertes).length === 0 ? (
             <div style={{ background: 'white', borderRadius: '10px', padding: '30px',
-                          textAlign: 'center', color: '#1A7A4A', fontWeight: 'bold' }}>
+                          textAlign: 'center', color: 'var(--color-success)', fontWeight: 'bold' }}>
               ✅ Aucune alerte de sécurité détectée
             </div>
           ) : (
             Object.entries(alertes).map(([login, count]) => (
-              <div key={login} style={{ background: '#FFE6E6',
-                                        border: `2px solid ${count >= 3 ? '#E60000' : '#C8C8D0'}`,
+              <div key={login} style={{ background: 'var(--color-accent-light)',
+                                        border: `2px solid ${count >= 3 ? 'var(--color-accent)' : 'var(--color-border)'}`,
                                         borderRadius: '10px', padding: '16px',
                                         marginBottom: '12px', display: 'flex',
                                         justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 'bold', color: '#1B2A4A', fontSize: '15px' }}>
+                  <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '15px' }}>
                     Login : <code style={{ background: '#F0F0F0', padding: '2px 6px',
                                            borderRadius: '4px' }}>{login}</code>
                   </div>
@@ -390,7 +388,7 @@ export default function TourDeControle() {
                                   'Tentative échouée enregistrée'}
                   </div>
                 </div>
-                <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#E60000' }}>
+                <div style={{ fontSize: '28px', fontWeight: 'bold', color: 'var(--color-accent)' }}>
                   {count}×
                 </div>
               </div>
@@ -403,7 +401,7 @@ export default function TourDeControle() {
 }
 
 const inputStyle = {
-  padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #E8ECF4',
-  fontSize: '13px', color: '#1B2A4A', outline: 'none', width: '100%',
+  padding: '8px 12px', borderRadius: '8px', border: '1.5px solid var(--color-surface-muted)',
+  fontSize: '13px', color: 'var(--color-primary)', outline: 'none', width: '100%',
   background: '#F8F9FC',
 };

@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { logger } from '../utils/logger';
 import { checkSupabaseResponse } from '../utils/supabaseErrors';
 import { crudSuccess, crudError } from '../utils/crudNotify';
+import { idbStorage } from '../lib/idbStorage';
 
 function toSupabaseRow(c) {
   return {
@@ -188,6 +189,7 @@ export const useClientsStore = create(
     }),
     {
       name: 'sika_clients',
+      storage: createJSONStorage(() => idbStorage),
       version: 2,
       partialize: (state) => ({ compteurId: state.compteurId }),
       migrate: () => ({ compteurId: 1 })

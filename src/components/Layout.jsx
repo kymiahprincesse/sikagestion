@@ -12,6 +12,8 @@ import DataLoader from './DataLoader'
 import SearchGlobal from './SearchGlobal'
 import SyncStatusIndicator from './SyncStatusIndicator'
 import ToastContainer from './ToastContainer'
+import InstallPWA from './InstallPWA'
+import ThemeToggle from './ThemeToggle'
 
 export default function Layout() {
   const location = useLocation()
@@ -21,7 +23,15 @@ export default function Layout() {
   const sessionExpirant = useAuthStore((state) => state.sessionExpirant)
   const updateActivite = useAuthStore((state) => state.updateActivite)
   const [devisExpanded, setDevisExpanded] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('sika_sidebar_open');
+    if (saved !== null) return JSON.parse(saved);
+    return window.innerWidth >= 1024;
+  })
+
+  useEffect(() => {
+    localStorage.setItem('sika_sidebar_open', JSON.stringify(sidebarOpen));
+  }, [sidebarOpen])
 
   // Activer les raccourcis clavier
   useKeyboardShortcuts()
@@ -34,7 +44,7 @@ export default function Layout() {
 
   if (!utilisateurConnecte) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#1B2A4A' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary)' }}>
         <div className="text-center">
           <SikaLogo size="md" />
           <p className="mt-4 text-white">Redirection vers la connexion...</p>
@@ -53,12 +63,11 @@ export default function Layout() {
   const getSidebarItemStyles = (path) => {
     if (isActive(path)) {
       return {
-        background: 'linear-gradient(90deg, #E60000 0%, #B80000 100%)',
-        boxShadow: '0 4px 14px rgba(230, 0, 0, 0.35)',
-        borderLeft: '4px solid #ffffff'
+        backgroundColor: 'var(--color-secondary)',
+        borderLeft: '4px solid #60A5FA',
       }
     }
-    return { color: '#C8C8D0' }
+    return { color: 'var(--color-border)' }
   }
 
   const canAccess = (module) => {
@@ -126,7 +135,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-background">
       {/* Charger les données Supabase */}
       <DataLoader />
 
@@ -135,13 +144,15 @@ export default function Layout() {
         <div
           className="fixed inset-0 z-20 lg:hidden"
           style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setSidebarOpen(false)}
+          onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
         />
       )}
 
       {/* SIDEBAR */}
       <aside
-        className={`fixed lg:sticky lg:top-0 z-30 flex flex-col h-screen transition-transform duration-300 lg:translate-x-0 glass-sidebar`}
+        className={`fixed top-0 left-0 z-30 flex flex-col h-screen transition-transform duration-300 glass-sidebar ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
         style={{ width: '280px', maxWidth: '85vw' }}
       >
         {/* HEADER SIDEBAR - Logo + Utilisateur */}
@@ -151,7 +162,7 @@ export default function Layout() {
             <div className="flex flex-col items-center">
               <SikaLogo size="sm" />
             </div>
-            <div className="h-[2px] mt-4 bg-gradient-to-r from-transparent via-[#E60000] to-transparent shadow-[0_0_8px_#E60000]"></div>
+            <div className="h-[2px] mt-4 bg-gradient-to-r from-transparent via-[#2563EB] to-transparent shadow-[0_0_10px_#2563EB]"></div>
           </div>
 
           {/* Utilisateur connecté */}
@@ -170,47 +181,47 @@ export default function Layout() {
           {/* TABLEAU DE BORD */}
           <Link
             to="/dashboard"
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+            onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+            className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
               isActive('/dashboard')
                 ? 'text-white font-semibold'
-                : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
             }`}
             style={getSidebarItemStyles('/dashboard')}
           >
             <span className="text-base">📊</span>
-            <span className="text-sm font-semibold tracking-wide">TABLEAU DE BORD</span>
+            <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>TABLEAU DE BORD</span>
           </Link>
 
           {/* RAPPORT DE SYNTHÈSE */}
           <Link
             to="/rapport"
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+            onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+            className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
               isActive('/rapport')
                 ? 'text-white font-semibold'
-                : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
             }`}
             style={getSidebarItemStyles('/rapport')}
           >
             <span className="text-base">📈</span>
-            <span className="text-sm font-semibold tracking-wide">Rapport synthèse</span>
+            <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Rapport synthèse</span>
           </Link>
 
           {/* RÉFÉRENTIEL CLIENTS */}
           {canAccess('CLIENTS') && (
             <Link
               to="/clients"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/clients')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/clients')}
             >
               <span className="text-base">👥</span>
-              <span className="text-sm font-semibold tracking-wide">Référentiel clients</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Référentiel clients</span>
             </Link>
           )}
 
@@ -218,16 +229,16 @@ export default function Layout() {
           {canAccess('PLANIFICATION') && (
             <Link
               to="/planification"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/planification')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/planification')}
             >
               <span className="text-base">🚀</span>
-              <span className="text-sm font-semibold tracking-wide">Pilotage Projets</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Pilotage Projets</span>
             </Link>
           )}
 
@@ -235,16 +246,16 @@ export default function Layout() {
           {canAccess('AO') && (
             <Link
               to="/ao"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/ao')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/ao')}
             >
               <span className="text-base">📋</span>
-              <span className="text-sm font-semibold tracking-wide">Appels d'offres</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Appels d'offres</span>
             </Link>
           )}
 
@@ -252,7 +263,7 @@ export default function Layout() {
           <div className="mt-5 mb-2.5 px-4">
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-white/10"></div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8]">Devis</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8] whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0 hidden lg:block'}`}>Devis</p>
               <div className="h-px flex-1 bg-white/10"></div>
             </div>
           </div>
@@ -262,18 +273,18 @@ export default function Layout() {
             <div>
               <button
                 onClick={() => setDevisExpanded(!devisExpanded)}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg mb-1 transition-all hover:bg-white/5 hover:translate-x-1"
-                style={{ color: '#C8C8D0' }}
+                className={`w-full flex items-center ${sidebarOpen ? 'justify-between px-4' : 'justify-center'} py-2.5 rounded-lg mb-1 transition-all hover:translate-x-1 hover:bg-[var(--color-secondary)] text-gray-400 hover:text-white`}
+                style={{ color: 'var(--color-border)' }}
               >
-                <div className="flex items-center gap-3">
+                <div className={`flex items-center ${sidebarOpen ? 'gap-3' : ''}`}>
                   <span className="text-base">📄</span>
-                  <span className="text-sm font-semibold tracking-wide">Devis</span>
+                  <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Devis</span>
                 </div>
-                {devisExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                {sidebarOpen && (devisExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />)}
               </button>
 
               {devisExpanded && (
-                <div className="ml-3 mr-1 mb-2.5 py-2 pl-3 pr-2 rounded-lg border border-white/5 bg-black/20">
+                <div className="ml-3 mr-1 mb-2.5 py-2 pl-3 pr-2 rounded-lg border border-white/20" style={{ backgroundColor: 'var(--color-primary)' }}>
                   <div className="space-y-1">
                     {[
                       { path: '/devis/calorifuge', label: 'Calorifuge', icon: '🔥' },
@@ -287,15 +298,16 @@ export default function Layout() {
                       <Link
                         key={item.path}
                         to={item.path}
-                        onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-all duration-300 ${
+                        onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+                        className={`flex items-center ${sidebarOpen ? 'gap-2.5 px-3' : 'justify-center'} py-2 rounded-md text-sm transition-all duration-300 ${
                           isActive(item.path)
-                            ? 'text-white font-medium bg-red-600/85 shadow-md shadow-red-600/20'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5 hover:translate-x-1'
+                            ? 'text-white font-medium shadow-md'
+                            : 'text-gray-300 hover:text-white hover:translate-x-1'
                         }`}
+                        style={isActive(item.path) ? { backgroundColor: 'var(--color-secondary)' } : {}}
                       >
                         <span className="text-xs">{item.icon}</span>
-                        <span>{item.label}</span>
+                        <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100' : 'max-w-0 opacity-0 hidden lg:block'}`}>{item.label}</span>
                       </Link>
                     ))}
                   </div>
@@ -304,16 +316,16 @@ export default function Layout() {
 
               <Link
                 to="/devis/liste"
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+                onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+                className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                   isActive('/devis/liste')
                     ? 'text-white font-semibold'
-                    : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                    : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
                 }`}
                 style={getSidebarItemStyles('/devis/liste')}
               >
                 <span className="text-base">📋</span>
-                <span className="text-sm font-semibold tracking-wide">Liste & Suivi Devis</span>
+                <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Liste & Suivi Devis</span>
               </Link>
             </div>
           )}
@@ -322,7 +334,7 @@ export default function Layout() {
           <div className="mt-5 mb-2.5 px-4">
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-white/10"></div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8]">Finance</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8] whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0 hidden lg:block'}`}>Finance</p>
               <div className="h-px flex-1 bg-white/10"></div>
             </div>
           </div>
@@ -331,16 +343,16 @@ export default function Layout() {
           {canAccess('FACTURES') && (
             <Link
               to="/factures"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/factures')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/factures')}
             >
               <span className="text-base">🧾</span>
-              <span className="text-sm font-semibold tracking-wide">Factures clients</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Factures clients</span>
             </Link>
           )}
 
@@ -348,16 +360,16 @@ export default function Layout() {
           {canAccess('ENCAISSEMENTS') && (
             <Link
               to="/encaissements"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/encaissements')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/encaissements')}
             >
               <span className="text-base">💰</span>
-              <span className="text-sm font-semibold tracking-wide">Encaissements</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Encaissements</span>
             </Link>
           )}
 
@@ -365,16 +377,16 @@ export default function Layout() {
           {canAccess('CAISSE') && (
             <Link
               to="/caisse"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/caisse')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/caisse')}
             >
               <span className="text-base">🏦</span>
-              <span className="text-sm font-semibold tracking-wide">Enregistrement Caisse</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Enregistrement Caisse</span>
             </Link>
           )}
 
@@ -382,16 +394,16 @@ export default function Layout() {
           {canAccess('CAISSE') && (
             <Link
               to="/journal"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/journal')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/journal')}
             >
               <span className="text-base">📒</span>
-              <span className="text-sm font-semibold tracking-wide">Journal de Caisse</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Journal de Caisse</span>
             </Link>
           )}
 
@@ -399,16 +411,16 @@ export default function Layout() {
           {canAccess('FOURNISSEURS') && (
             <Link
               to="/fournisseurs"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/fournisseurs')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/fournisseurs')}
             >
               <span className="text-base">🏭</span>
-              <span className="text-sm font-semibold tracking-wide">Fournisseurs</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Fournisseurs</span>
             </Link>
           )}
 
@@ -416,16 +428,16 @@ export default function Layout() {
           {canAccess('CAISSE') && (
             <Link
               to="/achats-depenses"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/achats-depenses')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/achats-depenses')}
             >
               <span className="text-base">🛒💸</span>
-              <span className="text-sm font-semibold tracking-wide">Achats & Dépenses</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Achats & Dépenses</span>
             </Link>
           )}
 
@@ -433,7 +445,7 @@ export default function Layout() {
           <div className="mt-5 mb-2.5 px-4">
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-white/10"></div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8]">Outils</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8] whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0 hidden lg:block'}`}>Outils</p>
               <div className="h-px flex-1 bg-white/10"></div>
             </div>
           </div>
@@ -442,16 +454,16 @@ export default function Layout() {
           {canAccess('IMPORT') && (
             <Link
               to="/import-export"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/import-export')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/import-export')}
             >
               <span className="text-base">📥</span>
-              <span className="text-sm font-semibold tracking-wide">Import / Export</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Import / Export</span>
             </Link>
           )}
 
@@ -459,7 +471,7 @@ export default function Layout() {
           <div className="mt-5 mb-2.5 px-4">
             <div className="flex items-center gap-2">
               <div className="h-px flex-1 bg-white/10"></div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8]">Pilotage</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest text-[#5A7CA8] whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[100px] opacity-100' : 'max-w-0 opacity-0 hidden lg:block'}`}>Pilotage</p>
               <div className="h-px flex-1 bg-white/10"></div>
             </div>
           </div>
@@ -468,16 +480,16 @@ export default function Layout() {
           {canAccess('UTILISATEURS') && (
             <Link
               to="/utilisateurs"
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/utilisateurs')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/utilisateurs')}
             >
               <span className="text-base">🔒</span>
-              <span className="text-sm font-semibold tracking-wide">Utilisateurs</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Utilisateurs</span>
             </Link>
           )}
 
@@ -485,15 +497,15 @@ export default function Layout() {
           {canAccess('UTILISATEURS') && (
             <Link
               to="/tour-de-controle"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/tour-de-controle')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
               }`}
               style={getSidebarItemStyles('/tour-de-controle')}
             >
               <span className="text-base">🛡️</span>
-              <span className="text-sm font-semibold tracking-wide">Tour de Contrôle</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Tour de Contrôle</span>
             </Link>
           )}
 
@@ -501,15 +513,15 @@ export default function Layout() {
           {canAccess('UTILISATEURS') && (
             <Link
               to="/parametres"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
+              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
                 isActive('/parametres')
                   ? 'text-white font-semibold'
-                  : 'hover:bg-white/5 hover:translate-x-1.5 hover:text-white'
+                  : 'text-gray-400 hover:text-white hover:translate-x-1.5'
               }`}
               style={getSidebarItemStyles('/parametres')}
             >
               <span className="text-base">⚙️</span>
-              <span className="text-sm font-semibold tracking-wide">Paramètres</span>
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Paramètres</span>
             </Link>
           )}
         </nav>
@@ -519,23 +531,23 @@ export default function Layout() {
           <button
             onClick={handleDeconnexion}
             className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-lg font-bold text-white transition-all duration-300 hover:opacity-95 shadow-md shadow-red-600/10 glow-hover-red"
-            style={{ background: 'linear-gradient(90deg, #E60000 0%, #B80000 100%)' }}
+            style={{ background: 'linear-gradient(90deg, var(--color-accent) 0%, #B80000 100%)' }}
           >
             <LogOut size={18} />
-            <span>Déconnexion</span>
+            <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100' : 'max-w-0 opacity-0 hidden lg:block'}`}>Déconnexion</span>
           </button>
         </div>
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col min-w-0 min-h-screen">
+      <main className={`flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300 ${sidebarOpen ? 'lg:ml-[280px]' : 'ml-0 lg:ml-[80px]'}`}>
         {/* HEADER */}
         <header className="glass-header px-4 sm:px-6 lg:px-8 py-3 sm:py-4 glow-blue sticky top-0 z-20">
           <div className="flex items-center justify-between gap-4">
             {/* Partie gauche - Menu mobile + Titre */}
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center ${sidebarOpen ? 'gap-3' : ''}`}>
               <button
-                className="lg:hidden p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-700"
+                className="p-2 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200"
                 onClick={() => setSidebarOpen(o => !o)}
                 aria-label="Menu"
               >
@@ -557,6 +569,8 @@ export default function Layout() {
 
             {/* Partie droite - Actions utilisateur */}
             <div className="flex items-center gap-3 sm:gap-4">
+              <ThemeToggle />
+              <InstallPWA />
               <SyncStatusIndicator />
               {utilisateurConnecte && (
                 <div className="flex items-center gap-2 sm:gap-3">
@@ -600,13 +614,13 @@ export default function Layout() {
       {sessionExpirant && (
         <div
           className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 text-white"
-          style={{ backgroundColor: '#E60000' }}
+          style={{ backgroundColor: 'var(--color-accent)' }}
         >
           <span className="font-medium">⚠️ Votre session expire dans 5 minutes pour cause d'inactivité.</span>
           <button
             onClick={updateActivite}
-            className="ml-4 px-4 py-1.5 rounded font-bold bg-white hover:bg-gray-100 transition-colors"
-            style={{ color: '#E60000' }}
+            className="ml-4 px-4 py-1.5 rounded font-bold bg-surface hover:bg-gray-100 transition-colors"
+            style={{ color: 'var(--color-accent)' }}
           >
             Rester connecté
           </button>

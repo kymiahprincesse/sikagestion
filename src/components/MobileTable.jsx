@@ -30,7 +30,7 @@ export const MobileTable = memo(function MobileTable({
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-gray-500 bg-gray-50 rounded-lg">
+      <div className="flex items-center justify-center h-32 text-gray-500 bg-background rounded-lg">
         {emptyMessage}
       </div>
     );
@@ -65,7 +65,7 @@ export const MobileTable = memo(function MobileTable({
       <div
         onClick={() => onRowClick?.(row)}
         className={`
-          bg-white rounded-lg shadow-sm border mb-2 overflow-hidden
+          bg-surface rounded-lg shadow-sm border mb-2 overflow-hidden
           ${isSelected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'}
           ${onRowClick ? 'cursor-pointer active:bg-gray-50' : ''}
           transition-all duration-150
@@ -157,7 +157,7 @@ export const ResponsiveTable = memo(function ResponsiveTable({
 
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-gray-500 bg-gray-50 rounded-lg">
+      <div className="flex items-center justify-center h-32 text-gray-500 bg-background rounded-lg">
         {emptyMessage}
       </div>
     );
@@ -168,7 +168,7 @@ export const ResponsiveTable = memo(function ResponsiveTable({
       {/* Vue Desktop : Table traditionnelle */}
       <div className={`hidden md:block overflow-x-auto ${className}`}>
         <table className="w-full min-w-[600px]">
-          <thead className="bg-gray-50 sticky top-0">
+          <thead className="bg-background sticky top-0">
             <tr>
               {columns.map((col) => (
                 <th

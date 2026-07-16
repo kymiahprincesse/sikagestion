@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { logger } from '../utils/logger';
 import { generateSecureId } from '../utils/format';
 import { crudSuccess, crudError } from '../utils/crudNotify';
+import { idbStorage } from '../lib/idbStorage';
 
 function toSupabaseRow(mouvement) {
   return {
@@ -217,7 +218,7 @@ export const useCaisseStore = create(
     }),
     {
       name: 'sika_caisse',
-      partialize: () => ({})
+      storage: createJSONStorage(() => idbStorage)
     }
   )
 );

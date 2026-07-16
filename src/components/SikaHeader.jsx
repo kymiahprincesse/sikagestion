@@ -24,7 +24,7 @@ export default function SikaHeader({ module }) {
           </div>
         </div>
       </div>
-      <div className="h-1 bg-orange"></div>
+      <div className="h-1 bg-rouge"></div>
     </header>
   )
 }

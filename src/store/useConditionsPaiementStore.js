@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { idbStorage } from '../lib/idbStorage';
 
 const CONDITIONS_DEFAUT = [
   { value: 7, label: '7 jours' },
@@ -66,7 +67,8 @@ export const useConditionsPaiementStore = create(
       }
     }),
     {
-      name: 'sika_conditions_paiement'
+      name: 'sika_conditions_paiement',
+      storage: createJSONStorage(() => idbStorage)
     }
   )
 );

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { idbStorage } from '../lib/idbStorage';
 
 export const useParametresStore = create(
   persist(
@@ -203,7 +204,8 @@ export const useParametresStore = create(
       }
     }),
     {
-      name: 'sika_parametres'
+      name: 'sika_parametres',
+      storage: createJSONStorage(() => idbStorage)
     }
   )
 );

@@ -263,7 +263,5 @@ export function useSupabaseRealtimeEnhanced() {
         connectionManager.unregisterChannel(config.name)
       })
     }
-    // Dépendance vide - exécution unique au montage
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [mapRow])
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { auditLogger } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
@@ -7,6 +7,7 @@ import { AUTH_CONFIG, ROLES } from '../config/constants';
 import { SUPER_ADMIN_EMAIL, SUPER_ADMIN_ID, SUPER_ADMIN_LOGIN as DEFAULT_SUPER_ADMIN_LOGIN } from '../config/auditConfig';
 import { isSuperAdmin as isSuperAdminUser, normalizeRole } from '../utils/filterSuperAdmin';
 import { useUtilisateursStore } from './useUtilisateursStore';
+import { idbStorage } from '../lib/idbStorage';
 
 // Hashage local pour le Super Admin - Salt depuis variable d'environnement
 const SALT_LOCAL = import.meta.env.VITE_SIKA_SALT || 'sika_local_auth_salt_2024';
@@ -287,6 +288,7 @@ export const useAuthStore = create(
     }),
     {
       name: 'sika_auth',
+      storage: createJSONStorage(() => idbStorage),
       partialize: (state) => ({
         utilisateurConnecte: state.utilisateurConnecte,
         derniereActivite: state.derniereActivite

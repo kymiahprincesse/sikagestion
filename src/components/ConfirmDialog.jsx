@@ -17,7 +17,7 @@ export default function ConfirmDialog({
       case 'danger':
         return <Trash2 className="w-6 h-6 text-rouge" />;
       case 'warning':
-        return <AlertTriangle className="w-6 h-6 text-orange-600" />;
+        return <AlertTriangle className="w-6 h-6 text-rouge-600" />;
       case 'info':
         return <Info className="w-6 h-6 text-blue-600" />;
       default:
@@ -30,7 +30,7 @@ export default function ConfirmDialog({
       case 'danger':
         return 'bg-rouge/10';
       case 'warning':
-        return 'bg-orange-100';
+        return 'bg-rouge-100';
       case 'info':
         return 'bg-blue-100';
       default:
@@ -43,7 +43,7 @@ export default function ConfirmDialog({
       case 'danger':
         return 'bg-rouge hover:bg-rouge/90 text-white';
       case 'warning':
-        return 'bg-orange-600 hover:bg-orange-700 text-white';
+        return 'bg-rouge-600 hover:bg-rouge-700 text-white';
       case 'info':
         return 'bg-blue-600 hover:bg-blue-700 text-white';
       default:
@@ -55,7 +55,7 @@ export default function ConfirmDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-navy/80" onClick={onCancel}></div>
       
-      <div className="relative bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 animate-scale-in">
+      <div className="relative bg-surface rounded-lg shadow-2xl p-6 max-w-md w-full mx-4 animate-scale-in">
         <div className="mb-6">
           <div className={`w-12 h-12 ${getIconBg()} rounded-full flex items-center justify-center mx-auto mb-4`}>
             {getIcon()}

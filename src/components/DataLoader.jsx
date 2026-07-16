@@ -18,20 +18,6 @@ import { offlineQueue } from '../services/offlineQueue'
 import { logger } from '../utils/logger'
 
 /**
- * Valide qu'un objet client a les champs minimaux requis
- */
-function validateClient(c) {
-  return c && typeof c.id !== 'undefined' && (c.nom || c.raison_sociale);
-}
-
-/**
- * Valide qu'un objet facture/devis a les champs minimaux requis
- */
-function validateDocument(d) {
-  return d && typeof d.id !== 'undefined' && (d.numero || d.id);
-}
-
-/**
  * Composant invisible qui charge toutes les données depuis Supabase au démarrage
  * ET active la synchronisation temps réel
  */
@@ -56,7 +42,7 @@ export default function DataLoader() {
   // Utilisateurs : mis à jour directement via useUtilisateursStore.setState dans loadAllData
   const genererNotifications = useNotificationsStore(state => state.genererNotifications)
 
-  const loadAllData = useCallback(async (reason = 'initial') => {
+  const loadAllData = useCallback(async () => {
     if (!utilisateurConnecte) return
     if (isRefreshingRef.current) return
 
@@ -169,7 +155,9 @@ export default function DataLoader() {
             statut: d.statut,
             notes: d.notes,
             dateCreation: d.date_creation,
-            lignes: lignesMap[d.id] || []
+            lignes: (useDevisStore.getState().devis.find(ld => ld.id === d.id)?.lignes?.length > 0) 
+              ? useDevisStore.getState().devis.find(ld => ld.id === d.id).lignes 
+              : (lignesMap[d.id] || [])
           }))
           setDevis(devis)
         }

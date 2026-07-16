@@ -24,7 +24,7 @@ export default function ModalVoir({ ao, onClose }) {
     const colors = {
       [STATUTS_AO.A_CHIFFRER]: 'bg-bleu',
       [STATUTS_AO.DECLINE]: 'bg-gray-500',
-      [STATUTS_AO.EN_ATTENTE]: 'bg-orange',
+      [STATUTS_AO.EN_ATTENTE]: 'bg-rouge',
       [STATUTS_AO.SOUMIS]: 'bg-purple-600',
       [STATUTS_AO.GAGNE]: 'bg-vert',
       [STATUTS_AO.PERDU]: 'bg-rouge'
@@ -34,19 +34,19 @@ export default function ModalVoir({ ao, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="bg-navy text-white px-6 py-4 flex items-center justify-between sticky top-0">
           <h2 className="text-xl font-bold">Détails de l'Appel d'Offres</h2>
           <button
             onClick={onClose}
-            className="text-white hover:text-orange transition text-2xl"
+            className="text-white hover:text-rouge transition text-2xl"
           >
             ×
           </button>
         </div>
 
         <div className="p-6">
-          <div className="bg-orange-light border-l-4 border-orange p-4 mb-6">
+          <div className="bg-rouge-light border-l-4 border-rouge p-4 mb-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-bold text-navy">{ao.numeroDevis}</h3>
@@ -60,10 +60,10 @@ export default function ModalVoir({ ao, onClose }) {
 
           <div className="space-y-6">
             <div>
-              <h4 className="text-lg font-bold text-navy mb-4 pb-2 border-b-2 border-orange">
+              <h4 className="text-lg font-bold text-navy mb-4 pb-2 border-b-2 border-rouge">
                 Informations Générales
               </h4>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-background rounded-lg p-4">
                 <InfoRow label="Date du Devis" value={ao.dateDevis} />
                 <InfoRow label="N° Devis" value={ao.numeroDevis} />
                 <InfoRow label="Client" value={ao.client} />
@@ -74,10 +74,10 @@ export default function ModalVoir({ ao, onClose }) {
             </div>
 
             <div>
-              <h4 className="text-lg font-bold text-navy mb-4 pb-2 border-b-2 border-orange">
+              <h4 className="text-lg font-bold text-navy mb-4 pb-2 border-b-2 border-rouge">
                 Désignations
               </h4>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-background rounded-lg p-4">
                 <p className="text-gray-900 whitespace-pre-wrap">
                   {ao.designations || 'Aucune désignation'}
                 </p>
@@ -85,10 +85,10 @@ export default function ModalVoir({ ao, onClose }) {
             </div>
 
             <div>
-              <h4 className="text-lg font-bold text-navy mb-4 pb-2 border-b-2 border-orange">
+              <h4 className="text-lg font-bold text-navy mb-4 pb-2 border-b-2 border-rouge">
                 Dates et Échéances
               </h4>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-background rounded-lg p-4">
                 <InfoRow label="Réception AO" value={ao.receptionAO} />
                 <InfoRow label="Date de Visite de Chantier" value={ao.dateVisiteChantier} />
                 <InfoRow label="Date de Réponse AO" value={ao.dateReponseAO} />
@@ -96,10 +96,10 @@ export default function ModalVoir({ ao, onClose }) {
             </div>
 
             <div>
-              <h4 className="text-lg font-bold text-navy mb-4 pb-2 border-b-2 border-orange">
+              <h4 className="text-lg font-bold text-navy mb-4 pb-2 border-b-2 border-rouge">
                 Informations Financières
               </h4>
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-background rounded-lg p-4">
                 <InfoRow 
                   label="Montant Retenue" 
                   value={ao.montantRetenue ? `${ao.montantRetenue.toLocaleString()} FCFA` : '-'} 

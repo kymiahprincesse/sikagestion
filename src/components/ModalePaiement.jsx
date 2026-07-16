@@ -21,7 +21,7 @@ export default function ModalePaiement({ factureId, onSave, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-navy/80" onClick={onClose}></div>
       
-      <div className="relative bg-white rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
+      <div className="relative bg-surface rounded-lg shadow-2xl p-6 max-w-md w-full mx-4">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-bold text-navy">Enregistrer un paiement</h3>
           <button
@@ -52,7 +52,7 @@ export default function ModalePaiement({ factureId, onSave, onClose }) {
             <select
               value={formData.mode}
               onChange={(e) => setFormData({ ...formData, mode: e.target.value })}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             >
               {modes.map(mode => (
                 <option key={mode} value={mode}>{mode}</option>
@@ -69,7 +69,7 @@ export default function ModalePaiement({ factureId, onSave, onClose }) {
               value={formData.reference}
               onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
               placeholder="Numéro de transaction, chèque..."
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             />
           </div>
 

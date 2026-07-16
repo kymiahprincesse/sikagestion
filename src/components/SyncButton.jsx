@@ -7,7 +7,7 @@ import { useAOStore } from '../store/useAOStore'
 import { useFournisseursStore } from '../store/useFournisseursStore'
 import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
-import { Upload, Download, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react'
+import { RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react'
 
 export default function SyncButton() {
   const [isSyncing, setIsSyncing] = useState(false)
@@ -92,10 +92,10 @@ export default function SyncButton() {
 
   return (
     <div className="flex flex-col sm:flex-row items-stretch gap-3">
-      <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-[#1B2A4A] text-white shadow-xl border-2 border-[#E60000]">
-        <Clock className="w-8 h-8 text-[#E60000]" />
+      <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-primary text-white shadow-xl border-2 border-accent">
+        <Clock className="w-8 h-8 text-accent" />
         <div className="flex flex-col items-start">
-          <span className="text-sm font-semibold text-[#C8C8D0] uppercase tracking-wide">{jour} {dateStr}</span>
+          <span className="text-sm font-semibold text-textMuted uppercase tracking-wide">{jour} {dateStr}</span>
           <span className="text-2xl font-bold text-white">{heureStr}</span>
         </div>
       </div>
@@ -103,7 +103,7 @@ export default function SyncButton() {
       <button
         onClick={handleSync}
         disabled={isSyncing}
-        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#E60000] text-white font-semibold shadow-lg hover:bg-[#c30000] transition disabled:opacity-70"
+        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-accent text-white font-semibold shadow-lg hover:bg-[#c30000] transition disabled:opacity-70"
       >
         {isSyncing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
         {isSyncing ? 'Synchronisation…' : 'Synchroniser'}

@@ -11,7 +11,7 @@ import { quickCheck } from '../utils/duplicateDetector';
 export function useDuplicatePrevention(type, entitésExistantes, options = {}) {
   const {
     délaiAntiDoubleClic = 2000, // 2 secondes
-    notifier = true,
+
     onDoublonDetecté = null,
     onValidationRéussie = null
   } = options;

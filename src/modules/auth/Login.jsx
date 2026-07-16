@@ -7,9 +7,9 @@ import BackendStatusIndicator from '../../components/BackendStatusIndicator';
 import { Eye, EyeOff, ArrowLeft, Mail, KeyRound, CheckCircle, Copy, Check } from 'lucide-react';
 
 const INPUT_STYLE = {
-  width: '100%', padding: '11px 14px', border: '1.5px solid #C8C8D0',
+  width: '100%', padding: '11px 14px', border: '1.5px solid var(--color-border)',
   borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
-  transition: 'border-color 0.2s', color: '#1B2A4A'
+  transition: 'border-color 0.2s', color: 'var(--color-primary)'
 };
 
 const Login = () => {
@@ -21,7 +21,7 @@ const Login = () => {
       localStorage.removeItem('sika_remember_me');
       const savedLogin = sessionStorage.getItem('sika_saved_login');
       if (sessionStorage.getItem('sika_remember_me') === 'true' && savedLogin) return savedLogin;
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
     return '';
   });
   const [motDePasse, setMotDePasse] = useState('');
@@ -31,7 +31,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(() => {
     try {
       return sessionStorage.getItem('sika_remember_me') === 'true';
-    } catch (e) { return false; }
+    } catch { return false; }
   });
 
   /* ── Navigation entre vues ── */
@@ -59,7 +59,7 @@ const Login = () => {
   const fetchUtilisateurs = useUtilisateursStore(state => state.fetchUtilisateurs);
   const navigate = useNavigate();
 
-  const [modeEmail, setModeEmail] = useState(false);
+
 
   useEffect(() => {
     fetchUtilisateurs();
@@ -67,17 +67,20 @@ const Login = () => {
 
   useEffect(() => {
     if (vue === 'code') {
-      setTempsRestant(900);
       timerRef.current = setInterval(() => {
         setTempsRestant(t => {
           if (t <= 1) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+            setTimeout(() => {
+              setErreurRecup('⏰ Code expiré. Veuillez recommencer.');
+              setVue('email');
+            }, 0);
             return 0;
           }
           return t - 1;
         });
       }, 1000);
-    } else {
-      setTempsRestant(900);
     }
     return () => {
       if (timerRef.current) {
@@ -87,17 +90,9 @@ const Login = () => {
     };
   }, [vue]);
 
-  // Gérer l'expiration du code séparément pour éviter les setState imbriqués
-  useEffect(() => {
-    if (vue === 'code' && tempsRestant === 0) {
-      setErreurRecup('⏰ Code expiré. Veuillez recommencer.');
-      setVue('email');
-    }
-  }, [vue, tempsRestant]);
-
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
   const progression = (tempsRestant / 900) * 100;
-  const timerColor = tempsRestant < 120 ? '#E60000' : tempsRestant < 300 ? '#E8A020' : '#1A7A4A';
+  const timerColor = tempsRestant < 120 ? 'var(--color-accent)' : tempsRestant < 300 ? '#E8A020' : 'var(--color-success)';
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -110,14 +105,14 @@ const Login = () => {
           try {
             sessionStorage.setItem('sika_saved_login', identifiant);
             sessionStorage.setItem('sika_remember_me', 'true');
-          } catch (e) {
+          } catch {
             // Ignorer erreur storage
           }
         } else {
           try {
             sessionStorage.removeItem('sika_saved_login');
             sessionStorage.removeItem('sika_remember_me');
-          } catch (e) {
+          } catch {
             // Ignorer
           }
         }
@@ -146,11 +141,10 @@ const Login = () => {
       if (res.hasAuthAccount) {
         const emailRes = await envoyerEmailRecuperation(emailNorm);
         if (!emailRes.success) { setErreurRecup(emailRes.message); return; }
-        setModeEmail(true);
         setVue('email-sent');
       } else {
-        setModeEmail(false);
         setCodeGenere(res.code);
+        setTempsRestant(900);
         setVue('code');
       }
     } finally {
@@ -197,6 +191,7 @@ const Login = () => {
     clearInterval(timerRef.current);
     setErreurRecup('');
     setVue(cible);
+    setTempsRestant(900);
   };
 
   return (
@@ -208,26 +203,26 @@ const Login = () => {
         </div>
 
         <div className="glass-panel shadow-2xl overflow-hidden animate-scale-in" style={{ borderRadius: '16px', background: 'rgba(255, 255, 255, 0.92)' }}>
-          <div style={{ height: '4px', background: 'linear-gradient(90deg, #E60000 0%, #06006E 100%)' }} />
+          <div style={{ height: '4px', background: 'linear-gradient(90deg, var(--color-accent) 0%, var(--color-primary) 100%)' }} />
 
           <div style={{ padding: '32px' }}>
 
             {/* ══════════════════════════════════════════ VUE : CONNEXION */}
             {vue === 'login' && (
               <>
-                <h2 className="text-2xl font-bold text-center mb-6" style={{ color: '#1B2A4A' }}>
+                <h2 className="text-2xl font-bold text-center mb-6" style={{ color: 'var(--color-primary)' }}>
                   🔓 Connexion
                 </h2>
 
                 {erreur && (
-                  <div className="mb-4 p-3 rounded-lg" style={{ background: '#FFE6E6', border: '1px solid #E60000' }}>
-                    <p className="text-sm font-semibold" style={{ color: '#E60000' }}>⚠️ {erreur}</p>
+                  <div className="mb-4 p-3 rounded-lg" style={{ background: 'var(--color-accent-light)', border: '1px solid var(--color-accent)' }}>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>⚠️ {erreur}</p>
                   </div>
                 )}
 
                 <form onSubmit={handleLogin}>
                   <div className="mb-4">
-                    <label className="block text-sm font-bold mb-2" style={{ color: '#1B2A4A' }}>
+                    <label className="block text-sm font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
                       Identifiant ou Email
                     </label>
                     <input
@@ -241,7 +236,7 @@ const Login = () => {
                   </div>
 
                   <div className="mb-1">
-                    <label className="block text-sm font-bold mb-2" style={{ color: '#1B2A4A' }}>
+                    <label className="block text-sm font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
                       Mot de passe
                     </label>
                     <div className="relative">
@@ -255,7 +250,7 @@ const Login = () => {
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100"
-                        style={{ color: '#1B2A4A', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        style={{ color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}>
                         {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                     </div>
@@ -263,7 +258,7 @@ const Login = () => {
 
                   <div className="flex justify-end mb-5 mt-1">
                     <button type="button" onClick={() => goBack('email')}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#E60000', fontSize: '13px', fontWeight: 700, padding: 0 }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-accent)', fontSize: '13px', fontWeight: 700, padding: 0 }}>
                       Mot de passe oublié ?
                     </button>
                   </div>
@@ -271,23 +266,23 @@ const Login = () => {
                   <div className="mb-6">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
-                        style={{ width: '16px', height: '16px', accentColor: '#E60000' }} />
-                      <span className="text-sm" style={{ color: '#1B2A4A' }}>Se souvenir de moi</span>
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--color-accent)' }} />
+                      <span className="text-sm" style={{ color: 'var(--color-primary)' }}>Se souvenir de moi</span>
                     </label>
                   </div>
 
                   <button type="submit" disabled={isLoading}
                     className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                    style={{ backgroundColor: '#E60000', fontSize: '15px' }}>
+                    style={{ backgroundColor: 'var(--color-accent)', fontSize: '15px' }}>
                     {isLoading ? '⏳ Connexion...' : 'Se connecter'}
                   </button>
                 </form>
 
-                <div className="mt-6 pt-5 border-t" style={{ borderColor: '#E8ECF4' }}>
+                <div className="mt-6 pt-5 border-t" style={{ borderColor: 'var(--color-surface-muted)' }}>
                   <div className="flex justify-center mb-2">
                     <BackendStatusIndicator variant="compact" />
                   </div>
-                  <p className="text-xs text-center" style={{ color: '#1F5C99' }}>
+                  <p className="text-xs text-center" style={{ color: 'var(--color-secondary)' }}>
                     SIKA INDUSTRIE — Système de Gestion
                   </p>
                 </div>
@@ -306,23 +301,23 @@ const Login = () => {
                 <div className="text-center mb-6">
                   <div className="flex items-center justify-center w-16 h-16 rounded-full mx-auto mb-3"
                     style={{ background: '#E3F0FB' }}>
-                    <Mail size={28} style={{ color: '#1F5C99' }} />
+                    <Mail size={28} style={{ color: 'var(--color-secondary)' }} />
                   </div>
-                  <h2 className="text-xl font-bold" style={{ color: '#1B2A4A' }}>Récupération du compte</h2>
+                  <h2 className="text-xl font-bold" style={{ color: 'var(--color-primary)' }}>Récupération du compte</h2>
                   <p className="text-sm mt-1" style={{ color: '#888' }}>
                     Saisissez votre email pour recevoir un code
                   </p>
                 </div>
 
                 {erreurRecup && (
-                  <div className="mb-4 p-3 rounded-lg" style={{ background: '#FFE6E6', border: '1px solid #E60000' }}>
-                    <p className="text-sm font-semibold" style={{ color: '#E60000' }}>{erreurRecup}</p>
+                  <div className="mb-4 p-3 rounded-lg" style={{ background: 'var(--color-accent-light)', border: '1px solid var(--color-accent)' }}>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>{erreurRecup}</p>
                   </div>
                 )}
 
                 <form onSubmit={handleDemandeCode}>
                   <div className="mb-5">
-                    <label className="block text-sm font-bold mb-2" style={{ color: '#1B2A4A' }}>
+                    <label className="block text-sm font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
                       Adresse email du compte
                     </label>
                     <input type="email" value={emailRecup} onChange={e => setEmailRecup(e.target.value)}
@@ -331,7 +326,7 @@ const Login = () => {
                   </div>
                   <button type="submit" disabled={isLoadingRecup}
                     className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                    style={{ backgroundColor: '#1B2A4A', fontSize: '14px' }}>
+                    style={{ backgroundColor: 'var(--color-primary)', fontSize: '14px' }}>
                     {isLoadingRecup ? '⏳ Envoi en cours...' : '📨 Générer mon code de récupération'}
                   </button>
                 </form>
@@ -348,8 +343,8 @@ const Login = () => {
                 </button>
 
                 <div className="text-center mb-4">
-                  <KeyRound size={24} style={{ color: '#1B2A4A', margin: '0 auto 6px' }} />
-                  <h2 className="text-lg font-bold" style={{ color: '#1B2A4A' }}>Code de récupération</h2>
+                  <KeyRound size={24} style={{ color: 'var(--color-primary)', margin: '0 auto 6px' }} />
+                  <h2 className="text-lg font-bold" style={{ color: 'var(--color-primary)' }}>Code de récupération</h2>
                   <p className="text-sm" style={{ color: '#555' }}>
                     Bonjour <strong>{nomUser.split(' ')[0]}</strong>, voici votre code :
                   </p>
@@ -357,7 +352,7 @@ const Login = () => {
 
                 {/* ── Carte code animée ── */}
                 <div className="rounded-2xl mb-2 p-4 text-center relative select-none"
-                  style={{ background: 'linear-gradient(135deg, #1B2A4A 0%, #1F5C99 100%)', boxShadow: '0 8px 28px rgba(27,42,74,0.35)' }}>
+                  style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)', boxShadow: '0 8px 28px rgba(27,42,74,0.35)' }}>
                   <div className="text-xs font-bold mb-2 tracking-widest" style={{ color: 'rgba(255,255,255,0.55)' }}>
                     CODE DE RÉCUPÉRATION
                   </div>
@@ -377,22 +372,22 @@ const Login = () => {
                     <span>⏱️ Valide encore</span>
                     <span className="font-bold tabular-nums">{fmt(tempsRestant)}</span>
                   </div>
-                  <div className="rounded-full overflow-hidden" style={{ height: '5px', background: '#E8ECF4' }}>
+                  <div className="rounded-full overflow-hidden" style={{ height: '5px', background: 'var(--color-surface-muted)' }}>
                     <div className="h-full rounded-full"
                       style={{ width: `${progression}%`, background: timerColor, transition: 'width 1s linear, background 0.3s' }} />
                   </div>
                 </div>
 
                 {erreurRecup && (
-                  <div className="mb-3 p-3 rounded-lg" style={{ background: '#FFE6E6', border: '1px solid #E60000' }}>
-                    <p className="text-sm font-semibold" style={{ color: '#E60000' }}>{erreurRecup}</p>
+                  <div className="mb-3 p-3 rounded-lg" style={{ background: 'var(--color-accent-light)', border: '1px solid var(--color-accent)' }}>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--color-accent)' }}>{erreurRecup}</p>
                   </div>
                 )}
 
                 <form onSubmit={handleReinit}>
                   <div className="mb-3">
-                    <label className="block text-xs font-bold mb-1" style={{ color: '#1B2A4A' }}>
-                      Entrez le code affiché ci-dessus <span style={{ color: '#E60000' }}>*</span>
+                    <label className="block text-xs font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
+                      Entrez le code affiché ci-dessus <span style={{ color: 'var(--color-accent)' }}>*</span>
                     </label>
                     <input type="text" value={codeEntre} onChange={e => setCodeEntre(e.target.value)}
                       maxLength={6} inputMode="numeric"
@@ -402,8 +397,8 @@ const Login = () => {
                   </div>
 
                   <div className="mb-3">
-                    <label className="block text-xs font-bold mb-1" style={{ color: '#1B2A4A' }}>
-                      Nouveau mot de passe <span style={{ color: '#E60000' }}>*</span>
+                    <label className="block text-xs font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
+                      Nouveau mot de passe <span style={{ color: 'var(--color-accent)' }}>*</span>
                     </label>
                     <div className="relative">
                       <input type={showNouveauMdp ? 'text' : 'password'} value={nouveauMdp}
@@ -418,13 +413,13 @@ const Login = () => {
                     </div>
                     {nouveauMdp.length > 0 && (
                       <div className="flex gap-3 mt-1" style={{ fontSize: '11px' }}>
-                        <span style={{ color: nouveauMdp.length >= 6 ? '#1A7A4A' : '#E60000' }}>
+                        <span style={{ color: nouveauMdp.length >= 6 ? 'var(--color-success)' : 'var(--color-accent)' }}>
                           {nouveauMdp.length >= 6 ? '✓' : '✗'} 6 car. min
                         </span>
-                        <span style={{ color: /[A-Z]/.test(nouveauMdp) ? '#1A7A4A' : '#C8C8D0' }}>
+                        <span style={{ color: /[A-Z]/.test(nouveauMdp) ? 'var(--color-success)' : 'var(--color-border)' }}>
                           {/[A-Z]/.test(nouveauMdp) ? '✓' : '○'} Majuscule
                         </span>
-                        <span style={{ color: /[0-9]/.test(nouveauMdp) ? '#1A7A4A' : '#C8C8D0' }}>
+                        <span style={{ color: /[0-9]/.test(nouveauMdp) ? 'var(--color-success)' : 'var(--color-border)' }}>
                           {/[0-9]/.test(nouveauMdp) ? '✓' : '○'} Chiffre
                         </span>
                       </div>
@@ -432,20 +427,20 @@ const Login = () => {
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-xs font-bold mb-1" style={{ color: '#1B2A4A' }}>
-                      Confirmer le mot de passe <span style={{ color: '#E60000' }}>*</span>
+                    <label className="block text-xs font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
+                      Confirmer le mot de passe <span style={{ color: 'var(--color-accent)' }}>*</span>
                     </label>
                     <input type="password" value={confirmMdp} onChange={e => setConfirmMdp(e.target.value)}
-                      style={{ ...INPUT_STYLE, fontSize: '13px', borderColor: nouveauMdp && confirmMdp && nouveauMdp !== confirmMdp ? '#E60000' : '#C8C8D0' }}
+                      style={{ ...INPUT_STYLE, fontSize: '13px', borderColor: nouveauMdp && confirmMdp && nouveauMdp !== confirmMdp ? 'var(--color-accent)' : 'var(--color-border)' }}
                       placeholder="Répéter le mot de passe" required />
                     {nouveauMdp && confirmMdp && nouveauMdp !== confirmMdp && (
-                      <p style={{ color: '#E60000', fontSize: '11px', marginTop: '3px' }}>⚠️ Ne correspondent pas</p>
+                      <p style={{ color: 'var(--color-accent)', fontSize: '11px', marginTop: '3px' }}>⚠️ Ne correspondent pas</p>
                     )}
                   </div>
 
                   <button type="submit" disabled={isLoadingReinit}
                     className="w-full py-3 rounded-xl font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
-                    style={{ backgroundColor: '#1A7A4A', fontSize: '14px' }}>
+                    style={{ backgroundColor: 'var(--color-success)', fontSize: '14px' }}>
                     {isLoadingReinit ? '⏳ Réinitialisation...' : '✓ Réinitialiser mon mot de passe'}
                   </button>
                 </form>
@@ -457,21 +452,21 @@ const Login = () => {
               <div className="text-center py-8">
                 <div className="flex items-center justify-center w-20 h-20 rounded-full mx-auto mb-4"
                   style={{ background: '#E3F0FB' }}>
-                  <Mail size={42} style={{ color: '#1F5C99' }} />
+                  <Mail size={42} style={{ color: 'var(--color-secondary)' }} />
                 </div>
-                <h2 className="text-xl font-bold mb-2" style={{ color: '#1B2A4A' }}>
+                <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--color-primary)' }}>
                   Email envoyé !
                 </h2>
                 <p className="text-sm mb-4" style={{ color: '#555' }}>
                   Bonjour <strong>{nomUser.split(' ')[0]}</strong>, un lien de réinitialisation<br />
                   a été envoyé à <strong>{emailRecup}</strong>.
                 </p>
-                <div className="p-3 rounded-lg mb-4 text-sm" style={{ background: '#E8F5E9', color: '#1A7A4A', fontWeight: 600 }}>
+                <div className="p-3 rounded-lg mb-4 text-sm" style={{ background: '#E8F5E9', color: 'var(--color-success)', fontWeight: 600 }}>
                   ✉️ Vérifiez votre boîte mail et cliquez sur le lien pour réinitialiser votre mot de passe.
                 </div>
                 <button type="button" onClick={() => goBack('login')}
                   className="w-full py-3 rounded-xl font-bold text-white"
-                  style={{ backgroundColor: '#1B2A4A', fontSize: '14px' }}>
+                  style={{ backgroundColor: 'var(--color-primary)', fontSize: '14px' }}>
                   ← Retour à la connexion
                 </button>
               </div>
@@ -482,15 +477,15 @@ const Login = () => {
               <div className="text-center py-8">
                 <div className="flex items-center justify-center w-20 h-20 rounded-full mx-auto mb-4"
                   style={{ background: '#E8F5E9' }}>
-                  <CheckCircle size={42} style={{ color: '#1A7A4A' }} />
+                  <CheckCircle size={42} style={{ color: 'var(--color-success)' }} />
                 </div>
-                <h2 className="text-xl font-bold mb-2" style={{ color: '#1A7A4A' }}>
+                <h2 className="text-xl font-bold mb-2" style={{ color: 'var(--color-success)' }}>
                   Mot de passe réinitialisé !
                 </h2>
                 <p className="text-sm" style={{ color: '#555' }}>
                   Vous pouvez maintenant vous connecter<br />avec votre nouveau mot de passe.
                 </p>
-                <p className="text-xs mt-4" style={{ color: '#C8C8D0' }}>
+                <p className="text-xs mt-4" style={{ color: 'var(--color-border)' }}>
                   Redirection automatique dans 3 secondes...
                 </p>
               </div>
@@ -500,12 +495,12 @@ const Login = () => {
         </div>
 
         <div className="mt-6 text-center space-y-2">
-          <p className="text-sm" style={{ color: '#C8C8D0' }}>© 2026 SIKA INDUSTRIE — Tous droits réservés</p>
+          <p className="text-sm" style={{ color: 'var(--color-border)' }}>© 2026 SIKA INDUSTRIE — Tous droits réservés</p>
           <div className="pt-2 border-t" style={{ borderColor: 'rgba(74,109,181,0.3)' }}>
-            <p className="text-xs" style={{ color: '#C8C8D0' }}>
-              Développé par <span style={{ color: '#E60000', fontWeight: 600 }}>Christian ANISONOK</span>
+            <p className="text-xs" style={{ color: 'var(--color-border)' }}>
+              Développé par <span style={{ color: 'var(--color-accent)', fontWeight: 600 }}>Christian ANISONOK</span>
             </p>
-            <p className="text-xs mt-1" style={{ color: '#C8C8D0' }}>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-border)' }}>
               Contact : <a href="tel:+2250777916407" className="hover:underline" style={{ color: '#4A6DB5' }}>+225 07 77 91 64 07</a>
             </p>
           </div>

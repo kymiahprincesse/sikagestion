@@ -20,7 +20,7 @@ const getStatutBadge = (statut) => {
     [STATUTS_PROJET.EN_COURS]: { emoji: '🔵', label: 'En cours', color: 'bg-blue-100 text-blue-800' },
     [STATUTS_PROJET.TERMINE]: { emoji: '🟢', label: 'Terminé', color: 'bg-green-100 text-green-800' },
     [STATUTS_PROJET.EN_RETARD]: { emoji: '🔴', label: 'En retard', color: 'bg-red-100 text-red-800' },
-    [STATUTS_PROJET.SUSPENDU]: { emoji: '⏸', label: 'Suspendu', color: 'bg-gray-100 text-gray-800' }
+    [STATUTS_PROJET.SUSPENDU]: { emoji: '⏸', label: 'Suspendu', color: 'bg-surfaceMuted text-gray-800' }
   };
   const badge = badges[statut] || badges[STATUTS_PROJET.EN_PREPARATION];
   return (
@@ -137,7 +137,7 @@ export default function PlanificationProjet() {
   if (!storeReady) {
     return (
       <div className="p-6">
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+        <div className="bg-surface rounded-lg shadow-lg p-8 text-center">
           <div className="text-6xl mb-4">⏳</div>
           <h2 className="text-xl font-bold text-navy mb-2">Chargement...</h2>
           <p className="text-bleu">Initialisation du module de planification</p>
@@ -680,7 +680,7 @@ export default function PlanificationProjet() {
   return (
     <div className="p-6">
 
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <div className="bg-surface rounded-lg shadow-lg p-6 mb-6">
         <h1 className="text-2xl font-bold text-navy mb-4">🚀 Pilotage Projets</h1>
 
         <div className="mb-6">
@@ -689,7 +689,7 @@ export default function PlanificationProjet() {
             <select
               value={clientSelectionne || ''}
               onChange={(e) => handleClientRapide(parseInt(e.target.value))}
-              className="px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              className="px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
             >
               <option value="">Tous les clients</option>
               {clientsActifs.map(client => (
@@ -795,7 +795,7 @@ export default function PlanificationProjet() {
 
 function ListeProjets({ projets, getStatistiquesProjet, getClientById, onVoirProjet }) {
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="bg-surface rounded-lg shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-navy text-white">
@@ -827,14 +827,14 @@ function ListeProjets({ projets, getStatistiquesProjet, getClientById, onVoirPro
                 return (
                   <tr
                     key={projet.id}
-                    className={`border-b border-argent hover:bg-orange/10 cursor-pointer ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                    className={`border-b border-argent hover:bg-rouge/10 cursor-pointer ${
+                      index % 2 === 0 ? 'bg-surface' : 'bg-background'
                     }`}
                     onClick={() => onVoirProjet(projet)}
                   >
                     <td className="px-4 py-3 font-medium text-navy">{projet.nom}</td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-1 bg-orange text-white rounded text-xs font-medium">
+                      <span className="px-2 py-1 bg-rouge text-white rounded text-xs font-medium">
                         {client?.nom || 'N/A'}
                       </span>
                     </td>
@@ -860,7 +860,7 @@ function ListeProjets({ projets, getStatistiquesProjet, getClientById, onVoirPro
                     <td className="px-4 py-3 text-center">
                       <button
                         onClick={(e) => { e.stopPropagation(); onVoirProjet(projet); }}
-                        className="text-bleu hover:text-orange transition-colors"
+                        className="text-bleu hover:text-rouge transition-colors"
                       >
                         👁
                       </button>
@@ -885,13 +885,13 @@ function DetailProjet({ projet, stats, client, taches, onglet, setOnglet, onNouv
   }));
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="bg-surface rounded-lg shadow-lg overflow-hidden">
       <div className="bg-navy text-white px-6 py-4 flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">{projet.nom}</h2>
           <p className="text-sm opacity-90">Client: <span className="font-medium">{client?.nom || 'N/A'}</span></p>
         </div>
-        <button onClick={onRetour} className="px-4 py-2 bg-white text-navy rounded-lg hover:bg-orange/10 transition-colors">
+        <button onClick={onRetour} className="px-4 py-2 bg-surface text-navy rounded-lg hover:bg-rouge/10 transition-colors">
           ← Retour
         </button>
       </div>
@@ -903,12 +903,12 @@ function DetailProjet({ projet, stats, client, taches, onglet, setOnglet, onNouv
             { label: 'Coût Total Réel', value: stats?.coutReel || 0, color: 'text-navy' },
             { label: (stats?.ecart || 0) > 0 ? '⚠️ Dépassement' : '✅ Économie', value: stats?.ecart || 0, color: (stats?.ecart || 0) > 0 ? 'text-rouge' : 'text-vert' },
           ].map(({ label, value, color }) => (
-            <div key={label} className="bg-gray-50 p-4 rounded-lg">
+            <div key={label} className="bg-background p-4 rounded-lg">
               <p className="text-sm text-bleu mb-1">{label}</p>
               <p className={`text-xl font-bold ${color}`}>{formatFCFA(value)}</p>
             </div>
           ))}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-background p-4 rounded-lg">
             <p className="text-sm text-bleu mb-1">Consommation Budget</p>
             <p className={`text-xl font-bold ${indicateur.color}`}>
               {indicateur.emoji} {Math.round(stats?.pourcentageConsomme || 0)}%
@@ -942,7 +942,7 @@ function DetailProjet({ projet, stats, client, taches, onglet, setOnglet, onNouv
                 key={tab}
                 onClick={() => setOnglet(tab)}
                 className={`px-4 py-2 font-medium transition-colors ${
-                  onglet === tab ? 'text-orange border-b-2 border-orange' : 'text-bleu hover:text-orange'
+                  onglet === tab ? 'text-rouge border-b-2 border-rouge' : 'text-bleu hover:text-rouge'
                 }`}
               >
                 {tab === 'taches' ? '📋 Tâches' : '📊 Suivi Budgétaire'}
@@ -979,7 +979,7 @@ function OngletTaches({ taches, onNouvelleTache, onModifierTache, onSupprimerTac
       </div>
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-background">
             <tr>
               {['Tâche','Début','Fin','Durée (j)','Tech.','Carburant','Nourriture','Logistique','Coût Total','Statut','Actions'].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-navy">{h}</th>
@@ -995,7 +995,7 @@ function OngletTaches({ taches, onNouvelleTache, onModifierTache, onSupprimerTac
               </tr>
             ) : (
               taches.map((tache, index) => (
-                <tr key={tache.id} className={`border-b border-argent hover:bg-orange/10 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                <tr key={tache.id} className={`border-b border-argent hover:bg-rouge/10 ${index % 2 === 0 ? 'bg-surface' : 'bg-background'}`}>
                   <td className="px-4 py-3 font-medium text-navy">{tache.nom}</td>
                   <td className="px-4 py-3 text-bleu">{tache.dateDebut || '-'}</td>
                   <td className="px-4 py-3 text-bleu">{tache.dateFin || '-'}</td>
@@ -1007,7 +1007,7 @@ function OngletTaches({ taches, onNouvelleTache, onModifierTache, onSupprimerTac
                   <td className="px-4 py-3 text-right font-bold text-navy">{formatNumberPoints(tache.coutTotal || 0)}</td>
                   <td className="px-4 py-3 text-center">{getStatutBadge(tache.statut)}</td>
                   <td className="px-4 py-3 text-center">
-                    <button onClick={() => onModifierTache(tache)} className="text-bleu hover:text-orange mr-2">📝</button>
+                    <button onClick={() => onModifierTache(tache)} className="text-bleu hover:text-rouge mr-2">📝</button>
                     <button onClick={() => onSupprimerTache(tache.id)} className="text-rouge hover:text-rouge/80">🗑</button>
                   </td>
                 </tr>
@@ -1032,9 +1032,9 @@ function OngletSuivi({ taches, graphiqueData }) {
             <YAxis />
             <Tooltip formatter={(value) => `${formatFCFA(value)}`} />
             <Legend />
-            <Bar dataKey="Budget Prévu" fill="#1B2A4A" />
-            <Bar dataKey="Coût Réel" fill="#E60000" />
-            <Line type="monotone" dataKey="Écart" stroke="#E60000" strokeDasharray="5 5" />
+            <Bar dataKey="Budget Prévu" fill="var(--color-primary)" />
+            <Bar dataKey="Coût Réel" fill="var(--color-accent)" />
+            <Line type="monotone" dataKey="Écart" stroke="var(--color-accent)" strokeDasharray="5 5" />
           </ComposedChart>
         </ResponsiveContainer>
       ) : (
@@ -1049,23 +1049,23 @@ function OngletSuivi({ taches, graphiqueData }) {
 function FormProjet({ form, setForm, onSave, onCancel, clients, devis }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-navy text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
           <h2 className="text-xl font-bold">{form.id ? '📝 Modifier le projet' : '➕ Nouveau projet'}</h2>
-          <button onClick={onCancel} className="text-white hover:text-orange text-2xl">✕</button>
+          <button onClick={onCancel} className="text-white hover:text-rouge text-2xl">✕</button>
         </div>
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-navy mb-1">Nom du projet <span className="text-rouge">*</span></label>
             <input type="text" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               placeholder="Ex: Installation système ventilation" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Client <span className="text-rouge">*</span></label>
               <select value={form.clientId || ''} onChange={(e) => setForm({ ...form, clientId: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange">
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge">
                 <option value="">Sélectionner un client</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
               </select>
@@ -1073,7 +1073,7 @@ function FormProjet({ form, setForm, onSave, onCancel, clients, devis }) {
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Devis lié</label>
               <select value={form.devisId || ''} onChange={(e) => setForm({ ...form, devisId: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange">
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge">
                 <option value="">Aucun devis</option>
                 {devis.map(d => <option key={d.id} value={d.id}>{d.numero}</option>)}
               </select>
@@ -1083,24 +1083,24 @@ function FormProjet({ form, setForm, onSave, onCancel, clients, devis }) {
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Date début</label>
               <input type="date" value={form.dateDebut} onChange={(e) => setForm({ ...form, dateDebut: e.target.value })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Date fin</label>
               <input type="date" value={form.dateFin} onChange={(e) => setForm({ ...form, dateFin: e.target.value })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Budget prévu (FCFA)</label>
               <input type="number" value={form.budgetPrevu} onChange={(e) => setForm({ ...form, budgetPrevu: parseFloat(e.target.value) || 0 })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Statut</label>
               <select value={form.statut} onChange={(e) => setForm({ ...form, statut: e.target.value })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange">
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge">
                 <option value={STATUTS_PROJET.EN_PREPARATION}>🟡 En préparation</option>
                 <option value={STATUTS_PROJET.EN_COURS}>🔵 En cours</option>
                 <option value={STATUTS_PROJET.TERMINE}>🟢 Terminé</option>
@@ -1112,18 +1112,18 @@ function FormProjet({ form, setForm, onSave, onCancel, clients, devis }) {
           <div>
             <label className="block text-sm font-medium text-navy mb-1">Référence projet (pour caisse)</label>
             <input type="text" value={form.referenceProjet} onChange={(e) => setForm({ ...form, referenceProjet: e.target.value })}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               placeholder="Ex: PROJ-2026-001" />
           </div>
           <div>
             <label className="block text-sm font-medium text-navy mb-1">Notes</label>
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               placeholder="Notes et commentaires..." />
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button onClick={onCancel} className="px-6 py-2 bg-argent text-navy rounded-lg hover:bg-gray-400 transition-colors">Annuler</button>
-            <button onClick={onSave} className="px-6 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors font-medium">Enregistrer</button>
+            <button onClick={onSave} className="px-6 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium">Enregistrer</button>
           </div>
         </div>
       </div>
@@ -1134,68 +1134,68 @@ function FormProjet({ form, setForm, onSave, onCancel, clients, devis }) {
 function FormTache({ form, setForm, dateDebut, setDateDebut, dateFin, setDateFin, onSave, onCancel, budgetCalcule, dureeJoursCalculee }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-navy text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
           <h2 className="text-xl font-bold">{form.id ? '📝 Modifier la tâche' : '➕ Nouvelle tâche'}</h2>
-          <button onClick={onCancel} className="text-white hover:text-orange text-2xl">✕</button>
+          <button onClick={onCancel} className="text-white hover:text-rouge text-2xl">✕</button>
         </div>
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-navy mb-1">Nom de la tâche <span className="text-rouge">*</span></label>
             <input type="text" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               placeholder="Ex: Installation conduits ventilation" />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Date début</label>
               <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Date fin</label>
               <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Durée (jours) — auto</label>
               <input type="number" value={dureeJoursCalculee || 0} readOnly
-                className="w-full px-4 py-2 border border-argent rounded-lg bg-gray-50 text-navy font-bold cursor-not-allowed" />
+                className="w-full px-4 py-2 border border-argent rounded-lg bg-background text-navy font-bold cursor-not-allowed" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Nb techniciens</label>
               <input type="number" min="1" value={form.nbTechniciens} onChange={(e) => setForm({ ...form, nbTechniciens: parseInt(e.target.value) || 1 })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Distance site (km)</label>
               <input type="number" min="0" value={form.kmSite} onChange={(e) => setForm({ ...form, kmSite: parseFloat(e.target.value) || 0 })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Nb déplacements</label>
               <input type="number" min="0" value={form.nbDeplacements} onChange={(e) => setForm({ ...form, nbDeplacements: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Budget matériel (FCFA)</label>
               <input type="number" min="0" value={form.budgetMateriel} onChange={(e) => setForm({ ...form, budgetMateriel: parseFloat(e.target.value) || 0 })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy mb-1">Budget sous-traitance (FCFA)</label>
               <input type="number" min="0" value={form.budgetSousTraitance} onChange={(e) => setForm({ ...form, budgetSousTraitance: parseFloat(e.target.value) || 0 })}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange" />
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-navy mb-1">Statut</label>
             <select value={form.statut} onChange={(e) => setForm({ ...form, statut: e.target.value })}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange">
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge">
               <option value={STATUTS_TACHE.A_FAIRE}>À faire</option>
               <option value={STATUTS_TACHE.EN_COURS}>En cours</option>
               <option value={STATUTS_TACHE.TERMINE}>Terminé</option>
@@ -1206,12 +1206,12 @@ function FormTache({ form, setForm, dateDebut, setDateDebut, dateFin, setDateFin
           <div>
             <label className="block text-sm font-medium text-navy mb-1">Notes</label>
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               placeholder="Notes et commentaires..." />
           </div>
 
           {budgetCalcule && (
-            <div className="bg-orange/10 p-4 rounded-lg border border-orange">
+            <div className="bg-rouge/10 p-4 rounded-lg border border-rouge">
               <h3 className="font-bold text-navy mb-3">💰 Calculs en temps réel</h3>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
@@ -1230,9 +1230,9 @@ function FormTache({ form, setForm, dateDebut, setDateDebut, dateFin, setDateFin
                   <p className="text-bleu">Coût Hebdo estimé:</p>
                   <p className="font-bold text-navy">{formatFCFA(budgetCalcule.coutHebdo)}</p>
                 </div>
-                <div className="col-span-2 border-t border-orange pt-2 mt-2">
+                <div className="col-span-2 border-t border-rouge pt-2 mt-2">
                   <p className="text-bleu">Coût Total Estimé:</p>
-                  <p className="text-2xl font-bold text-orange">{formatFCFA(budgetCalcule.coutTotal)}</p>
+                  <p className="text-2xl font-bold text-rouge">{formatFCFA(budgetCalcule.coutTotal)}</p>
                 </div>
               </div>
             </div>
@@ -1240,7 +1240,7 @@ function FormTache({ form, setForm, dateDebut, setDateDebut, dateFin, setDateFin
 
           <div className="flex justify-end gap-3 pt-4">
             <button onClick={onCancel} className="px-6 py-2 bg-argent text-navy rounded-lg hover:bg-gray-400 transition-colors">Annuler</button>
-            <button onClick={onSave} className="px-6 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors font-medium">Enregistrer</button>
+            <button onClick={onSave} className="px-6 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium">Enregistrer</button>
           </div>
         </div>
       </div>

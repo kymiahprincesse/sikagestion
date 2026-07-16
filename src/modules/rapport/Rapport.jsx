@@ -13,12 +13,12 @@ import { useClientsStore } from '../../store/useClientsStore'
 import { formatFCFA, formatNumberPoints } from '../../utils/format'
 import { isDevisEnAttente, isDevisVisibleDansListe } from '../../utils/devisStatus'
 
-const COULEURS = ['#1B2A4A', '#E60000', '#1F5C99', '#1A7A4A', '#C8C8D0', '#E8ECF4']
+const COULEURS = ['var(--color-primary)', 'var(--color-accent)', 'var(--color-secondary)', 'var(--color-success)', 'var(--color-border)', 'var(--color-surface-muted)']
 
 function KpiCard({ titre, valeur, sous, couleur, icone, onClick }) {
   return (
     <div
-      className={`bg-white rounded-xl p-5 shadow-sm border-l-4 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+      className={`bg-surface rounded-xl p-5 shadow-sm border-l-4 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
       style={{ borderLeftColor: couleur }}
       onClick={onClick}
     >
@@ -29,7 +29,7 @@ function KpiCard({ titre, valeur, sous, couleur, icone, onClick }) {
         </span>
       </div>
       <p className="text-2xl font-bold mt-1" style={{ color: couleur }}>{valeur}</p>
-      {sous && <p className="text-xs mt-1" style={{ color: '#1F5C99' }}>{sous}</p>}
+      {sous && <p className="text-xs mt-1" style={{ color: 'var(--color-secondary)' }}>{sous}</p>}
     </div>
   )
 }
@@ -115,8 +115,8 @@ export default function Rapport() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#1B2A4A' }}>Rapport de synthèse</h1>
-          <p className="text-sm mt-1" style={{ color: '#1F5C99' }}>Vue consolidée — {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>Rapport de synthèse</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-secondary)' }}>Vue consolidée — {new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export default function Rapport() {
           titre="Chiffre d'affaires"
           valeur={formatFCFA(kpis.totalCA)}
           sous={`Taux encaissement : ${kpis.tauxEncaissement}%`}
-          couleur="#1B2A4A"
+          couleur="var(--color-primary)"
           icone="📊"
           onClick={() => navigate('/factures')}
         />
@@ -134,7 +134,7 @@ export default function Rapport() {
           titre="Encaissé"
           valeur={formatFCFA(kpis.totalEncaisse)}
           sous={`Reste : ${formatFCFA(kpis.resteAEncaisser)}`}
-          couleur="#1A7A4A"
+          couleur="var(--color-success)"
           icone="✅"
           onClick={() => navigate('/encaissements')}
         />
@@ -142,7 +142,7 @@ export default function Rapport() {
           titre="Factures en retard"
           valeur={kpis.facturesEnRetard.length}
           sous={kpis.facturesEnRetard.length > 0 ? `⚠️ ${formatFCFA(kpis.facturesEnRetard.reduce((s,f) => s+(f.montantTTC - (f.montantPaye||0)), 0))} impayé` : 'Aucun retard'}
-          couleur={kpis.facturesEnRetard.length > 0 ? '#E60000' : '#1A7A4A'}
+          couleur={kpis.facturesEnRetard.length > 0 ? 'var(--color-accent)' : 'var(--color-success)'}
           icone="🔴"
           onClick={() => navigate('/factures')}
         />
@@ -150,7 +150,7 @@ export default function Rapport() {
           titre="Solde caisse"
           valeur={formatFCFA(kpis.totalSoldeCaisse)}
           sous={`${mouvements.filter(m => m.type === 'ENTREE').length} entrées · ${mouvements.filter(m => m.type === 'SORTIE').length} sorties`}
-          couleur="#1F5C99"
+          couleur="var(--color-secondary)"
           icone="🏦"
           onClick={() => navigate('/journal')}
         />
@@ -162,7 +162,7 @@ export default function Rapport() {
           titre="Clients actifs"
           valeur={clients.filter(c => c.isActif !== false).length}
           sous={`${clients.length} clients total`}
-          couleur="#1B2A4A"
+          couleur="var(--color-primary)"
           icone="👥"
           onClick={() => navigate('/clients')}
         />
@@ -170,7 +170,7 @@ export default function Rapport() {
           titre="Projets en cours"
           valeur={projets.filter(p => p.statut === 'EN_COURS').length}
           sous={`${projets.length} projets total`}
-          couleur="#1F5C99"
+          couleur="var(--color-secondary)"
           icone="🚀"
           onClick={() => navigate('/planification')}
         />
@@ -178,7 +178,7 @@ export default function Rapport() {
           titre="Devis en attente"
           valeur={devisVisibles.filter(d => isDevisEnAttente(d.statut)).length}
           sous={`${devisVisibles.length} devis visibles`}
-          couleur="#E60000"
+          couleur="var(--color-accent)"
           icone="📄"
           onClick={() => navigate('/devis/liste')}
         />
@@ -186,7 +186,7 @@ export default function Rapport() {
           titre="AO — Taux réussite"
           valeur={`${kpis.tauxReussiteAO}%`}
           sous={`${kpis.statsAO.gagne} gagnés / ${kpis.statsAO.total} total`}
-          couleur="#1A7A4A"
+          couleur="var(--color-success)"
           icone="🎯"
           onClick={() => navigate('/ao')}
         />
@@ -196,26 +196,26 @@ export default function Rapport() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Évolution CA */}
-        <div className="bg-white rounded-xl p-5 shadow-sm">
-          <h2 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{ color: '#1B2A4A' }}>
+        <div className="bg-surface rounded-xl p-5 shadow-sm">
+          <h2 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
             Évolution CA — 6 derniers mois (milliers FCFA)
           </h2>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={evolutionCA}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-muted)" />
               <XAxis dataKey="mois" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v) => `${formatNumberPoints(v)} K FCFA`} />
               <Legend />
-              <Line type="monotone" dataKey="CA" stroke="#1B2A4A" strokeWidth={2} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="Encaissé" stroke="#1A7A4A" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="CA" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4 }} />
+              <Line type="monotone" dataKey="Encaissé" stroke="var(--color-success)" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
         {/* Devis par type */}
-        <div className="bg-white rounded-xl p-5 shadow-sm">
-          <h2 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{ color: '#1B2A4A' }}>
+        <div className="bg-surface rounded-xl p-5 shadow-sm">
+          <h2 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
             Répartition devis par type
           </h2>
           {devisParType.length > 0 ? (
@@ -238,31 +238,31 @@ export default function Rapport() {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-48 text-sm" style={{ color: '#C8C8D0' }}>
+            <div className="flex items-center justify-center h-48 text-sm" style={{ color: 'var(--color-border)' }}>
               Aucun devis enregistré
             </div>
           )}
         </div>
 
         {/* Budget vs Réel projets */}
-        <div className="bg-white rounded-xl p-5 shadow-sm lg:col-span-2">
-          <h2 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{ color: '#1B2A4A' }}>
+        <div className="bg-surface rounded-xl p-5 shadow-sm lg:col-span-2">
+          <h2 className="font-bold mb-4 text-sm uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>
             Budget vs Réel par projet (milliers FCFA)
           </h2>
           {budgetVsReel.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={budgetVsReel} margin={{ left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-muted)" />
                 <XAxis dataKey="nom" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => `${formatNumberPoints(v)} K FCFA`} />
                 <Legend />
-                <Bar dataKey="Prévu" fill="#1B2A4A" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Réel" fill="#E60000" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Prévu" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Réel" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-48 text-sm" style={{ color: '#C8C8D0' }}>
+            <div className="flex items-center justify-center h-48 text-sm" style={{ color: 'var(--color-border)' }}>
               Aucun projet avec budget enregistré
             </div>
           )}
@@ -271,25 +271,25 @@ export default function Rapport() {
 
       {/* Factures en retard */}
       {facturesEnRetardTop.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 flex items-center justify-between border-b" style={{ borderColor: '#E8ECF4' }}>
-            <h2 className="font-bold text-sm uppercase tracking-wide" style={{ color: '#E60000' }}>
+        <div className="bg-surface rounded-xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 flex items-center justify-between border-b" style={{ borderColor: 'var(--color-surface-muted)' }}>
+            <h2 className="font-bold text-sm uppercase tracking-wide" style={{ color: 'var(--color-accent)' }}>
               🔴 Factures en retard de paiement ({kpis.facturesEnRetard.length})
             </h2>
             <button
               onClick={() => navigate('/factures')}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
-              style={{ backgroundColor: '#E60000' }}
+              style={{ backgroundColor: 'var(--color-accent)' }}
             >
               Voir toutes
             </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead style={{ backgroundColor: '#E8ECF4' }}>
+              <thead style={{ backgroundColor: 'var(--color-surface-muted)' }}>
                 <tr>
                   {['Facture', 'Client', 'Montant TTC', 'Payé', 'Reste', 'Échéance'].map(h => (
-                    <th key={h} className="text-left px-4 py-2 text-xs font-semibold uppercase" style={{ color: '#1B2A4A' }}>{h}</th>
+                    <th key={h} className="text-left px-4 py-2 text-xs font-semibold uppercase" style={{ color: 'var(--color-primary)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -301,13 +301,13 @@ export default function Rapport() {
                     : 0
                   return (
                     <tr key={f.id} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#F8F9FC' }}>
-                      <td className="px-4 py-2 font-medium" style={{ color: '#1B2A4A' }}>{f.numero || `#${f.id}`}</td>
-                      <td className="px-4 py-2" style={{ color: '#1F5C99' }}>{f.clientNom || '—'}</td>
+                      <td className="px-4 py-2 font-medium" style={{ color: 'var(--color-primary)' }}>{f.numero || `#${f.id}`}</td>
+                      <td className="px-4 py-2" style={{ color: 'var(--color-secondary)' }}>{f.clientNom || '—'}</td>
                       <td className="px-4 py-2">{formatFCFA(f.montantTTC)}</td>
                       <td className="px-4 py-2 text-green-600">{formatFCFA(f.montantPaye || 0)}</td>
-                      <td className="px-4 py-2 font-bold" style={{ color: '#E60000' }}>{formatFCFA(reste)}</td>
+                      <td className="px-4 py-2 font-bold" style={{ color: 'var(--color-accent)' }}>{formatFCFA(reste)}</td>
                       <td className="px-4 py-2">
-                        <span className="text-xs px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: '#E60000' }}>
+                        <span className="text-xs px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: 'var(--color-accent)' }}>
                           +{joursRetard}j
                         </span>
                       </td>

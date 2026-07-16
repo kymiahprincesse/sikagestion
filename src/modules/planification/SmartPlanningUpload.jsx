@@ -206,12 +206,12 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-navy text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
           <h2 className="text-xl font-bold">📤 Import Planning Intelligent</h2>
           <button
             onClick={onClose}
-            className="text-white hover:text-orange transition-colors text-2xl"
+            className="text-white hover:text-rouge transition-colors text-2xl"
           >
             ✕
           </button>
@@ -223,7 +223,7 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
               <div key={num} className="flex items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                    etape >= num ? 'bg-orange text-white' : 'bg-argent text-navy'
+                    etape >= num ? 'bg-rouge text-white' : 'bg-argent text-navy'
                   }`}
                 >
                   {num}
@@ -231,7 +231,7 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
                 {num < 4 && (
                   <div
                     className={`w-16 h-1 ${
-                      etape > num ? 'bg-orange' : 'bg-argent'
+                      etape > num ? 'bg-rouge' : 'bg-argent'
                     }`}
                   />
                 )}
@@ -251,7 +251,7 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
               <div
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                className="border-2 border-dashed border-argent rounded-lg p-12 text-center hover:border-orange transition-colors cursor-pointer"
+                className="border-2 border-dashed border-argent rounded-lg p-12 text-center hover:border-rouge transition-colors cursor-pointer"
               >
                 <input
                   type="file"
@@ -305,7 +305,7 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
                   </thead>
                   <tbody>
                     {Object.entries(colonnesDetectees).map(([index, mapping]) => (
-                      <tr key={`col-${index}-${mapping.nomOriginal}`} className="border-b border-argent hover:bg-orangeClair">
+                      <tr key={`col-${index}-${mapping.nomOriginal}`} className="border-b border-argent hover:bg-rougeClair">
                         <td className="px-4 py-2 font-medium text-navy">
                           {mapping.nomOriginal}
                         </td>
@@ -313,7 +313,7 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
                           <select
                             value={mappingManuel[index] || mapping.champCible || ''}
                             onChange={(e) => handleMappingManuel(index, e.target.value)}
-                            className="w-full px-3 py-1 border border-argent rounded focus:outline-none focus:ring-2 focus:ring-orange"
+                            className="w-full px-3 py-1 border border-argent rounded focus:outline-none focus:ring-2 focus:ring-rouge"
                           >
                             <option value="">-- Ignorer --</option>
                             <option value="nomTache">Nom de la tâche *</option>
@@ -337,7 +337,7 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
                 </table>
               </div>
 
-              <div className="bg-orangeClair p-4 rounded-lg mb-4">
+              <div className="bg-rougeClair p-4 rounded-lg mb-4">
                 <p className="text-sm text-navy">
                   <strong>Aperçu des 5 premières lignes</strong>
                 </p>
@@ -355,7 +355,7 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
                 </button>
                 <button
                   onClick={validerMapping}
-                  className="px-6 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors font-medium"
+                  className="px-6 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium"
                 >
                   Continuer →
                 </button>
@@ -380,7 +380,7 @@ export default function SmartPlanningUpload({ onClose, onImport, _projetId }) {
                 </ul>
               </div>
 
-              <div className="bg-orange/10 border border-orange rounded-lg p-4 mb-4">
+              <div className="bg-rouge/10 border border-rouge rounded-lg p-4 mb-4">
                 <p className="text-navy font-medium">⚠️ Attention</p>
                 <p className="text-sm text-bleu mt-1">
                   Les tâches seront ajoutées au projet sélectionné. Cette action ne peut pas être annulée facilement.

@@ -43,17 +43,17 @@ export default function Pagination({
   if (totalPages <= 1) return null
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: '#C8C8D0', backgroundColor: 'white' }}>
+    <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: 'var(--color-border)', backgroundColor: 'white' }}>
       <div className="flex items-center gap-4">
-        <span className="text-sm" style={{ color: '#06006E' }}>
+        <span className="text-sm" style={{ color: 'var(--color-primary)' }}>
           Affichage {startItem} à {endItem} sur {totalItems} éléments
         </span>
         
         <select
           value={itemsPerPage}
           onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-          className="px-3 py-1 border rounded-lg text-sm focus:ring-2 focus:ring-orange focus:border-transparent"
-          style={{ borderColor: '#C8C8D0' }}
+          className="px-3 py-1 border rounded-lg text-sm focus:ring-2 focus:ring-rouge focus:border-transparent"
+          style={{ borderColor: 'var(--color-border)' }}
         >
           <option value={10}>10 par page</option>
           <option value={25}>25 par page</option>
@@ -67,7 +67,7 @@ export default function Pagination({
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           className="p-2 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-opacity-10 hover:bg-bleu"
-          style={{ color: '#06006E' }}
+          style={{ color: 'var(--color-primary)' }}
           title="Première page"
         >
           <ChevronsLeft size={18} />
@@ -77,7 +77,7 @@ export default function Pagination({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           className="p-2 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-opacity-10 hover:bg-bleu"
-          style={{ color: '#06006E' }}
+          style={{ color: 'var(--color-primary)' }}
           title="Page précédente"
         >
           <ChevronLeft size={18} />
@@ -86,7 +86,7 @@ export default function Pagination({
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, index) => (
             page === '...' ? (
-              <span key={`ellipsis-${index}`} className="px-3 py-1" style={{ color: '#C8C8D0' }}>...</span>
+              <span key={`ellipsis-${index}`} className="px-3 py-1" style={{ color: 'var(--color-border)' }}>...</span>
             ) : (
               <button
                 key={page}
@@ -98,8 +98,8 @@ export default function Pagination({
                 }`}
                 style={
                   currentPage === page
-                    ? { backgroundColor: '#E60000', color: 'white' }
-                    : { color: '#06006E' }
+                    ? { backgroundColor: 'var(--color-accent)', color: 'white' }
+                    : { color: 'var(--color-primary)' }
                 }
               >
                 {page}
@@ -112,7 +112,7 @@ export default function Pagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           className="p-2 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-opacity-10 hover:bg-bleu"
-          style={{ color: '#06006E' }}
+          style={{ color: 'var(--color-primary)' }}
           title="Page suivante"
         >
           <ChevronRight size={18} />
@@ -122,7 +122,7 @@ export default function Pagination({
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           className="p-2 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-opacity-10 hover:bg-bleu"
-          style={{ color: '#06006E' }}
+          style={{ color: 'var(--color-primary)' }}
           title="Dernière page"
         >
           <ChevronsRight size={18} />

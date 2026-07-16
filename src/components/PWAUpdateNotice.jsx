@@ -29,7 +29,7 @@ export default function PWAUpdateNotice() {
     <div style={{
       position: 'fixed', top: '16px', left: '50%',
       transform: 'translateX(-50%)',
-      background: '#1B2A4A', color: 'white',
+      background: 'var(--color-primary)', color: 'white',
       padding: '12px 20px', borderRadius: '10px',
       boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
       zIndex: 10000, display: 'flex',
@@ -42,7 +42,7 @@ export default function PWAUpdateNotice() {
       <span>🔄</span>
       <span>Nouvelle version de SIKA GESTION disponible !</span>
       <button onClick={handleUpdate} style={{
-        background: '#E60000', color: 'white',
+        background: 'var(--color-accent)', color: 'white',
         border: 'none', borderRadius: '6px',
         padding: '6px 14px', cursor: 'pointer',
         fontWeight: 'bold', fontSize: '12px',
@@ -50,12 +50,12 @@ export default function PWAUpdateNotice() {
         transition: 'background 0.2s',
       }}
       onMouseOver={e => e.currentTarget.style.background = '#c00000'}
-      onMouseOut={e => e.currentTarget.style.background = '#E60000'}
+      onMouseOut={e => e.currentTarget.style.background = 'var(--color-accent)'}
       >
         Mettre à jour
       </button>
       <button onClick={() => setShowUpdate(false)} style={{
-        background: 'transparent', color: '#C8C8D0',
+        background: 'transparent', color: 'var(--color-border)',
         border: 'none', cursor: 'pointer', fontSize: '16px',
         flexShrink: 0,
         padding: '0 4px',

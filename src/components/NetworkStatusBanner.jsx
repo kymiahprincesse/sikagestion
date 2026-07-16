@@ -24,8 +24,8 @@ export function NetworkStatusCard({ className = '' }) {
   }, []);
 
   const getStatusColor = () => {
-    if (!status.isOnline) return 'text-gray-400 bg-gray-50';
-    if (!status.isSupabaseConnected) return 'text-orange-600 bg-orange-50';
+    if (!status.isOnline) return 'text-gray-400 bg-background';
+    if (!status.isSupabaseConnected) return 'text-rouge-600 bg-rouge-50';
     return 'text-green-600 bg-green-50';
   };
 

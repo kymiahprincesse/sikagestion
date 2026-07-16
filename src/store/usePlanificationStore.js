@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 import { generateSecureId } from '../utils/format';
 import { useCaisseStore } from './useCaisseStore';
 import { useDevisStore } from './useDevisStore';
-
+import { useAuditStore, ACTIONS_AUDIT, MODULES_AUDIT, calculerEcartFinancier } from './useAuditStore';
 function projetToRow(p) {
   return {
     nom: p.nom,
@@ -142,17 +142,15 @@ export const usePlanificationStore = create(
           });
           
           // Audit Trail avec calcul d'impact financier
-          import('./useAuditStore').then(({ useAuditStore, ACTIONS_AUDIT, MODULES_AUDIT, calculerEcartFinancier }) => {
-            const impactFinancier = calculerEcartFinancier(projetAvant, projetApres);
-            
-            useAuditStore.getState().addLog({
-              module: MODULES_AUDIT.PLANIFICATION,
-              action: ACTIONS_AUDIT.PLANNING_UPDATE,
-              utilisateur: utilisateur,
-              avant: projetAvant,
-              apres: projetApres,
-              impactFinancier: impactFinancier
-            });
+          const impactFinancier = calculerEcartFinancier(projetAvant, projetApres);
+          
+          useAuditStore.getState().addLog({
+            module: MODULES_AUDIT.PLANIFICATION,
+            action: ACTIONS_AUDIT.PLANNING_UPDATE,
+            utilisateur: utilisateur,
+            avant: projetAvant,
+            apres: projetApres,
+            impactFinancier: impactFinancier
           });
         }
       },
@@ -479,14 +477,12 @@ export const usePlanificationStore = create(
           });
 
           // Audit
-          import('./useAuditStore').then(({ useAuditStore, ACTIONS_AUDIT, MODULES_AUDIT }) => {
-            useAuditStore.getState().addLog({
-              module: MODULES_AUDIT.PLANIFICATION,
-              action: ACTIONS_AUDIT.ALERTE_BUDGET,
-              utilisateur,
-              details: `Projet ${alerte.projetNom} - Budget consommé à ${alerte.pourcentageConsomme}%`,
-              impactFinancier: alerte.coutReel - alerte.budgetPrevu
-            });
+          useAuditStore.getState().addLog({
+            module: MODULES_AUDIT.PLANIFICATION,
+            action: ACTIONS_AUDIT.ALERTE_BUDGET,
+            utilisateur,
+            details: `Projet ${alerte.projetNom} - Budget consommé à ${alerte.pourcentageConsomme}%`,
+            impactFinancier: alerte.coutReel - alerte.budgetPrevu
           });
         } catch (error) {
           logger.error('Erreur déclenchement alerte:', error);

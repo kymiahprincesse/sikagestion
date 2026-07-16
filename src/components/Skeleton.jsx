@@ -110,7 +110,7 @@ export const SkeletonTable = memo(function SkeletonTable({
     <div className={`overflow-hidden rounded-lg border border-gray-200 ${className}`}>
       <table className="w-full">
         {showHeader && (
-          <thead className="bg-gray-50">
+          <thead className="bg-background">
             <tr>
               {Array.from({ length: columns }).map((_, i) => (
                 <th key={i} className="px-4 py-3">
@@ -137,7 +137,7 @@ export const SkeletonCard = memo(function SkeletonCard({
   className = ''
 }) {
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-4 space-y-4 ${className}`}>
+    <div className={`bg-surface rounded-lg border border-gray-200 p-4 space-y-4 ${className}`}>
       {hasImage && (
         <SkeletonRect height="8rem" className="rounded-lg" />
       )}
@@ -169,7 +169,7 @@ export const SkeletonStats = memo(function SkeletonStats({
   return (
     <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+        <div key={i} className="bg-surface rounded-lg border border-gray-200 p-4 space-y-3">
           <div className="flex items-center justify-between">
             <SkeletonCircle size="2rem" />
             <SkeletonBase width="3rem" height="1.5rem" />

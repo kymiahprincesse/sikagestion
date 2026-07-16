@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
 import { generateSecureId } from '../utils/format';
 import { useAchatsStore } from './useAchatsStore';
+import { idbStorage } from '../lib/idbStorage';
 
 function fournisseurToRow(f) {
   return {
@@ -163,7 +164,7 @@ export const useFournisseursStore = create(
     }),
     {
       name: 'sika_fournisseurs',
-      partialize: () => ({})
+      storage: createJSONStorage(() => idbStorage)
     }
   )
 );

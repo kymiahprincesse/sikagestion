@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 const NotificationToast = ({ notifications, onClose }) => {
@@ -9,7 +9,7 @@ const NotificationToast = ({ notifications, onClose }) => {
       case 'error':
         return <XCircle className="w-5 h-5 text-red-600" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-orange-600" />;
+        return <AlertTriangle className="w-5 h-5 text-rouge-600" />;
       case 'info':
       default:
         return <Info className="w-5 h-5 text-blue-600" />;
@@ -23,7 +23,7 @@ const NotificationToast = ({ notifications, onClose }) => {
       case 'error':
         return 'bg-red-50 border-red-200';
       case 'warning':
-        return 'bg-orange-50 border-orange-200';
+        return 'bg-rouge-50 border-rouge-200';
       case 'info':
       default:
         return 'bg-blue-50 border-blue-200';

@@ -6,7 +6,7 @@ class ErrorBoundary extends Component {
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     return { hasError: true };
   }
 
@@ -22,7 +22,7 @@ class ErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-navyClair flex items-center justify-center p-6">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-8">
+          <div className="bg-surface rounded-lg shadow-2xl max-w-2xl w-full p-8">
             <div className="text-center mb-6">
               <div className="text-6xl mb-4">⚠️</div>
               <h1 className="text-2xl font-bold text-rouge mb-2">
@@ -44,7 +44,7 @@ class ErrorBoundary extends Component {
             <div className="flex gap-4 justify-center">
               <button
                 onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors font-medium"
+                className="px-6 py-3 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium"
               >
                 🔄 Recharger la page
               </button>
@@ -61,7 +61,7 @@ class ErrorBoundary extends Component {
                 <summary className="cursor-pointer text-bleu font-medium mb-2">
                   Détails techniques (développement)
                 </summary>
-                <pre className="bg-gray-100 p-4 rounded text-xs overflow-auto max-h-64">
+                <pre className="bg-surfaceMuted p-4 rounded text-xs overflow-auto max-h-64">
                   {this.state.errorInfo.componentStack}
                 </pre>
               </details>

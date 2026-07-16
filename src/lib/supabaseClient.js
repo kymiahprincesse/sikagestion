@@ -36,8 +36,6 @@ export const supabase = createClient(supabaseUrl, useKey, {
   },
 })
 
-const isPlaceholder = false
-
 export const checkConnection = async () => {
   if (!supabaseUrl || (!supabaseAnonKey && !supabaseServiceRole)) {
     return { connected: false, error: 'Variables VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY ou VITE_SUPABASE_SERVICE_ROLE non configurées', timestamp: new Date().toISOString() }
@@ -47,7 +45,7 @@ export const checkConnection = async () => {
     const timeout = setTimeout(() => controller.abort(), 8000)
 
     // Requête légère et fiable via le client Supabase (HEAD count sur clients)
-    const { count, error } = await supabase
+    const { error } = await supabase
       .from('clients')
       .select('*', { count: 'exact', head: true })
       .abortSignal(controller.signal)

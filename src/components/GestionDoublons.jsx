@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useDevisStore } from '../store/useDevisStore';
 import { useClientsStore } from '../store/useClientsStore';
-import { X, Merge, Trash2, AlertTriangle, CheckCircle, Search, Filter } from 'lucide-react';
+import { X, Merge, Trash2, AlertTriangle, CheckCircle, Search } from 'lucide-react';
 import { formatFCFA, formatDate } from '../utils/format';
 
 /**
@@ -9,24 +9,16 @@ import { formatFCFA, formatDate } from '../utils/format';
  * Permet de visualiser, fusionner ou supprimer les devis en doublon
  */
 export default function GestionDoublons({ onClose, type = 'devis' }) {
-  const { devis, analyserDoublons, fusionnerDoublons, supprimerDoublons, nettoyerDoublonsAuto } = useDevisStore();
+  const { analyserDoublons, fusionnerDoublons, supprimerDoublons, nettoyerDoublonsAuto } = useDevisStore();
   const { clients } = useClientsStore();
   
-  const [doublons, setDoublons] = useState([]);
+  const doublons = useMemo(() => analyserDoublons(), [analyserDoublons]);
+
   const [doublonsSélectionnés, setDoublonsSélectionnés] = useState(new Set());
   const [chargement, setChargement] = useState(false);
   const [message, setMessage] = useState(null);
   const [filtreClient, setFiltreClient] = useState('');
-  const [modeFusion, setModeFusion] = useState(false);
 
-  const rechargerDoublons = useCallback(() => {
-    const résultat = analyserDoublons();
-    setDoublons(résultat);
-  }, [analyserDoublons]);
-
-  useEffect(() => {
-    rechargerDoublons();
-  }, [devis, rechargerDoublons]);
 
   const getClientNom = (clientId) => {
     const client = clients.find(c => c.id === clientId);
@@ -54,7 +46,6 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
       const résultat = await fusionnerDoublons(ids, ids[0]);
       if (résultat) {
         setMessage({ type: 'success', texte: `${groupe.length} devis fusionnés avec succès` });
-        rechargerDoublons();
       }
     } catch (erreur) {
       setMessage({ type: 'erreur', texte: 'Erreur lors de la fusion: ' + erreur.message });
@@ -70,7 +61,6 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
       const ids = groupe.map(d => d.id);
       const résultat = supprimerDoublons(ids, ids[0]);
       setMessage({ type: 'success', texte: `${résultat.supprimés.length} doublon(s) supprimé(s)` });
-      rechargerDoublons();
     } catch (erreur) {
       setMessage({ type: 'erreur', texte: 'Erreur lors de la suppression: ' + erreur.message });
     }
@@ -87,7 +77,6 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
         type: 'success', 
         texte: `${résultat.nettoyés} groupe(s) nettoyé(s) sur ${résultat.doublonsTrouvés} trouvé(s)` 
       });
-      rechargerDoublons();
     } catch (erreur) {
       setMessage({ type: 'erreur', texte: 'Erreur lors du nettoyage: ' + erreur.message });
     }
@@ -101,7 +90,7 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-surface rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* En-tête */}
         <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white p-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -143,7 +132,7 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
           </div>
           
           <button
-            onClick={rechargerDoublons}
+            onClick={() => analyserDoublons()}
             disabled={chargement}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
           >
@@ -154,7 +143,7 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
           <button
             onClick={handleNettoyageAuto}
             disabled={chargement || doublons.length === 0}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-rouge-600 text-white rounded-lg hover:bg-rouge-700 disabled:opacity-50 flex items-center gap-2"
           >
             <Trash2 className="w-4 h-4" />
             Nettoyage Auto
@@ -171,7 +160,7 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
             </div>
           ) : (
             doublonsFiltrés.map(({ groupe }, index) => (
-              <div key={index} className="border rounded-lg overflow-hidden bg-gray-50">
+              <div key={index} className="border rounded-lg overflow-hidden bg-background">
                 {/* En-tête du groupe */}
                 <div className="bg-amber-50 border-b px-4 py-2 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -207,7 +196,7 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
 
                 {/* Tableau des devis du groupe */}
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-100">
+                  <thead className="bg-surfaceMuted">
                     <tr>
                       <th className="px-4 py-2 text-left">Sélection</th>
                       <th className="px-4 py-2 text-left">Numéro</th>
@@ -248,7 +237,7 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
                         <td className="px-4 py-2 text-center">
                           <span className={`px-2 py-1 rounded text-xs ${
                             devis.statut === 'VALIDE' ? 'bg-green-100 text-green-800' :
-                            devis.statut === 'BROUILLON' ? 'bg-gray-100 text-gray-800' :
+                            devis.statut === 'BROUILLON' ? 'bg-surfaceMuted text-gray-800' :
                             devis.statut === 'ANNULE' ? 'bg-red-100 text-red-800' :
                             'bg-blue-100 text-blue-800'
                           }`}>
@@ -265,7 +254,7 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
         </div>
 
         {/* Pied de page */}
-        <div className="border-t p-4 bg-gray-50 flex justify-between items-center">
+        <div className="border-t p-4 bg-background flex justify-between items-center">
           <div className="text-sm text-gray-600">
             {doublonsFiltrés.length} groupe(s) affiché(s) sur {doublons.length} total
           </div>

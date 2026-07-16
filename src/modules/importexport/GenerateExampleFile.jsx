@@ -2,10 +2,10 @@ import * as XLSX from 'xlsx';
 import { Download } from 'lucide-react';
 
 const COLORS = {
-  navy: '#06006E',
-  orange: '#E60000',
-  blue: '#06006E',
-  green: '#1A7A4A'
+  navy: 'var(--color-primary)',
+  orange: 'var(--color-accent)',
+  blue: 'var(--color-primary)',
+  green: 'var(--color-success)'
 };
 
 const GenerateExampleFile = () => {

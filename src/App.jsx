@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useAuthStore } from './store/useAuthStore'
+import { useThemeStore } from './store/useThemeStore'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
 import { NotificationProvider } from './components/NotificationProvider'
@@ -35,7 +36,7 @@ const Rapport               = lazy(() => import('./modules/rapport/Rapport'))
 
 const PageChargement = () => (
   <div className="flex items-center justify-center h-64">
-    <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#E60000', borderTopColor: 'transparent' }}></div>
+    <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-accent)', borderTopColor: 'transparent' }}></div>
   </div>
 )
 
@@ -48,6 +49,16 @@ function AdminRoute({ children }) {
 }
 
 function App() {
+  const theme = useThemeStore(state => state.theme);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
   return (
     <ErrorBoundary>
     <NotificationProvider>

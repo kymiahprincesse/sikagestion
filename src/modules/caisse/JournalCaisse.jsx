@@ -2,8 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useJournalStore } from '../../store/useJournalStore';
 import { 
   Printer, 
-  Lock, 
-  Download,
+  Lock,
   FileSpreadsheet,
   Search,
   RefreshCw,
@@ -15,7 +14,7 @@ import {
   Wallet,
   Calendar
 } from 'lucide-react';
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate } from '../../utils/printUtils';
+import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant } from '../../utils/printUtils';
 import { formatFCFA } from '../../utils/format';
 import * as XLSX from 'xlsx';
 import { supabase } from '../../lib/supabaseClient';
@@ -54,17 +53,17 @@ function formatWeekLabel(dateStr) {
 }
 
 const CATEGORIE_COLORS = {
-  PAIEMENT_CLIENT: '#1A7A4A',
-  VENTE_MATERIEL: '#1A7A4A',
-  LOCATION_MATERIEL: '#1A7A4A',
-  AUTRE_ENTREE: '#1A7A4A',
-  ACHAT_MATERIEL: '#E60000',
-  LOYER: '#E60000',
-  SALAIRE: '#E60000',
-  TRANSPORT: '#E60000',
-  FOURNITURE_BUREAU: '#E60000',
-  SOUS_TRAITANCE: '#E60000',
-  AUTRE_SORTIE: '#E60000',
+  PAIEMENT_CLIENT: 'var(--color-success)',
+  VENTE_MATERIEL: 'var(--color-success)',
+  LOCATION_MATERIEL: 'var(--color-success)',
+  AUTRE_ENTREE: 'var(--color-success)',
+  ACHAT_MATERIEL: 'var(--color-accent)',
+  LOYER: 'var(--color-accent)',
+  SALAIRE: 'var(--color-accent)',
+  TRANSPORT: 'var(--color-accent)',
+  FOURNITURE_BUREAU: 'var(--color-accent)',
+  SOUS_TRAITANCE: 'var(--color-accent)',
+  AUTRE_SORTIE: 'var(--color-accent)',
 };
 
 /* ─────────────────────────────────────────────────────────────── */
@@ -101,6 +100,7 @@ const JournalCaisse = () => {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchMouvements();
   }, [fetchMouvements]);
 
@@ -334,19 +334,19 @@ const JournalCaisse = () => {
   }, [mouvements]);
 
   return (
-    <div className="min-h-screen bg-[#E8ECF4]">
+    <div className="min-h-screen bg-surfaceMuted">
 
 
       <div className="p-6 space-y-6">
 
         {/* ── En-tête ──────────────────────────────────────────── */}
-        <div className="bg-[#1B2A4A] text-white p-6 rounded-xl shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-primary text-white p-6 rounded-xl shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-3">
-              <Wallet size={28} className="text-[#E60000]" />
+              <Wallet size={28} className="text-accent" />
               Journal de Caisse — SIKA INDUSTRIE
             </h1>
-            <p className="text-[#C8C8D0] mt-1 text-sm">
+            <p className="text-textMuted mt-1 text-sm">
               Généré automatiquement · Synchronisé Supabase · {stats.nbOps} opérations
             </p>
           </div>
@@ -354,20 +354,20 @@ const JournalCaisse = () => {
             <select
               value={selectedCaisse}
               onChange={e => setSelectedCaisse(e.target.value)}
-              className="bg-white text-[#1B2A4A] border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none"
+              className="bg-surface text-textMain border border-border rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none"
             >
               {caissesList.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select
               value={selectedYear}
               onChange={e => setSelectedYear(Number(e.target.value))}
-              className="bg-white text-[#1B2A4A] border border-[#C8C8D0] rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none"
+              className="bg-surface text-textMain border border-border rounded-lg px-3 py-2 text-sm font-semibold focus:outline-none"
             >
               {yearsAvailable.map(y => <option key={y} value={y}>{y}</option>)}
             </select>
             <button
               onClick={fetchMouvements}
-              className="bg-[#E60000] text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-red-700 transition-colors"
+              className="bg-accent text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-red-700 transition-colors"
             >
               <RefreshCw size={16} /> Actualiser
             </button>
@@ -376,40 +376,40 @@ const JournalCaisse = () => {
 
         {/* ── Cartes stats ─────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-xl shadow p-5 border-l-4 border-[#1A7A4A]">
+          <div className="bg-surface rounded-xl shadow p-5 border-l-4 border-[var(--color-success)]">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#C8C8D0] uppercase font-semibold">Total Encaissements {selectedYear}</p>
-                <p className="text-xl font-bold text-[#1A7A4A] mt-1">{formatFCFA(stats.entrees)}</p>
+                <p className="text-xs text-textMuted uppercase font-semibold">Total Encaissements {selectedYear}</p>
+                <p className="text-xl font-bold text-success mt-1">{formatFCFA(stats.entrees)}</p>
               </div>
-              <TrendingUp className="text-[#1A7A4A]" size={32} />
+              <TrendingUp className="text-success" size={32} />
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow p-5 border-l-4 border-[#E60000]">
+          <div className="bg-surface rounded-xl shadow p-5 border-l-4 border-accent">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#C8C8D0] uppercase font-semibold">Total Décaissements {selectedYear}</p>
-                <p className="text-xl font-bold text-[#E60000] mt-1">{formatFCFA(stats.sorties)}</p>
+                <p className="text-xs text-textMuted uppercase font-semibold">Total Décaissements {selectedYear}</p>
+                <p className="text-xl font-bold text-accent mt-1">{formatFCFA(stats.sorties)}</p>
               </div>
-              <TrendingDown className="text-[#E60000]" size={32} />
+              <TrendingDown className="text-accent" size={32} />
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow p-5 border-l-4 border-[#1B2A4A]">
+          <div className="bg-surface rounded-xl shadow p-5 border-l-4 border-primary">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#C8C8D0] uppercase font-semibold">Solde Actuel</p>
-                <p className={`text-xl font-bold mt-1 ${stats.soldeFinal >= 0 ? 'text-[#1B2A4A]' : 'text-[#E60000]'}`}>
+                <p className="text-xs text-textMuted uppercase font-semibold">Solde Actuel</p>
+                <p className={`text-xl font-bold mt-1 ${stats.soldeFinal >= 0 ? 'text-textMain' : 'text-accent'}`}>
                   {formatFCFA(stats.soldeFinal)}
                 </p>
               </div>
-              <Wallet className="text-[#1B2A4A]" size={32} />
+              <Wallet className="text-textMain" size={32} />
             </div>
           </div>
         </div>
 
         {/* ── Onglets ──────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="border-b border-[#C8C8D0] flex">
+        <div className="bg-surface rounded-xl shadow-lg overflow-hidden">
+          <div className="border-b border-border flex">
             {[
               { id: 'journal', label: '📋 Journal par Semaine' },
               { id: 'historique', label: '📚 Historique Mensuel' },
@@ -420,8 +420,8 @@ const JournalCaisse = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-6 py-3 font-semibold transition-colors text-sm ${
                   activeTab === tab.id
-                    ? 'bg-[#E60000] text-white border-b-4 border-[#E60000]'
-                    : 'text-[#1B2A4A] hover:bg-[#FFE6E6]'
+                    ? 'bg-accent text-white border-b-4 border-accent'
+                    : 'text-textMain hover:bg-[var(--color-accent-light)]'
                 }`}
               >
                 {tab.label}
@@ -431,7 +431,7 @@ const JournalCaisse = () => {
             <div className="flex items-center gap-2 px-4">
               <button
                 onClick={handleExportExcel}
-                className="bg-[#1A7A4A] text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 hover:bg-green-700 transition-colors"
+                className="bg-success text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 hover:bg-green-700 transition-colors"
               >
                 <FileSpreadsheet size={15} /> Excel
               </button>
@@ -441,13 +441,13 @@ const JournalCaisse = () => {
           <div className="p-5">
             {/* ─── Barre de recherche ─── */}
             <div className="relative mb-5">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8C8D0]" size={18} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" size={18} />
               <input
                 type="text"
                 placeholder="Rechercher opération, référence, bénéficiaire..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 border border-[#C8C8D0] rounded-lg text-sm focus:outline-none focus:border-[#E60000]"
+                className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:border-[var(--color-accent)]"
               />
             </div>
 
@@ -455,12 +455,12 @@ const JournalCaisse = () => {
             {activeTab === 'journal' && (
               <div className="space-y-4">
                 {loading ? (
-                  <div className="text-center py-16 text-[#C8C8D0]">
+                  <div className="text-center py-16 text-textMuted">
                     <RefreshCw size={40} className="mx-auto animate-spin mb-3" />
                     <p>Chargement du journal depuis Supabase…</p>
                   </div>
                 ) : journalParSemaine.length === 0 ? (
-                  <div className="text-center py-16 text-[#C8C8D0]">
+                  <div className="text-center py-16 text-textMuted">
                     <Calendar size={48} className="mx-auto mb-3" />
                     <p className="font-semibold">Aucune opération pour {selectedYear}</p>
                     <p className="text-sm mt-1">Les mouvements enregistrés dans la caisse apparaîtront ici automatiquement.</p>
@@ -470,18 +470,18 @@ const JournalCaisse = () => {
                     const isOpen = expandedWeeks[sem.weekKey] !== false;
                     const soldeNet = sem.totalEntrees - sem.totalSorties;
                     return (
-                      <div key={sem.weekKey} className="border border-[#C8C8D0] rounded-xl overflow-hidden shadow-sm">
+                      <div key={sem.weekKey} className="border border-border rounded-xl overflow-hidden shadow-sm">
                         {/* Header semaine */}
                         <div
-                          className="flex items-center justify-between px-5 py-3 bg-[#1B2A4A] text-white cursor-pointer select-none"
+                          className="flex items-center justify-between px-5 py-3 bg-primary text-white cursor-pointer select-none"
                           onClick={() => toggleWeek(sem.weekKey)}
                         >
                           <div className="flex items-center gap-3">
                             {isOpen
-                              ? <ChevronDown size={18} className="text-[#E60000]" />
-                              : <ChevronRight size={18} className="text-[#E60000]" />}
+                              ? <ChevronDown size={18} className="text-accent" />
+                              : <ChevronRight size={18} className="text-accent" />}
                             <span className="font-bold text-sm">{sem.label}</span>
-                            <span className="bg-[#E60000] text-white text-xs px-2 py-0.5 rounded-full">
+                            <span className="bg-accent text-white text-xs px-2 py-0.5 rounded-full">
                               {sem.ops.length} opération{sem.ops.length > 1 ? 's' : ''}
                             </span>
                           </div>
@@ -494,7 +494,7 @@ const JournalCaisse = () => {
                             <div className="flex gap-2 ml-2" onClick={e => e.stopPropagation()}>
                               <button
                                 onClick={() => handlePrintSemaine(sem)}
-                                className="bg-[#E60000] text-white px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-red-700"
+                                className="bg-accent text-white px-2 py-1 rounded text-xs flex items-center gap-1 hover:bg-red-700"
                                 title="Imprimer PDF semaine"
                               >
                                 <Printer size={13} />
@@ -508,77 +508,77 @@ const JournalCaisse = () => {
                           <div className="overflow-x-auto">
                             <table className="w-full border-collapse text-sm">
                               <thead>
-                                <tr className="bg-[#E8ECF4] text-[#1B2A4A]">
-                                  <th className="border-b border-[#C8C8D0] px-4 py-2 text-left">Date</th>
-                                  <th className="border-b border-[#C8C8D0] px-4 py-2 text-left">Référence</th>
-                                  <th className="border-b border-[#C8C8D0] px-4 py-2 text-left">Description / Bénéficiaire</th>
-                                  <th className="border-b border-[#C8C8D0] px-4 py-2 text-left">Catégorie</th>
-                                  <th className="border-b border-[#C8C8D0] px-4 py-2 text-right text-[#1A7A4A]">Encaissement</th>
-                                  <th className="border-b border-[#C8C8D0] px-4 py-2 text-right text-[#E60000]">Décaissement</th>
-                                  <th className="border-b border-[#C8C8D0] px-4 py-2 text-right">Solde cumulé</th>
-                                  <th className="border-b border-[#C8C8D0] px-2 py-2 text-center w-12"></th>
+                                <tr className="bg-surfaceMuted text-textMain">
+                                  <th className="border-b border-border px-4 py-2 text-left">Date</th>
+                                  <th className="border-b border-border px-4 py-2 text-left">Référence</th>
+                                  <th className="border-b border-border px-4 py-2 text-left">Description / Bénéficiaire</th>
+                                  <th className="border-b border-border px-4 py-2 text-left">Catégorie</th>
+                                  <th className="border-b border-border px-4 py-2 text-right text-success">Encaissement</th>
+                                  <th className="border-b border-border px-4 py-2 text-right text-accent">Décaissement</th>
+                                  <th className="border-b border-border px-4 py-2 text-right">Solde cumulé</th>
+                                  <th className="border-b border-border px-2 py-2 text-center w-12"></th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {/* Ligne report */}
-                                <tr className="bg-[#FFE6E6]">
-                                  <td className="border-b border-[#C8C8D0] px-4 py-2 text-[#1B2A4A] font-semibold" colSpan={2}>
+                                <tr className="bg-accentLight">
+                                  <td className="border-b border-border px-4 py-2 text-textMain font-semibold" colSpan={2}>
                                     Report semaine précédente
                                   </td>
-                                  <td className="border-b border-[#C8C8D0] px-4 py-2 text-[#1B2A4A] italic text-xs" colSpan={2}>
+                                  <td className="border-b border-border px-4 py-2 text-textMain italic text-xs" colSpan={2}>
                                     Solde reporté automatiquement
                                   </td>
-                                  <td className="border-b border-[#C8C8D0] px-4 py-2 text-right text-[#1A7A4A] font-bold" colSpan={2}>
+                                  <td className="border-b border-border px-4 py-2 text-right text-success font-bold" colSpan={2}>
                                     {formatFCFA(sem.reportSolde)}
                                   </td>
-                                  <td className="border-b border-[#C8C8D0] px-4 py-2 text-right font-bold text-[#1B2A4A]">
+                                  <td className="border-b border-border px-4 py-2 text-right font-bold text-textMain">
                                     {formatFCFA(sem.reportSolde)}
                                   </td>
-                                  <td className="border-b border-[#C8C8D0]" />
+                                  <td className="border-b border-border" />
                                 </tr>
 
                                 {/* Opérations */}
                                 {sem.ops.map((op, idx) => (
                                   <tr
                                     key={op.id}
-                                    className={`${idx % 2 === 0 ? 'bg-white' : 'bg-[#E8ECF4]'} hover:bg-[#FFE6E6] transition-colors`}
+                                    className={`${idx % 2 === 0 ? 'bg-surface' : 'bg-surfaceMuted'} hover:bg-[var(--color-accent-light)] transition-colors`}
                                   >
-                                    <td className="border-b border-[#C8C8D0] px-4 py-2 whitespace-nowrap">
+                                    <td className="border-b border-border px-4 py-2 whitespace-nowrap">
                                       {new Date(op.date).toLocaleDateString('fr-FR')}
                                     </td>
-                                    <td className="border-b border-[#C8C8D0] px-4 py-2 font-mono text-xs text-[#1F5C99]">
+                                    <td className="border-b border-border px-4 py-2 font-mono text-xs text-secondary">
                                       {op.reference || '—'}
                                     </td>
-                                    <td className="border-b border-[#C8C8D0] px-4 py-2">
-                                      <div className="font-medium text-[#1B2A4A] truncate max-w-xs">{op.description}</div>
+                                    <td className="border-b border-border px-4 py-2">
+                                      <div className="font-medium text-textMain truncate max-w-xs">{op.description}</div>
                                       {op.beneficiaire && (
-                                        <div className="text-xs text-[#C8C8D0] truncate">{op.beneficiaire}</div>
+                                        <div className="text-xs text-textMuted truncate">{op.beneficiaire}</div>
                                       )}
                                     </td>
-                                    <td className="border-b border-[#C8C8D0] px-4 py-2">
+                                    <td className="border-b border-border px-4 py-2">
                                       <span
                                         className="text-xs px-2 py-0.5 rounded-full font-semibold"
                                         style={{
-                                          background: (CATEGORIE_COLORS[op.categorie] || '#C8C8D0') + '22',
+                                          background: (CATEGORIE_COLORS[op.categorie] || 'var(--color-border)') + '22',
                                           color: CATEGORIE_COLORS[op.categorie] || '#888',
                                         }}
                                       >
                                         {(op.categorie || '').replace(/_/g, ' ')}
                                       </span>
                                     </td>
-                                    <td className="border-b border-[#C8C8D0] px-4 py-2 text-right font-semibold text-[#1A7A4A]">
+                                    <td className="border-b border-border px-4 py-2 text-right font-semibold text-success">
                                       {op.type === 'ENTREE' ? formatFCFA(op.montant) : '—'}
                                     </td>
-                                    <td className="border-b border-[#C8C8D0] px-4 py-2 text-right font-semibold text-[#E60000]">
+                                    <td className="border-b border-border px-4 py-2 text-right font-semibold text-accent">
                                       {op.type === 'SORTIE' ? formatFCFA(op.montant) : '—'}
                                     </td>
-                                    <td className="border-b border-[#C8C8D0] px-4 py-2 text-right font-bold text-[#1B2A4A]">
+                                    <td className="border-b border-border px-4 py-2 text-right font-bold text-textMain">
                                       {formatFCFA(op.soldeCumul)}
                                     </td>
-                                    <td className="border-b border-[#C8C8D0] px-2 py-2 text-center">
+                                    <td className="border-b border-border px-2 py-2 text-center">
                                       <button
                                         onClick={() => { setSelectedOperation(op); setShowDetailModal(true); }}
-                                        className="text-[#1F5C99] hover:text-[#1B2A4A]"
+                                        className="text-secondary hover:text-[var(--color-primary)]"
                                         title="Voir détails"
                                       >
                                         <Eye size={16} />
@@ -588,7 +588,7 @@ const JournalCaisse = () => {
                                 ))}
 
                                 {/* Ligne total semaine */}
-                                <tr className="bg-[#1B2A4A] text-white font-bold text-sm">
+                                <tr className="bg-primary text-white font-bold text-sm">
                                   <td colSpan={4} className="px-4 py-2.5 text-right uppercase text-xs tracking-wide">
                                     Total {sem.label}
                                   </td>
@@ -618,27 +618,27 @@ const JournalCaisse = () => {
             {activeTab === 'comptable' && (
               <div>
                 <div className="relative mb-5">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C8C8D0]" size={18} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted" size={18} />
                   <input
                     type="text"
                     placeholder="Rechercher pièce, libellé, compte..."
                     value={searchEcriture}
                     onChange={e => setSearchEcriture(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 border border-[#C8C8D0] rounded-lg text-sm focus:outline-none focus:border-[#E60000]"
+                    className="w-full pl-9 pr-4 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:border-[var(--color-accent)]"
                   />
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
                     <thead>
-                      <tr className="bg-[#1B2A4A] text-white">
-                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Date</th>
-                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Pièce</th>
-                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Type</th>
-                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Libellé</th>
-                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Cpte Débit</th>
-                        <th className="border border-[#C8C8D0] px-4 py-3 text-left">Cpte Crédit</th>
-                        <th className="border border-[#C8C8D0] px-4 py-3 text-right text-[#4ade80]">Débit</th>
-                        <th className="border border-[#C8C8D0] px-4 py-3 text-right text-[#fca5a5]">Crédit</th>
+                      <tr className="bg-primary text-white">
+                        <th className="border border-border px-4 py-3 text-left">Date</th>
+                        <th className="border border-border px-4 py-3 text-left">Pièce</th>
+                        <th className="border border-border px-4 py-3 text-left">Type</th>
+                        <th className="border border-border px-4 py-3 text-left">Libellé</th>
+                        <th className="border border-border px-4 py-3 text-left">Cpte Débit</th>
+                        <th className="border border-border px-4 py-3 text-left">Cpte Crédit</th>
+                        <th className="border border-border px-4 py-3 text-right text-[#4ade80]">Débit</th>
+                        <th className="border border-border px-4 py-3 text-right text-[#fca5a5]">Crédit</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -656,26 +656,26 @@ const JournalCaisse = () => {
                         })
                         .sort((a, b) => new Date(b.date) - new Date(a.date))
                         .map((e, idx) => (
-                          <tr key={e.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-[#E8ECF4]'} hover:bg-[#FFE6E6] transition-colors`}>
-                            <td className="border border-[#C8C8D0] px-4 py-2 whitespace-nowrap">{new Date(e.date).toLocaleDateString('fr-FR')}</td>
-                            <td className="border border-[#C8C8D0] px-4 py-2 font-mono text-xs text-[#1F5C99]">{e.pieceComptable || '—'}</td>
-                            <td className="border border-[#C8C8D0] px-4 py-2">
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-[#E8ECF4] text-[#1B2A4A] font-semibold">{e.type || '—'}</span>
+                          <tr key={e.id} className={`${idx % 2 === 0 ? 'bg-surface' : 'bg-surfaceMuted'} hover:bg-[var(--color-accent-light)] transition-colors`}>
+                            <td className="border border-border px-4 py-2 whitespace-nowrap">{new Date(e.date).toLocaleDateString('fr-FR')}</td>
+                            <td className="border border-border px-4 py-2 font-mono text-xs text-secondary">{e.pieceComptable || '—'}</td>
+                            <td className="border border-border px-4 py-2">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-surfaceMuted text-textMain font-semibold">{e.type || '—'}</span>
                             </td>
-                            <td className="border border-[#C8C8D0] px-4 py-2 max-w-xs truncate">{e.libelle || '—'}</td>
-                            <td className="border border-[#C8C8D0] px-4 py-2 font-mono text-xs">{e.compteDebit || '—'}</td>
-                            <td className="border border-[#C8C8D0] px-4 py-2 font-mono text-xs">{e.compteCredit || '—'}</td>
-                            <td className="border border-[#C8C8D0] px-4 py-2 text-right font-semibold text-[#1A7A4A]">
+                            <td className="border border-border px-4 py-2 max-w-xs truncate">{e.libelle || '—'}</td>
+                            <td className="border border-border px-4 py-2 font-mono text-xs">{e.compteDebit || '—'}</td>
+                            <td className="border border-border px-4 py-2 font-mono text-xs">{e.compteCredit || '—'}</td>
+                            <td className="border border-border px-4 py-2 text-right font-semibold text-success">
                               {e.montantDebit > 0 ? formatFCFA(e.montantDebit) : '—'}
                             </td>
-                            <td className="border border-[#C8C8D0] px-4 py-2 text-right font-semibold text-[#E60000]">
+                            <td className="border border-border px-4 py-2 text-right font-semibold text-accent">
                               {e.montantCredit > 0 ? formatFCFA(e.montantCredit) : '—'}
                             </td>
                           </tr>
                         ))}
                       {ecritures.length === 0 && (
                         <tr>
-                          <td colSpan={8} className="text-center py-12 text-[#C8C8D0]">
+                          <td colSpan={8} className="text-center py-12 text-textMuted">
                             <Lock size={36} className="mx-auto mb-2" />
                             <p className="font-semibold">Aucune écriture comptable</p>
                             <p className="text-xs mt-1">Les écritures générées automatiquement apparaîtront ici.</p>
@@ -685,7 +685,7 @@ const JournalCaisse = () => {
                     </tbody>
                     {ecritures.length > 0 && (
                       <tfoot>
-                        <tr className="bg-[#1B2A4A] text-white font-bold text-sm">
+                        <tr className="bg-primary text-white font-bold text-sm">
                           <td colSpan={6} className="px-4 py-2.5 text-right uppercase text-xs tracking-wide">TOTAUX</td>
                           <td className="px-4 py-2.5 text-right text-[#4ade80]">
                             {formatFCFA(ecritures.reduce((s, e) => s + (e.montantDebit || 0), 0))}
@@ -706,46 +706,46 @@ const JournalCaisse = () => {
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
                   <thead>
-                    <tr className="bg-[#1B2A4A] text-white">
-                      <th className="border border-[#C8C8D0] px-4 py-3 text-left">Période</th>
-                      <th className="border border-[#C8C8D0] px-4 py-3 text-center">Du</th>
-                      <th className="border border-[#C8C8D0] px-4 py-3 text-center">Au</th>
-                      <th className="border border-[#C8C8D0] px-4 py-3 text-right">Solde Ouverture</th>
-                      <th className="border border-[#C8C8D0] px-4 py-3 text-right text-[#4ade80]">Encaissements</th>
-                      <th className="border border-[#C8C8D0] px-4 py-3 text-right text-[#fca5a5]">Décaissements</th>
-                      <th className="border border-[#C8C8D0] px-4 py-3 text-right">Solde Clôture</th>
-                      <th className="border border-[#C8C8D0] px-4 py-3 text-center">Opérations</th>
+                    <tr className="bg-primary text-white">
+                      <th className="border border-border px-4 py-3 text-left">Période</th>
+                      <th className="border border-border px-4 py-3 text-center">Du</th>
+                      <th className="border border-border px-4 py-3 text-center">Au</th>
+                      <th className="border border-border px-4 py-3 text-right">Solde Ouverture</th>
+                      <th className="border border-border px-4 py-3 text-right text-[#4ade80]">Encaissements</th>
+                      <th className="border border-border px-4 py-3 text-right text-[#fca5a5]">Décaissements</th>
+                      <th className="border border-border px-4 py-3 text-right">Solde Clôture</th>
+                      <th className="border border-border px-4 py-3 text-center">Opérations</th>
                     </tr>
                   </thead>
                   <tbody>
                     {historiqueParMois.map((mois, idx) => (
                       <tr
                         key={mois.key}
-                        className={`${idx % 2 === 0 ? 'bg-white' : 'bg-[#E8ECF4]'} hover:bg-[#FFE6E6] transition-colors`}
+                        className={`${idx % 2 === 0 ? 'bg-surface' : 'bg-surfaceMuted'} hover:bg-[var(--color-accent-light)] transition-colors`}
                       >
-                        <td className="border border-[#C8C8D0] px-4 py-2.5 font-semibold text-[#1B2A4A] capitalize">
+                        <td className="border border-border px-4 py-2.5 font-semibold text-textMain capitalize">
                           {mois.periode}
                         </td>
-                        <td className="border border-[#C8C8D0] px-4 py-2.5 text-center text-xs">
+                        <td className="border border-border px-4 py-2.5 text-center text-xs">
                           {new Date(mois.dateDebut).toLocaleDateString('fr-FR')}
                         </td>
-                        <td className="border border-[#C8C8D0] px-4 py-2.5 text-center text-xs">
+                        <td className="border border-border px-4 py-2.5 text-center text-xs">
                           {new Date(mois.dateFin).toLocaleDateString('fr-FR')}
                         </td>
-                        <td className="border border-[#C8C8D0] px-4 py-2.5 text-right">
+                        <td className="border border-border px-4 py-2.5 text-right">
                           {formatFCFA(mois.soldeInitial)}
                         </td>
-                        <td className="border border-[#C8C8D0] px-4 py-2.5 text-right text-[#1A7A4A] font-semibold">
+                        <td className="border border-border px-4 py-2.5 text-right text-success font-semibold">
                           {formatFCFA(mois.totalEntrees)}
                         </td>
-                        <td className="border border-[#C8C8D0] px-4 py-2.5 text-right text-[#E60000] font-semibold">
+                        <td className="border border-border px-4 py-2.5 text-right text-accent font-semibold">
                           {formatFCFA(mois.totalSorties)}
                         </td>
-                        <td className="border border-[#C8C8D0] px-4 py-2.5 text-right font-bold text-[#1B2A4A]">
+                        <td className="border border-border px-4 py-2.5 text-right font-bold text-textMain">
                           {formatFCFA(mois.soldeFinal)}
                         </td>
-                        <td className="border border-[#C8C8D0] px-4 py-2.5 text-center">
-                          <span className="bg-[#E8ECF4] text-[#1B2A4A] px-2 py-0.5 rounded-full text-xs font-semibold">
+                        <td className="border border-border px-4 py-2.5 text-center">
+                          <span className="bg-surfaceMuted text-textMain px-2 py-0.5 rounded-full text-xs font-semibold">
                             {mois.nbOps}
                           </span>
                         </td>
@@ -753,7 +753,7 @@ const JournalCaisse = () => {
                     ))}
                     {historiqueParMois.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="text-center py-10 text-[#C8C8D0]">
+                        <td colSpan={8} className="text-center py-10 text-textMuted">
                           Aucune donnée disponible
                         </td>
                       </tr>
@@ -769,69 +769,69 @@ const JournalCaisse = () => {
       {/* ── Modal détail opération ───────────────────────────── */}
       {showDetailModal && selectedOperation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
-            <div className="bg-[#1B2A4A] text-white p-4 rounded-t-xl flex justify-between items-center">
+          <div className="bg-surface rounded-xl shadow-2xl w-full max-w-lg">
+            <div className="bg-primary text-white p-4 rounded-t-xl flex justify-between items-center">
               <h3 className="font-bold flex items-center gap-2">
-                <Eye size={18} className="text-[#E60000]" />
+                <Eye size={18} className="text-accent" />
                 Détail de l'opération
               </h3>
-              <button onClick={() => setShowDetailModal(false)} className="hover:text-[#E60000]">✕</button>
+              <button onClick={() => setShowDetailModal(false)} className="hover:text-[var(--color-accent)]">✕</button>
             </div>
             <div className="p-5 space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#E8ECF4] p-3 rounded-lg">
-                  <p className="text-xs text-[#C8C8D0] font-semibold uppercase">Date</p>
-                  <p className="font-bold text-[#1B2A4A] mt-0.5">
+                <div className="bg-surfaceMuted p-3 rounded-lg">
+                  <p className="text-xs text-textMuted font-semibold uppercase">Date</p>
+                  <p className="font-bold text-textMain mt-0.5">
                     {new Date(selectedOperation.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </div>
-                <div className="bg-[#E8ECF4] p-3 rounded-lg">
-                  <p className="text-xs text-[#C8C8D0] font-semibold uppercase">Référence</p>
-                  <p className="font-bold text-[#1F5C99] font-mono mt-0.5">{selectedOperation.reference || '—'}</p>
+                <div className="bg-surfaceMuted p-3 rounded-lg">
+                  <p className="text-xs text-textMuted font-semibold uppercase">Référence</p>
+                  <p className="font-bold text-secondary font-mono mt-0.5">{selectedOperation.reference || '—'}</p>
                 </div>
               </div>
-              <div className="bg-[#E8ECF4] p-3 rounded-lg">
-                <p className="text-xs text-[#C8C8D0] font-semibold uppercase">Description</p>
-                <p className="font-medium text-[#1B2A4A] mt-0.5">{selectedOperation.description || '—'}</p>
+              <div className="bg-surfaceMuted p-3 rounded-lg">
+                <p className="text-xs text-textMuted font-semibold uppercase">Description</p>
+                <p className="font-medium text-textMain mt-0.5">{selectedOperation.description || '—'}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#E8ECF4] p-3 rounded-lg">
-                  <p className="text-xs text-[#C8C8D0] font-semibold uppercase">Bénéficiaire</p>
-                  <p className="font-medium text-[#1B2A4A] mt-0.5">{selectedOperation.beneficiaire || '—'}</p>
+                <div className="bg-surfaceMuted p-3 rounded-lg">
+                  <p className="text-xs text-textMuted font-semibold uppercase">Bénéficiaire</p>
+                  <p className="font-medium text-textMain mt-0.5">{selectedOperation.beneficiaire || '—'}</p>
                 </div>
-                <div className="bg-[#E8ECF4] p-3 rounded-lg">
-                  <p className="text-xs text-[#C8C8D0] font-semibold uppercase">Mode paiement</p>
-                  <p className="font-medium text-[#1B2A4A] mt-0.5">{selectedOperation.mode_paiement || '—'}</p>
+                <div className="bg-surfaceMuted p-3 rounded-lg">
+                  <p className="text-xs text-textMuted font-semibold uppercase">Mode paiement</p>
+                  <p className="font-medium text-textMain mt-0.5">{selectedOperation.mode_paiement || '—'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className={`p-3 rounded-lg ${selectedOperation.type === 'ENTREE' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                  <p className="text-xs font-semibold uppercase text-[#C8C8D0]">Type</p>
-                  <p className={`font-bold text-lg mt-0.5 ${selectedOperation.type === 'ENTREE' ? 'text-[#1A7A4A]' : 'text-[#E60000]'}`}>
+                  <p className="text-xs font-semibold uppercase text-textMuted">Type</p>
+                  <p className={`font-bold text-lg mt-0.5 ${selectedOperation.type === 'ENTREE' ? 'text-success' : 'text-accent'}`}>
                     {selectedOperation.type === 'ENTREE' ? '▲ Encaissement' : '▼ Décaissement'}
                   </p>
                 </div>
-                <div className="bg-[#E8ECF4] p-3 rounded-lg">
-                  <p className="text-xs text-[#C8C8D0] font-semibold uppercase">Montant</p>
-                  <p className={`font-bold text-lg mt-0.5 ${selectedOperation.type === 'ENTREE' ? 'text-[#1A7A4A]' : 'text-[#E60000]'}`}>
+                <div className="bg-surfaceMuted p-3 rounded-lg">
+                  <p className="text-xs text-textMuted font-semibold uppercase">Montant</p>
+                  <p className={`font-bold text-lg mt-0.5 ${selectedOperation.type === 'ENTREE' ? 'text-success' : 'text-accent'}`}>
                     {formatFCFA(selectedOperation.montant)}
                   </p>
                 </div>
               </div>
-              <div className="bg-[#1B2A4A] text-white p-3 rounded-lg">
-                <p className="text-xs font-semibold uppercase text-[#C8C8D0]">Solde après opération</p>
+              <div className="bg-primary text-white p-3 rounded-lg">
+                <p className="text-xs font-semibold uppercase text-textMuted">Solde après opération</p>
                 <p className="font-bold text-xl mt-0.5">{formatFCFA(selectedOperation.soldeCumul)}</p>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => handlePrintOperation(selectedOperation)}
-                  className="bg-[#1B2A4A] text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-[#2a3f6a] transition-colors"
+                  className="bg-primary text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-[#2a3f6a] transition-colors"
                 >
                   <Printer size={15} /> Imprimer
                 </button>
                 <button
                   onClick={() => setShowDetailModal(false)}
-                  className="border border-[#C8C8D0] text-[#1B2A4A] px-4 py-2 rounded-lg text-sm hover:bg-[#E8ECF4] transition-colors"
+                  className="border border-border text-textMain px-4 py-2 rounded-lg text-sm hover:bg-[var(--color-surface-muted)] transition-colors"
                 >
                   Fermer
                 </button>

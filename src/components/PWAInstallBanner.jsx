@@ -23,17 +23,21 @@ export default function PWAInstallBanner() {
 
   // Barre de progression simulée pendant l'installation
   useEffect(() => {
+    let interval;
     if (isInstalling) {
-      setProgress(0);
-      const interval = setInterval(() => {
+      setTimeout(() => setProgress(0), 0);
+      interval = setInterval(() => {
         setProgress(p => {
           if (p >= 95) { clearInterval(interval); return 95; }
           return p + Math.random() * 15;
         });
       }, 200);
-      return () => clearInterval(interval);
+    } else if (installSuccess) {
+      setTimeout(() => setProgress(100), 0);
     }
-    if (installSuccess) setProgress(100);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isInstalling, installSuccess]);
 
   const handleClose = () => {
@@ -86,12 +90,12 @@ export default function PWAInstallBanner() {
         {/* Barre colorée en haut */}
         <div style={{
           height: '4px',
-          background: 'linear-gradient(90deg, #1B2A4A 0%, #E60000 50%, #1A7A4A 100%)',
+          background: 'linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 50%, var(--color-success) 100%)',
         }} />
 
         {/* ── EN-TÊTE ──────────────────────────────────── */}
         <div style={{
-          background: '#1B2A4A',
+          background: 'var(--color-primary)',
           padding: '16px 20px',
           display: 'flex',
           alignItems: 'center',
@@ -114,7 +118,7 @@ export default function PWAInstallBanner() {
             <div style={{ color: 'white', fontWeight: 'bold', fontSize: '15px' }}>
               Installer l'application
             </div>
-            <div style={{ color: '#C8C8D0', fontSize: '12px', marginTop: '2px' }}>
+            <div style={{ color: 'var(--color-border)', fontSize: '12px', marginTop: '2px' }}>
               Accès rapide depuis votre bureau
             </div>
           </div>
@@ -143,7 +147,7 @@ export default function PWAInstallBanner() {
             fontSize: '13px', color: '#444',
             marginBottom: '16px', lineHeight: '1.5',
           }}>
-            Installez <strong style={{ color: '#1B2A4A' }}>SIKA GESTION</strong> sur
+            Installez <strong style={{ color: 'var(--color-primary)' }}>SIKA GESTION</strong> sur
             votre appareil pour :
           </div>
 
@@ -166,7 +170,7 @@ export default function PWAInstallBanner() {
                 fontSize: '14px', flexShrink: 0,
               }}>{item.icon}</span>
               <span style={{ fontSize: '13px', color: '#333' }}>{item.text}</span>
-              <span style={{ marginLeft: 'auto', color: '#1A7A4A', fontSize: '16px', fontWeight: 'bold' }}>✓</span>
+              <span style={{ marginLeft: 'auto', color: 'var(--color-success)', fontSize: '16px', fontWeight: 'bold' }}>✓</span>
             </div>
           ))}
 
@@ -174,13 +178,13 @@ export default function PWAInstallBanner() {
           {isInstalling && (
             <div style={{ marginTop: '16px' }}>
               <div style={{
-                height: '6px', background: '#E8ECF4',
+                height: '6px', background: 'var(--color-surface-muted)',
                 borderRadius: '3px', overflow: 'hidden',
               }}>
                 <div style={{
                   height: '100%',
                   width: `${progress}%`,
-                  background: 'linear-gradient(90deg, #1B2A4A, #E60000)',
+                  background: 'linear-gradient(90deg, var(--color-primary), var(--color-accent))',
                   borderRadius: '3px',
                   transition: 'width 0.3s ease',
                 }} />
@@ -199,7 +203,7 @@ export default function PWAInstallBanner() {
             <div style={{
               background: '#E8F5E9', borderRadius: '10px',
               padding: '12px', textAlign: 'center',
-              color: '#1A7A4A', fontWeight: 'bold',
+              color: 'var(--color-success)', fontWeight: 'bold',
               marginTop: '12px',
             }}>
               🎉 Application installée avec succès !
@@ -209,11 +213,11 @@ export default function PWAInstallBanner() {
           {/* Guide iOS */}
           {showGuide && platform === 'ios' && (
             <div style={{
-              background: '#FFE6E6', borderRadius: '10px',
+              background: 'var(--color-accent-light)', borderRadius: '10px',
               padding: '14px', marginTop: '12px',
-              border: '1px solid #E60000',
+              border: '1px solid var(--color-accent)',
             }}>
-              <div style={{ fontWeight: 'bold', color: '#E60000', marginBottom: '8px' }}>
+              <div style={{ fontWeight: 'bold', color: 'var(--color-accent)', marginBottom: '8px' }}>
                 📱 Installation sur iPhone/iPad :
               </div>
               <div style={{ fontSize: '12px', color: '#555', lineHeight: '1.8' }}>
@@ -232,7 +236,7 @@ export default function PWAInstallBanner() {
               <button onClick={handleInstall} style={{
                 flex: 1,
                 padding: '12px',
-                background: '#1B2A4A',
+                background: 'var(--color-primary)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '10px',

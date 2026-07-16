@@ -7,10 +7,9 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import ClientSelect from '../../components/ClientSelect'
 import { formatFCFA, generateSecureId } from '../../utils/format'
 import { printDevisHTML } from '../../utils/devisTemplate'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const TYPES_TUYAU = ['Acier noir', 'Acier galvanisé', 'Inox 304', 'Inox 316', 'PVC', 'PEHD']
-const TYPES_RACCORD = ['Coude 90°', 'Coude 45°', 'Té', 'Réduction', 'Manchon', 'Bride', 'Bouchon']
 const PRESSIONS = ['PN10', 'PN16', 'PN25', 'PN40']
 
 const LIGNE_VIDE = {
@@ -30,9 +29,10 @@ export default function DevisTuyauterie() {
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
   const { confirm } = useNotifications()
+  const navigate = useNavigate()
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: '',
+    numero: location.state?.devisId ? '' : getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'TUYAUTERIE',
@@ -49,12 +49,6 @@ export default function DevisTuyauterie() {
 
   const [devisId, setDevisId] = useState(null)
 
-  // Générer le numéro après le montage (évite setState pendant le render)
-  useEffect(() => {
-    if (!devisData.numero && !location.state?.devisId) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
-    }
-  }, [devisData.numero, location.state?.devisId, getNextNumero])
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
@@ -89,7 +83,7 @@ export default function DevisTuyauterie() {
       }
     }
     loadDevis()
-  }, [location.state, location.state?.devisId, getDevisById])
+  }, [location.state, location.state?.devisId, getDevisById, ajouterNotification])
 
   const calculerMontant = (ligne) => {
     const longueur = parseFloat(ligne.longueur) || 0
@@ -221,6 +215,7 @@ export default function DevisTuyauterie() {
           lien: '/devis/liste'
         })
       }
+      navigate('/devis/liste')
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement:', error)
       ajouterNotification({
@@ -301,14 +296,14 @@ export default function DevisTuyauterie() {
     <div className="min-h-screen bg-navyClair p-6">
       <div className="max-w-6xl mx-auto">
         
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
+        <div className="bg-surface rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
           <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition">
             ➕ Nouveau
           </button>
           <button onClick={handleEnregistrer} className="flex items-center gap-2 px-4 py-2 bg-vert text-white rounded-lg hover:bg-opacity-90 transition">
             💾 Enregistrer
           </button>
-          <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition">
+          <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition">
             📄 PDF
           </button>
           <button
@@ -319,7 +314,7 @@ export default function DevisTuyauterie() {
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">N° Devis</label>
@@ -327,7 +322,7 @@ export default function DevisTuyauterie() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Date</label>
-              <input type="date" value={devisData.date} onChange={(e) => setDevisData(prev => ({ ...prev, date: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" />
+              <input type="date" value={devisData.date} onChange={(e) => setDevisData(prev => ({ ...prev, date: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" />
             </div>
           </div>
           
@@ -338,7 +333,7 @@ export default function DevisTuyauterie() {
 
           <div className="mb-4">
             <label className="block text-sm font-semibold text-navy mb-2">Objet</label>
-            <input type="text" value={devisData.objet} onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" placeholder="Ex: Installation réseau tuyauterie..." />
+            <input type="text" value={devisData.objet} onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" placeholder="Ex: Installation réseau tuyauterie..." />
           </div>
 
           <div className="mb-4">
@@ -348,30 +343,30 @@ export default function DevisTuyauterie() {
               onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
               rows={3}
               placeholder="Informations complémentaires, conditions particulières, remarques client..."
-              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange resize-vertical"
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge resize-vertical"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Fluide transporté</label>
-              <input type="text" value={devisData.fluideTransporte} onChange={(e) => setDevisData(prev => ({ ...prev, fluideTransporte: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" placeholder="Ex: Eau, Vapeur, Huile..." />
+              <input type="text" value={devisData.fluideTransporte} onChange={(e) => setDevisData(prev => ({ ...prev, fluideTransporte: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" placeholder="Ex: Eau, Vapeur, Huile..." />
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Température de service (°C)</label>
-              <input type="number" value={devisData.temperatureService} onChange={(e) => setDevisData(prev => ({ ...prev, temperatureService: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" />
+              <input type="number" value={devisData.temperatureService} onChange={(e) => setDevisData(prev => ({ ...prev, temperatureService: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" />
             </div>
           </div>
           
           {clientSelectionne && (
-            <div className="bg-orangeClair border-l-4 border-orange p-4 rounded">
+            <div className="bg-rougeClair border-l-4 border-rouge p-4 rounded">
               <p className="text-sm text-navy"><strong>{clientSelectionne.nom}</strong> - {clientSelectionne.ville}</p>
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">Détail de la tuyauterie</h2>
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-rouge pb-2">Détail de la tuyauterie</h2>
           
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
@@ -390,25 +385,25 @@ export default function DevisTuyauterie() {
                 {devisData.lignes.map((ligne, index) => {
                   const montant = calculerMontant(ligne)
                   return (
-                    <tr key={ligne.id} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                    <tr key={ligne.id} className={index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                       <td className="border border-argent px-4 py-2">
-                        <input type="text" value={ligne.designation} onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange" placeholder="Désignation..." />
+                        <input type="text" value={ligne.designation} onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-rouge" placeholder="Désignation..." />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <select value={ligne.typeTuyau} onChange={(e) => modifierLigne(ligne.id, 'typeTuyau', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange">
+                        <select value={ligne.typeTuyau} onChange={(e) => modifierLigne(ligne.id, 'typeTuyau', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-rouge">
                           {TYPES_TUYAU.map(type => <option key={type} value={type}>{type}</option>)}
                         </select>
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <select value={ligne.pression} onChange={(e) => modifierLigne(ligne.id, 'pression', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange">
+                        <select value={ligne.pression} onChange={(e) => modifierLigne(ligne.id, 'pression', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-rouge">
                           {PRESSIONS.map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" step="0.01" value={ligne.longueur} onChange={(e) => modifierLigne(ligne.id, 'longueur', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                        <input type="number" step="0.01" value={ligne.longueur} onChange={(e) => modifierLigne(ligne.id, 'longueur', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge" />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" value={ligne.pu} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:border-orange" />
+                        <input type="number" value={ligne.pu} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:border-rouge" />
                       </td>
                       <td className="border border-argent px-4 py-2 text-right font-semibold text-navy">{formatFCFA(montant)}</td>
                       <td className="border border-argent px-4 py-2 text-center">
@@ -432,13 +427,13 @@ export default function DevisTuyauterie() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="text-navy font-semibold">REMISE</span>
-                <input type="number" min="0" max="100" value={devisData.tauxRemise} onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))} className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                <input type="number" min="0" max="100" value={devisData.tauxRemise} onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))} className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge" />
                 <span className="text-navy">%</span>
               </div>
               <span className="text-lg font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
             </div>
             
-            <div className="flex justify-between items-center bg-orangeClair p-2 rounded">
+            <div className="flex justify-between items-center bg-rougeClair p-2 rounded">
               <span className="text-navy font-bold">MONTANT TOTAL HT</span>
               <span className="text-xl font-bold text-navy">{formatFCFA(totaux.montantHT)}</span>
             </div>
@@ -458,7 +453,7 @@ export default function DevisTuyauterie() {
         </div>
 
         <div className="hidden">
-          <div ref={pdfRef} className="bg-white p-8" style={{ width: '210mm' }}>
+          <div ref={pdfRef} className="bg-surface p-8" style={{ width: '210mm' }}>
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-navy mb-2">SIKA INDUSTRIE</h1>
               <h2 className="text-xl text-bleu">DEVIS TUYAUTERIE</h2>

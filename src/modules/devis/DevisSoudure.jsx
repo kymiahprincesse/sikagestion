@@ -93,13 +93,9 @@ export default function DevisSoudure() {
       }
     }
     loadDevis()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state?.devisId])
+  }, [location.state?.devisId, getDevisById, ajouterNotification])
 
   const calculerMontant = (ligne) => {
-    if (ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null) {
-      return parseFloat(ligne.montant) || 0
-    }
     const longueur = parseFloat(ligne.longueur) || 0
     const pu = parseFloat(ligne.pu) || 0
     return longueur * pu
@@ -319,14 +315,14 @@ export default function DevisSoudure() {
     <div className="min-h-screen bg-navyClair p-6">
       <div className="max-w-6xl mx-auto">
         
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
+        <div className="bg-surface rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
           <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition">
             ➕ Nouveau
           </button>
           <button onClick={handleEnregistrer} className="flex items-center gap-2 px-4 py-2 bg-vert text-white rounded-lg hover:bg-opacity-90 transition">
             💾 Enregistrer
           </button>
-          <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition">
+          <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition">
             📄 PDF
           </button>
           <button
@@ -337,7 +333,7 @@ export default function DevisSoudure() {
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">N° Devis</label>
@@ -345,8 +341,8 @@ export default function DevisSoudure() {
               <div className="mt-2">
                 <span className="text-xs font-semibold text-bleu uppercase tracking-wide">Type de devis</span>
                 <div className="mt-1">
-                  <span className="inline-flex items-center gap-2 px-3 py-1 bg-orange text-white text-xs font-bold rounded-full uppercase tracking-wide">
-                    <span className="w-2 h-2 rounded-full bg-white" />
+                  <span className="inline-flex items-center gap-2 px-3 py-1 bg-rouge text-white text-xs font-bold rounded-full uppercase tracking-wide">
+                    <span className="w-2 h-2 rounded-full bg-surface" />
                     {devisData.type}
                   </span>
                 </div>
@@ -354,7 +350,7 @@ export default function DevisSoudure() {
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Date</label>
-              <input type="date" value={devisData.date} onChange={(e) => setDevisData(prev => ({ ...prev, date: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" />
+              <input type="date" value={devisData.date} onChange={(e) => setDevisData(prev => ({ ...prev, date: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" />
             </div>
           </div>
           
@@ -364,7 +360,7 @@ export default function DevisSoudure() {
           </div>
           
           {clientSelectionne && (
-            <div className="bg-orangeClair border-l-4 border-orange p-4 rounded mb-4">
+            <div className="bg-rougeClair border-l-4 border-rouge p-4 rounded mb-4">
               <p className="text-sm text-navy"><strong>{clientSelectionne.nom}</strong> - {clientSelectionne.ville}</p>
             </div>
           )}
@@ -376,36 +372,36 @@ export default function DevisSoudure() {
               onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))}
               placeholder="Ex: Travaux de soudure sur structure métallique ou tuyauterie industrielle..."
               rows={2}
-              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange font-semibold text-navy resize-none"
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge font-semibold text-navy resize-none"
             />
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">Spécifications Soudure</h2>
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-rouge pb-2">Spécifications Soudure</h2>
           
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Type de soudure</label>
-              <select value={devisData.typeSoudure} onChange={(e) => setDevisData(prev => ({ ...prev, typeSoudure: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange">
+              <select value={devisData.typeSoudure} onChange={(e) => setDevisData(prev => ({ ...prev, typeSoudure: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge">
                 {TYPES_SOUDURE.map(type => <option key={type} value={type}>{type}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Matériau</label>
-              <select value={devisData.materiau} onChange={(e) => setDevisData(prev => ({ ...prev, materiau: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange">
+              <select value={devisData.materiau} onChange={(e) => setDevisData(prev => ({ ...prev, materiau: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge">
                 {TYPES_MATERIAU.map(mat => <option key={mat} value={mat}>{mat}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Position de soudure</label>
-              <select value={devisData.position} onChange={(e) => setDevisData(prev => ({ ...prev, position: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange">
+              <select value={devisData.position} onChange={(e) => setDevisData(prev => ({ ...prev, position: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge">
                 {POSITIONS_SOUDURE.map(pos => <option key={pos} value={pos}>{pos}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Qualification</label>
-              <select value={devisData.qualification} onChange={(e) => setDevisData(prev => ({ ...prev, qualification: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange">
+              <select value={devisData.qualification} onChange={(e) => setDevisData(prev => ({ ...prev, qualification: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge">
                 {QUALIFICATIONS.map(qual => <option key={qual} value={qual}>{qual}</option>)}
               </select>
             </div>
@@ -413,18 +409,18 @@ export default function DevisSoudure() {
 
           <div className="flex gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={devisData.controleQualite} onChange={(e) => setDevisData(prev => ({ ...prev, controleQualite: e.target.checked }))} className="w-5 h-5 text-orange focus:ring-orange" />
+              <input type="checkbox" checked={devisData.controleQualite} onChange={(e) => setDevisData(prev => ({ ...prev, controleQualite: e.target.checked }))} className="w-5 h-5 text-rouge focus:ring-rouge" />
               <span className="text-sm text-navy font-semibold">Contrôle qualité</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={devisData.radiographie} onChange={(e) => setDevisData(prev => ({ ...prev, radiographie: e.target.checked }))} className="w-5 h-5 text-orange focus:ring-orange" />
+              <input type="checkbox" checked={devisData.radiographie} onChange={(e) => setDevisData(prev => ({ ...prev, radiographie: e.target.checked }))} className="w-5 h-5 text-rouge focus:ring-rouge" />
               <span className="text-sm text-navy font-semibold">Radiographie</span>
             </label>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">Détail des travaux</h2>
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-rouge pb-2">Détail des travaux</h2>
           
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
@@ -442,18 +438,18 @@ export default function DevisSoudure() {
                 {devisData.lignes.map((ligne, index) => {
                   const montant = calculerMontant(ligne)
                   return (
-                    <tr key={ligne.id} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                    <tr key={ligne.id} className={index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                       <td className="border border-argent px-4 py-2">
-                        <input type="text" value={ligne.designation} onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange" placeholder="Désignation..." />
+                        <input type="text" value={ligne.designation} onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-rouge" placeholder="Désignation..." />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" step="0.01" value={ligne.longueur} onChange={(e) => modifierLigne(ligne.id, 'longueur', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                        <input type="number" step="0.01" value={ligne.longueur} onChange={(e) => modifierLigne(ligne.id, 'longueur', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge" />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" step="0.1" value={ligne.epaisseur} onChange={(e) => modifierLigne(ligne.id, 'epaisseur', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                        <input type="number" step="0.1" value={ligne.epaisseur} onChange={(e) => modifierLigne(ligne.id, 'epaisseur', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge" />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" value={ligne.pu || ''} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} placeholder="0" className="w-full px-2 py-1 border-2 border-orange rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-orange bg-orangeClair" />
+                        <input type="number" value={ligne.pu || ''} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} placeholder="0" className="w-full px-2 py-1 border-2 border-rouge rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-rouge bg-rougeClair" />
                       </td>
                       <td className="border border-argent px-3 py-2">
                         <input
@@ -490,13 +486,13 @@ export default function DevisSoudure() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="text-navy font-semibold">REMISE</span>
-                <input type="number" min="0" max="100" value={devisData.tauxRemise} onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))} className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                <input type="number" min="0" max="100" value={devisData.tauxRemise} onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))} className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge" />
                 <span className="text-navy">%</span>
               </div>
               <span className="text-lg font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
             </div>
             
-            <div className="flex justify-between items-center bg-orangeClair p-2 rounded">
+            <div className="flex justify-between items-center bg-rougeClair p-2 rounded">
               <span className="text-navy font-bold">MONTANT TOTAL HT</span>
               <span className="text-xl font-bold text-navy">{formatFCFA(totaux.montantHT)}</span>
             </div>
@@ -515,18 +511,18 @@ export default function DevisSoudure() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
           <label className="block text-sm font-semibold text-navy mb-2">Notes / Observations</label>
           <textarea
             value={devisData.notes || ''}
             onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
-            className="w-full min-h-[120px] px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange resize-vertical"
+            className="w-full min-h-[120px] px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge resize-vertical"
             placeholder="Ajoutez des notes ou observations ici..."
           />
         </div>
 
         <div className="hidden">
-          <div ref={pdfRef} className="bg-white p-8" style={{ width: '210mm' }}>
+          <div ref={pdfRef} className="bg-surface p-8" style={{ width: '210mm' }}>
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-navy mb-2">SIKA INDUSTRIE</h1>
               <h2 className="text-xl text-bleu">DEVIS SOUDURE</h2>
@@ -543,7 +539,7 @@ export default function DevisSoudure() {
       </div>
 
       {/* BARRE ACTIONS BAS */}
-      <div className="bg-white border-t-4 border-orange shadow-lg rounded-lg mt-6 px-4 py-3">
+      <div className="bg-surface border-t-4 border-rouge shadow-lg rounded-lg mt-6 px-4 py-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
@@ -558,7 +554,7 @@ export default function DevisSoudure() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-navy font-bold text-sm hidden sm:block">TTC : {formatFCFA(totaux.ttc)}</span>
-            <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+            <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
               📄 PDF
             </button>
             <button onClick={handleEnregistrer} className="flex items-center gap-2 px-5 py-3 bg-vert text-white rounded-lg hover:bg-opacity-90 transition font-bold text-base shadow-lg">

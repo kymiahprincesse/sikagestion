@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom'
 
 export default function Breadcrumb({ items }) {
   return (
-    <nav className="bg-white px-4 py-2 rounded-lg shadow-sm border border-argent mb-4">
+    <nav className="bg-surface px-4 py-2 rounded-lg shadow-sm border border-argent mb-4">
       <ol className="flex items-center gap-2 text-sm">
         {items.map((item, index) => (
           <li key={index} className="flex items-center gap-2">
-            {index > 0 && <span className="text-orange font-bold">›</span>}
+            {index > 0 && <span className="text-rouge font-bold">›</span>}
             {item.path ? (
-              <Link to={item.path} className="text-bleu hover:text-orange transition-colors">
+              <Link to={item.path} className="text-bleu hover:text-rouge transition-colors">
                 {item.label}
               </Link>
             ) : (

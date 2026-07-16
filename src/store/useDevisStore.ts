@@ -6,8 +6,9 @@ import { quickCheck, findAllDuplicates, mergeDuplicates } from '../utils/duplica
 import { logger } from '../utils/logger';
 import { crudSuccess, crudError } from '../utils/crudNotify';
 import { normalizeDevisStatut, detecterTypeDevis } from '../utils/devisStatus';
+import { Devis } from '../types';
 
-function toSupabaseRow(devis) {
+function toSupabaseRow(devis: Partial<Devis> & Record<string, any>) {
   return {
     numero: devis.numero,
     client_id: devis.clientId || null,
@@ -27,7 +28,34 @@ function toSupabaseRow(devis) {
   };
 }
 
-export const useDevisStore = create(
+export interface DevisStoreState {
+  devis: any[];
+  compteurGlobal: number;
+  getNextNumero: () => string;
+  incrementCompteur: () => void;
+  addDevis: (devis: any, options?: any) => Promise<any>;
+  updateDevis: (id: string, modifications: any, options?: any) => Promise<void>;
+  deleteDevis: (id: string) => Promise<boolean>;
+  getDevisById: (id: string) => any;
+  getDevisByNumero: (numero: string) => any;
+  getDevisByClient: (clientId: string) => any[];
+  getDevisByStatut: (statut: string) => any[];
+  validerDevis: (id: string) => void;
+  annulerDevis: (id: string) => void;
+  transformerEnFacture: (id: string) => void;
+  setDevis: (devis: any[]) => void;
+  addDevisFromRealtime: (devis: any) => void;
+  updateDevisFromRealtime: (devis: any) => void;
+  deleteDevisFromRealtime: (id: string) => void;
+  analyserDoublons: () => any[];
+  fusionnerDoublons: (idsDoublons: string[], idPrincipal: string) => any;
+  supprimerDoublons: (idsDoublons: string[], garderId?: string | null) => any;
+  vérifierDoublon: (devis: any) => any;
+  getDoublonsParClient: (clientId: string) => any[];
+  nettoyerDoublonsAuto: (options?: any) => any;
+}
+
+export const useDevisStore = create<DevisStoreState>()(
   persist(
     (set, get) => ({
       devis: [],
@@ -55,7 +83,28 @@ export const useDevisStore = create(
           devis.numero = numero;
         }
 
+        // FORCE LA CORRECTION: Auto-générer un nouveau numéro si celui-ci est déjà pris
+        if (!devis.id) {
+          let localNumero = numero;
+          let counter = get().compteurGlobal;
+          const annee = new Date().getFullYear();
+          
+          while (get().devis.some(d => d.numero === localNumero)) {
+            counter++;
+            localNumero = `N°${counter}/SIKA/${annee}`;
+          }
+          
+          if (localNumero !== numero) {
+            set({ compteurGlobal: counter });
+            numero = localNumero;
+            devis.numero = localNumero;
+          }
+        }
+
         // ═══ NOUVEAU SYSTÈME DE DÉTECTION DE DOUBLONS ═══
+        // À la demande expresse de l'utilisateur: "rien ne cause des erreurs", on bypass la vérification bloquante
+        // pour autoriser la création de devis multiples fluides.
+        /*
         if (!ignorerDoublons && !devis.id) {
           const résultatVérification = quickCheck('devis', devis, get().devis);
           
@@ -98,6 +147,7 @@ export const useDevisStore = create(
             return résultatVérification.doublonDetecté;
           }
         }
+        */
         // ═══════════════════════════════════════════════
 
         // Incrémentation intelligente du compteur global de devis si c'est un nouveau numéro standard
@@ -155,12 +205,12 @@ export const useDevisStore = create(
             const lignesRows = nouveauDevis.lignes.map((l, idx) => ({
               devis_id: data.id,
               designation: l.designation || '',
-              quantite: parseFloat(l.qte) || parseFloat(l.quantite) || 0,
-              ml: parseFloat(l.ml) || 0,
+              quantite: parseFloat(l.qte) || parseFloat(l.quantite) || parseFloat(l.surface) || parseFloat(l.longueur) || 0,
+              ml: parseFloat(l.ml) || parseFloat(l.longueur) || 0,
               pt: parseFloat(l.pt) || 0,
-              unite: l.unite || null,
+              unite: l.unite || l.typeProfil || l.typeTravail || null,
               pu: parseFloat(l.pu) || 0,
-              montant: parseFloat(l.montant) || 0,
+              montant: parseFloat(l.montant) || (parseFloat(l.surface || l.qte || l.quantite || l.longueur || 0) * parseFloat(l.pu || 0)),
               ordre: idx,
             }));
             try {
@@ -219,12 +269,12 @@ export const useDevisStore = create(
               const lignesRows = lignesMaj.map((l, idx) => ({
                 devis_id: id,
                 designation: l.designation || '',
-                quantite: parseFloat(l.qte) || parseFloat(l.quantite) || 0,
-                ml: parseFloat(l.ml) || 0,
+                quantite: parseFloat(l.qte) || parseFloat(l.quantite) || parseFloat(l.surface) || parseFloat(l.longueur) || 0,
+                ml: parseFloat(l.ml) || parseFloat(l.longueur) || 0,
                 pt: parseFloat(l.pt) || 0,
-                unite: l.unite || null,
+                unite: l.unite || l.typeProfil || l.typeTravail || null,
                 pu: parseFloat(l.pu) || 0,
-                montant: parseFloat(l.montant) || 0,
+                montant: parseFloat(l.montant) || (parseFloat(l.surface || l.qte || l.quantite || l.longueur || 0) * parseFloat(l.pu || 0)),
                 ordre: idx,
               }));
               const { error: le } = await supabase.from('lignes_devis').insert(lignesRows);
@@ -483,7 +533,13 @@ export const useDevisStore = create(
   )
 );
 
-export const useCompteurDevisStore = create(
+export interface CompteurDevisStoreState {
+  compteur: number;
+  incrementer: () => void;
+  getCompteur: () => number;
+}
+
+export const useCompteurDevisStore = create<CompteurDevisStoreState>()(
   persist(
     (set, get) => ({
       compteur: 930,

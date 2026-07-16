@@ -1,13 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useAuditStore, getActionLabel, getModuleLabel, genererResume, ACTIONS_AUDIT } from '../store/useAuditStore';
-import { useAuthStore } from '../store/useAuthStore';
+
 
 export default function AuditHistorique({ module, enregistrementId = null }) {
   const logs = useAuditStore((state) => state.logs);
-  const utilisateurs = useAuthStore((state) => [
-    { nom: 'Tous' },
-    ...Array.from(new Set(logs.map(l => l.utilisateur))).map(nom => ({ nom }))
-  ]);
+
 
   const [filtres, setFiltres] = useState({
     dateDebut: '',
@@ -58,15 +55,15 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
 
     // Tri par date décroissante
     return resultats.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-  }, [logs, filtres, module, enregistrementId]);
+  }, [logs, filtres, enregistrementId]);
 
   const getActionBadgeColor = (action) => {
     const colors = {
       CREATE: 'bg-vert text-white',
       UPDATE: 'bg-bleu text-white',
       DELETE: 'bg-rouge text-white',
-      PDF_EXPORT: 'bg-orange text-white',
-      EXCEL_EXPORT: 'bg-orange text-white',
+      PDF_EXPORT: 'bg-rouge text-white',
+      EXCEL_EXPORT: 'bg-rouge text-white',
       PLANNING_UPDATE: 'bg-bleu text-white',
       PAYMENT: 'bg-vert text-white',
       VALIDATION: 'bg-vert text-white',
@@ -91,7 +88,7 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
   };
 
   return (
-    <div className="bg-white rounded-lg border-2 border-argent">
+    <div className="bg-surface rounded-lg border-2 border-argent">
       {/* En-tête */}
       <div className="bg-navy text-white px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -115,7 +112,7 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
               type="date"
               value={filtres.dateDebut}
               onChange={(e) => setFiltres({ ...filtres, dateDebut: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-argent rounded focus:border-orange focus:outline-none text-sm"
+              className="w-full px-3 py-2 border-2 border-argent rounded focus:border-rouge focus:outline-none text-sm"
             />
           </div>
 
@@ -125,7 +122,7 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
               type="date"
               value={filtres.dateFin}
               onChange={(e) => setFiltres({ ...filtres, dateFin: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-argent rounded focus:border-orange focus:outline-none text-sm"
+              className="w-full px-3 py-2 border-2 border-argent rounded focus:border-rouge focus:outline-none text-sm"
             />
           </div>
 
@@ -134,7 +131,7 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
             <select
               value={filtres.utilisateur}
               onChange={(e) => setFiltres({ ...filtres, utilisateur: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-argent rounded focus:border-orange focus:outline-none text-sm"
+              className="w-full px-3 py-2 border-2 border-argent rounded focus:border-rouge focus:outline-none text-sm"
             >
               <option value="">Tous</option>
               {Array.from(new Set(logs.map(l => l.utilisateur))).map(nom => (
@@ -148,7 +145,7 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
             <select
               value={filtres.action}
               onChange={(e) => setFiltres({ ...filtres, action: e.target.value })}
-              className="w-full px-3 py-2 border-2 border-argent rounded focus:border-orange focus:outline-none text-sm"
+              className="w-full px-3 py-2 border-2 border-argent rounded focus:border-rouge focus:outline-none text-sm"
             >
               <option value="">Toutes</option>
               {Object.keys(ACTIONS_AUDIT).map(action => (
@@ -165,7 +162,7 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
               <select
                 value={filtres.module}
                 onChange={(e) => setFiltres({ ...filtres, module: e.target.value })}
-                className="w-full px-3 py-2 border-2 border-argent rounded focus:border-orange focus:outline-none text-sm"
+                className="w-full px-3 py-2 border-2 border-argent rounded focus:border-rouge focus:outline-none text-sm"
               >
                 <option value="">Tous</option>
                 {Array.from(new Set(logs.map(l => l.module))).map(mod => (
@@ -212,8 +209,8 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
                 <>
                   <tr
                     key={log.id}
-                    className={`border-b border-argent hover:bg-orangeClair transition-colors ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-navyClair'
+                    className={`border-b border-argent hover:bg-rougeClair transition-colors ${
+                      index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'
                     }`}
                   >
                     <td className="px-4 py-3 text-sm text-navy">
@@ -245,7 +242,7 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
                       {(log.avant || log.apres) && (
                         <button
                           onClick={() => toggleDetails(log.id)}
-                          className="text-bleu hover:text-orange transition-colors"
+                          className="text-bleu hover:text-rouge transition-colors"
                         >
                           {afficherDetails === log.id ? '▼' : '▶'}
                         </button>
@@ -254,13 +251,13 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
                   </tr>
                   
                   {afficherDetails === log.id && (log.avant || log.apres) && (
-                    <tr className="bg-orangeClair border-b-2 border-orange">
+                    <tr className="bg-rougeClair border-b-2 border-rouge">
                       <td colSpan={!module ? 7 : 6} className="px-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                           {log.avant && (
                             <div>
                               <p className="text-xs font-bold text-navy mb-2">AVANT</p>
-                              <pre className="bg-white p-3 rounded border border-argent text-xs overflow-auto max-h-60">
+                              <pre className="bg-surface p-3 rounded border border-argent text-xs overflow-auto max-h-60">
                                 {JSON.stringify(log.avant, null, 2)}
                               </pre>
                             </div>
@@ -268,7 +265,7 @@ export default function AuditHistorique({ module, enregistrementId = null }) {
                           {log.apres && (
                             <div>
                               <p className="text-xs font-bold text-navy mb-2">APRÈS</p>
-                              <pre className="bg-white p-3 rounded border border-argent text-xs overflow-auto max-h-60">
+                              <pre className="bg-surface p-3 rounded border border-argent text-xs overflow-auto max-h-60">
                                 {JSON.stringify(log.apres, null, 2)}
                               </pre>
                             </div>

@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { logger } from '../utils/logger';
 import { normalizeRole } from '../utils/filterSuperAdmin';
+import { idbStorage } from '../lib/idbStorage';
 
 // OBLIGATOIRE: Variable d'environnement - pas de fallback pour la sécurité
 const MGMT_SECRET = import.meta.env.VITE_SIKA_MGMT_SECRET;
@@ -461,8 +462,8 @@ export const useUtilisateursStore = create(
     }),
     {
       name: 'sika_utilisateurs',
+      storage: createJSONStorage(() => idbStorage),
       version: 4,
-      partialize: () => ({}),
       migrate: () => ({})
     }
   )

@@ -36,7 +36,7 @@ export default function ClientSelect({ value, onChange, clients: clientsProp }) 
           }}
           onFocus={() => setIsOpen(true)}
           placeholder="Rechercher un client..."
-          className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+          className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
         />
         {selectedClient && !search && (
           <button
@@ -57,13 +57,13 @@ export default function ClientSelect({ value, onChange, clients: clientsProp }) 
             className="fixed inset-0 z-10" 
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute z-20 w-full mt-1 bg-white border border-argent rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-20 w-full mt-1 bg-surface border border-argent rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {filteredClients.length > 0 ? (
               filteredClients.map(client => (
                 <button
                   key={client.id}
                   onClick={() => handleSelect(client)}
-                  className="w-full px-4 py-2 text-left hover:bg-[#FFE6E6] transition-colors border-b border-argent last:border-b-0"
+                  className="w-full px-4 py-2 text-left hover:bg-[var(--color-accent-light)] transition-colors border-b border-argent last:border-b-0"
                 >
                   <span className="font-medium text-navy">{client.nom}</span>
                   {client.ville && <span className="text-xs text-bleu ml-2">— {client.ville}</span>}

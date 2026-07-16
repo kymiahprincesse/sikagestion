@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { generateSecureId } from '../utils/format';
 import { crudSuccess, crudError } from '../utils/crudNotify';
+import { idbStorage } from '../lib/idbStorage';
 
 function toSupabaseRow(ao) {
   return {
@@ -207,6 +208,7 @@ export const useAOStore = create(
     }),
     {
       name: 'sika_ao',
+      storage: createJSONStorage(() => idbStorage),
       partialize: (state) => ({ compteurNumero: state.compteurNumero })
     }
   )

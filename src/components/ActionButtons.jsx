@@ -48,7 +48,7 @@ export default function ActionButtons({
         {permissions.view && onView && (
           <button
             onClick={onView}
-            className="px-3 py-1.5 bg-orange text-white rounded-lg text-sm font-medium hover:bg-orange/90 transition-colors flex items-center gap-1"
+            className="px-3 py-1.5 bg-rouge text-white rounded-lg text-sm font-medium hover:bg-rouge/90 transition-colors flex items-center gap-1"
             title="Voir"
           >
             <span>👁</span>

@@ -6,11 +6,11 @@ import { useAuditStore } from '../../store/useAuditStore'
 import { useClientsStore } from '../../store/useClientsStore'
 import { useNotificationsStore } from '../../store/useNotificationsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
-import { isDevisEnAttente, isDevisVisibleDansListe, normalizeDevisStatut, getDevisStatutLabel, detecterTypeDevis } from '../../utils/devisStatus'
+import { isDevisEnAttente, isDevisVisibleDansListe, normalizeDevisStatut, detecterTypeDevis } from '../../utils/devisStatus'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, openPDFForPrint, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
-import { generateDevisHTML, printDevisHTML } from '../../utils/devisTemplate'
+import { printDevisHTML } from '../../utils/devisTemplate'
 import { useNavigate } from 'react-router-dom'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import GestionDoublons from '../../components/GestionDoublons'
@@ -22,7 +22,7 @@ const TYPES = ['CALORIFUGE', 'PLIAGE', 'RESERVOIR', 'SOUDURE', 'CHARPENTE', 'TUY
 
 export default function ListeDevis() {
   const navigate = useNavigate()
-  const { devis, deleteDevis, addDevis, updateDevis, transformerEnFacture } = useDevisStore()
+  const { devis, deleteDevis, updateDevis, transformerEnFacture } = useDevisStore()
   const { addFacture } = useFacturesStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
@@ -79,7 +79,7 @@ export default function ListeDevis() {
         lien: '/devis/liste'
       })
     })
-  }, [updateDevis, addLog, confirm])
+  }, [updateDevis, addLog, confirm, utilisateurConnecte?.nom])
 
   const devisAvecClients = useMemo(() => {
     return devis.map(d => {
@@ -178,179 +178,18 @@ export default function ListeDevis() {
       .sort((a, b) => a.clientNom.localeCompare(b.clientNom));
   }, [devisFiltres])
 
-  const columns = useMemo(() => [
-    {
-      accessorKey: 'numero',
-      header: 'N° Devis',
-      cell: info => <span className="font-bold text-navy">{info.getValue()}</span>
-    },
-    {
-      accessorKey: 'clientNom',
-      header: 'Client',
-      cell: info => <span className="text-navy">{info.getValue()}</span>
-    },
-    {
-      accessorKey: 'typeDevis',
-      header: 'Type',
-      cell: info => {
-        const value = info.getValue()
-        return (
-          <span className={`px-2 py-1 rounded text-xs font-semibold ${value ? 'bg-bleu text-white' : 'bg-gray-300 text-gray-600'}`}>
-            {value || 'Non défini'}
-          </span>
-        )
-      }
-    },
-    {
-      accessorKey: 'date',
-      header: 'Date',
-      cell: info => <span className="text-navy">{formatDate(info.getValue())}</span>
-    },
-    {
-      accessorKey: 'ttc',
-      header: 'Montant TTC',
-      cell: info => {
-        const montant = info.getValue()
-        return <span className="font-bold text-orange">{formatFCFA(montant || 0)}</span>
-      }
-    },
-    {
-      accessorKey: 'statut',
-      header: 'Statut',
-      cell: info => {
-        const statut = info.getValue()
-        const row = info.row.original
-        const configs = {
-          'BROUILLON': { bg: 'bg-bleu', text: 'text-white', label: 'Brouillon' },
-          'EN_ATTENTE': { bg: 'bg-orange', text: 'text-white', label: 'En attente' },
-          'VALIDE': { bg: 'bg-vert', text: 'text-white', label: 'Validé' },
-          'FACTURE': { bg: 'bg-orange', text: 'text-white', label: 'Facturé' },
-          'ANNULE': { bg: 'bg-rouge', text: 'text-white', label: 'Annulé' }
-        }
-        const config = configs[statut] || { bg: 'bg-argent', text: 'text-gray-700', label: statut }
-
-        return (
-          <div className="flex flex-col gap-1">
-            <span className={`${config.bg} ${config.text} px-3 py-1 rounded-full text-xs font-bold text-center`}>
-              {config.label}
-            </span>
-            {statut !== 'FACTURE' && (
-              <select
-                value={statut}
-                onChange={(e) => handleChangerStatut(row, e.target.value)}
-                className="text-xs px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange bg-white"
-              >
-                <option value="BROUILLON">📝 Brouillon</option>
-                <option value="EN_ATTENTE">⏳ En attente</option>
-                <option value="VALIDE">✅ Valider</option>
-                <option value="ANNULE">❌ Annuler</option>
-              </select>
-            )}
-          </div>
-        )
-      }
-    },
-    {
-      accessorKey: 'etabliPar',
-      header: 'Établi par',
-      cell: info => <span className="text-navy text-sm">{info.getValue()}</span>
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleVoir(row.original)}
-            className="px-2 py-1 bg-bleu text-white rounded hover:bg-opacity-90 text-xs"
-            title="Voir"
-          >
-            👁
-          </button>
-          <button
-            onClick={() => handleModifier(row.original)}
-            className="px-2 py-1 bg-orange text-white rounded hover:bg-opacity-90 text-xs"
-            title="Modifier"
-          >
-            📝
-          </button>
-          <button
-            onClick={() => handleExportPDF(row.original)}
-            className="px-2 py-1 bg-vert text-white rounded hover:bg-opacity-90 text-xs"
-            title="PDF"
-          >
-            📄
-          </button>
-          <button
-            onClick={() => handlePrintDevis(row.original)}
-            className="px-2 py-1 bg-navy text-white rounded hover:bg-opacity-90 text-xs"
-            title="Imprimer"
-          >
-            🖨️
-          </button>
-          {row.original.statut !== 'FACTURE' && (
-            <button
-              onClick={() => handleConvertirEnFacture(row.original)}
-              className="px-2 py-1 bg-orange text-white rounded hover:bg-opacity-90 text-xs"
-              title="Convertir en Facture"
-            >
-              🔄
-            </button>
-          )}
-          {row.original.statut === 'BROUILLON' && (
-            <button
-              onClick={() => handleChangerStatut(row.original, 'VALIDE')}
-              className="px-2 py-1 bg-vert text-white rounded hover:bg-opacity-90 text-xs"
-              title="Valider le devis"
-            >
-              ✓
-            </button>
-          )}
-          {row.original.statut === 'BROUILLON' && (
-            <button
-              onClick={() => handleChangerStatut(row.original, 'ANNULE')}
-              className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
-              title="Annuler le devis"
-            >
-              ✕
-            </button>
-          )}
-          <button
-            onClick={() => handleSupprimer(row.original)}
-            className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-opacity-90 text-xs"
-            title="Supprimer"
-          >
-            🗑️
-          </button>
-        </div>
-      )
-    }
-  ], [handleChangerStatut])
-
-  const table = useReactTable({
-    data: devisFiltres,
-    columns,
-    state: { sorting, pagination },
-    onSortingChange: setSorting,
-    onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel()
-  })
-
   const handleNouveauDevis = () => {
     navigate('/devis/tuyauterie')
   }
 
-  const handleVoir = (devis) => {
+  const handleVoir = useCallback((devis) => {
     setDevisSelectionne(devis)
     setHeureOuverture(new Date())
     setShowModalVoir(true)
     addLog({ module: 'LISTE_DEVIS', action: 'VOIR', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero } })
-  }
+  }, [utilisateurConnecte, addLog])
 
-  const handleModifier = (devis) => {
+  const handleModifier = useCallback((devis) => {
     // Vérifier que le devis a un ID
     if (!devis || !devis.id) {
       ajouterNotification({
@@ -405,9 +244,9 @@ export default function ListeDevis() {
 
     navigate(route, { state: { devisId: devis.id } })
     addLog({ module: 'LISTE_DEVIS', action: 'MODIFIER', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero, type: typeDevis, id: devis.id } })
-  }
+  }, [ajouterNotification, navigate, addLog, utilisateurConnecte])
 
-  const handleSupprimer = async (devis) => {
+  const handleSupprimer = useCallback(async (devis) => {
     const ok = await confirmDelete(`le devis ${devis.numero}`)
     if (!ok) return
 
@@ -425,7 +264,7 @@ export default function ListeDevis() {
         titre: 'DEVIS SUPPRIMÉ',
         message: `Le devis ${devis.numero} a été supprimé avec succès`
       })
-    } catch (error) {
+    } catch {
       ajouterNotification({
         type: 'URGENT',
         icone: '❌',
@@ -433,9 +272,9 @@ export default function ListeDevis() {
         message: `Impossible de supprimer le devis ${devis.numero}. Veuillez réessayer.`
       })
     }
-  }
+  }, [confirmDelete, deleteDevis, addLog, ajouterNotification, utilisateurConnecte])
 
-  const handleExportPDF = async (devis) => {
+  const handleExportPDF = useCallback(async (devis) => {
     const client = clients.find(c => c.id === devis.clientId)
     const ctx = await createSikaPDF(`DEVIS ${devis.typeDevis || devis.type} - ${devis.numero}`)
     const { doc, startY, MARGE_G, PAGE_W } = ctx
@@ -484,9 +323,9 @@ export default function ListeDevis() {
     
     await finalizeSikaPDF(ctx, `SIKA_Devis_${devis.numero.replace(/\//g, '_')}.pdf`)
     addLog({ module: 'LISTE_DEVIS', action: 'EXPORT_PDF', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero } })
-  }
+  }, [clients, addLog, utilisateurConnecte])
 
-  const handleConvertirEnFacture = async (devis) => {
+  const handleConvertirEnFacture = useCallback(async (devis) => {
     const ok = await confirm({
       title: 'Convertir en facture',
       message: `Convertir le devis ${devis.numero} en facture ? Cette action créera une nouvelle facture.`,
@@ -539,7 +378,7 @@ export default function ListeDevis() {
         message: 'Erreur lors de la conversion du devis en facture'
       })
     }
-  }
+  }, [confirm, clients, addFacture, addLog, ajouterNotification, transformerEnFacture])
 
   const handleExportExcel = () => {
     const dataExport = devisFiltres.map(d => ({
@@ -689,7 +528,7 @@ export default function ListeDevis() {
     addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_LISTE', utilisateur: utilisateurConnecte?.nom || 'Utilisateur' });
   }
 
-  const handlePrintDevis = (devis) => {
+  const handlePrintDevis = useCallback((devis) => {
     const client = clients.find(c => c.id === devis.clientId) || {};
 
     // Lignes normalisées
@@ -699,7 +538,7 @@ export default function ListeDevis() {
       unite: l.unite || '—',
       qte: parseFloat(l.qte || l.quantite || l.longueur || 0),
       pu: parseFloat(l.pu || l.prixUnitaire || 0),
-      montant: l.montant !== '' && l.montant !== undefined ? parseFloat(l.montant) : undefined,
+      montant: (l.montant !== '' && l.montant !== undefined && parseFloat(l.montant) !== 0) ? parseFloat(l.montant) : (parseFloat(l.qte || l.quantite || l.longueur || 0) * parseFloat(l.pu || l.prixUnitaire || 0)),
       typeTravail: l.typeTravail || '',
       materiau: l.materiau || '',
       typeTole: l.typeTole || '',
@@ -713,10 +552,10 @@ export default function ListeDevis() {
     }));
 
     // Totaux
-    const montantBrut = parseFloat(devis.montantBrut) || lignes.reduce((s, l) => s + (l.montant !== undefined ? l.montant : l.qte * l.pu), 0);
+    const montantBrut = parseFloat(devis.montantBrut) || lignes.reduce((s, l) => s + (parseFloat(l.montant) || (l.qte * l.pu) || 0), 0);
     const tauxRemise = parseFloat(devis.tauxRemise) || 0;
     const remise = parseFloat(devis.remise) || montantBrut * (tauxRemise / 100);
-    const montantHT = parseFloat(devis.montantHT) || (montantBrut - remise);
+    const montantHT = (parseFloat(devis.montantHT) > 0 ? parseFloat(devis.montantHT) : null) || (montantBrut - remise);
     
     const savedTva = devis.montantTVA !== undefined ? devis.montantTVA : devis.tva;
     const tva = (savedTva !== undefined && savedTva !== null && savedTva !== '' && !isNaN(savedTva))
@@ -765,16 +604,179 @@ export default function ListeDevis() {
     printDevisHTML(templateData);
 
     addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_DEVIS', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero } });
-  }
+  }, [clients, addLog, utilisateurConnecte])
+
+  const columns = useMemo(() => [
+    {
+      accessorKey: 'numero',
+      header: 'N° Devis',
+      cell: info => <span className="font-bold text-navy">{info.getValue()}</span>
+    },
+    {
+      accessorKey: 'clientNom',
+      header: 'Client',
+      cell: info => <span className="text-navy">{info.getValue()}</span>
+    },
+    {
+      accessorKey: 'typeDevis',
+      header: 'Type',
+      cell: info => {
+        const value = info.getValue()
+        return (
+          <span className={`px-2 py-1 rounded text-xs font-semibold ${value ? 'bg-bleu text-white' : 'bg-gray-300 text-gray-600'}`}>
+            {value || 'Non défini'}
+          </span>
+        )
+      }
+    },
+    {
+      accessorKey: 'date',
+      header: 'Date',
+      cell: info => <span className="text-navy">{formatDate(info.getValue())}</span>
+    },
+    {
+      accessorKey: 'ttc',
+      header: 'Montant TTC',
+      cell: info => {
+        const montant = info.getValue()
+        return <span className="font-bold text-rouge">{formatFCFA(montant || 0)}</span>
+      }
+    },
+    {
+      accessorKey: 'statut',
+      header: 'Statut',
+      cell: info => {
+        const statut = info.getValue()
+        const row = info.row.original
+        const configs = {
+          'BROUILLON': { bg: 'bg-bleu', text: 'text-white', label: 'Brouillon' },
+          'EN_ATTENTE': { bg: 'bg-rouge', text: 'text-white', label: 'En attente' },
+          'VALIDE': { bg: 'bg-vert', text: 'text-white', label: 'Validé' },
+          'FACTURE': { bg: 'bg-rouge', text: 'text-white', label: 'Facturé' },
+          'ANNULE': { bg: 'bg-rouge', text: 'text-white', label: 'Annulé' }
+        }
+        const config = configs[statut] || { bg: 'bg-argent', text: 'text-gray-700', label: statut }
+
+        return (
+          <div className="flex flex-col gap-1">
+            <span className={`${config.bg} ${config.text} px-3 py-1 rounded-full text-xs font-bold text-center`}>
+              {config.label}
+            </span>
+            {statut !== 'FACTURE' && (
+              <select
+                value={statut}
+                onChange={(e) => handleChangerStatut(row, e.target.value)}
+                className="text-xs px-2 py-1 border border-argent rounded focus:outline-none focus:border-rouge bg-surface"
+              >
+                <option value="BROUILLON">📝 Brouillon</option>
+                <option value="EN_ATTENTE">⏳ En attente</option>
+                <option value="VALIDE">✅ Valider</option>
+                <option value="ANNULE">❌ Annuler</option>
+              </select>
+            )}
+          </div>
+        )
+      }
+    },
+    {
+      accessorKey: 'etabliPar',
+      header: 'Établi par',
+      cell: info => <span className="text-navy text-sm">{info.getValue()}</span>
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleVoir(row.original)}
+            className="px-2 py-1 bg-bleu text-white rounded hover:bg-opacity-90 text-xs"
+            title="Voir"
+          >
+            👁
+          </button>
+          <button
+            onClick={() => handleModifier(row.original)}
+            className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
+            title="Modifier"
+          >
+            📝
+          </button>
+          <button
+            onClick={() => handleExportPDF(row.original)}
+            className="px-2 py-1 bg-vert text-white rounded hover:bg-opacity-90 text-xs"
+            title="PDF"
+          >
+            📄
+          </button>
+          <button
+            onClick={() => handlePrintDevis(row.original)}
+            className="px-2 py-1 bg-navy text-white rounded hover:bg-opacity-90 text-xs"
+            title="Imprimer"
+          >
+            🖨️
+          </button>
+          {row.original.statut !== 'FACTURE' && (
+            <button
+              onClick={() => handleConvertirEnFacture(row.original)}
+              className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
+              title="Convertir en Facture"
+            >
+              🔄
+            </button>
+          )}
+          {row.original.statut === 'BROUILLON' && (
+            <button
+              onClick={() => handleChangerStatut(row.original, 'VALIDE')}
+              className="px-2 py-1 bg-vert text-white rounded hover:bg-opacity-90 text-xs"
+              title="Valider le devis"
+            >
+              ✓
+            </button>
+          )}
+          {row.original.statut === 'BROUILLON' && (
+            <button
+              onClick={() => handleChangerStatut(row.original, 'ANNULE')}
+              className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
+              title="Annuler le devis"
+            >
+              ✕
+            </button>
+          )}
+          <button
+            onClick={() => handleSupprimer(row.original)}
+            className="px-2 py-1 bg-gray-600 text-white rounded hover:bg-opacity-90 text-xs"
+            title="Supprimer"
+          >
+            🗑️
+          </button>
+        </div>
+      )
+    }
+  ], [handleChangerStatut, handleVoir, handleModifier, handleSupprimer, handleExportPDF, handleConvertirEnFacture, handlePrintDevis])
+
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const table = useReactTable({
+    data: devisFiltres,
+    columns,
+    state: { sorting, pagination },
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel()
+  })
+
 
   return (
     <div className="min-h-screen bg-navyClair p-6">
       <div className="max-w-7xl mx-auto">
         
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
+        <div className="bg-surface rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
           <button
             onClick={handleNouveauDevis}
-            className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-semibold"
+            className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition font-semibold"
           >
             ➕ Nouveau devis
           </button>
@@ -786,7 +788,7 @@ export default function ListeDevis() {
           </button>
           <button
             onClick={handleExportPDFListe}
-            className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition"
           >
             📄 Export PDF
           </button>
@@ -816,7 +818,7 @@ export default function ListeDevis() {
               placeholder="🔍 Rechercher..."
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+              className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
             />
           </div>
         </div>
@@ -826,9 +828,9 @@ export default function ListeDevis() {
             <p className="text-sm text-navy font-semibold mb-1">Total devis période</p>
             <p className="text-2xl font-bold text-navy">{statistiques.total}</p>
           </div>
-          <div className="bg-navyClair rounded-lg p-4 border-l-4 border-orange">
+          <div className="bg-navyClair rounded-lg p-4 border-l-4 border-rouge">
             <p className="text-sm text-navy font-semibold mb-1">Montant total TTC</p>
-            <p className="text-2xl font-bold text-orange">{formatFCFA(statistiques.montantTotal)}</p>
+            <p className="text-2xl font-bold text-rouge">{formatFCFA(statistiques.montantTotal)}</p>
           </div>
           <div className="bg-navyClair rounded-lg p-4 border-l-4 border-vert">
             <p className="text-sm text-navy font-semibold mb-1">Taux transformation</p>
@@ -840,15 +842,15 @@ export default function ListeDevis() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <h3 className="text-lg font-bold text-navy mb-4 border-b-2 border-orange pb-2">Filtres</h3>
+        <div className="bg-surface rounded-lg shadow-md p-4 mb-6">
+          <h3 className="text-lg font-bold text-navy mb-4 border-b-2 border-rouge pb-2">Filtres</h3>
           <div className="grid grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Type</label>
               <select
                 value={filtreType}
                 onChange={(e) => setFiltreType(e.target.value)}
-                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
               >
                 <option value="">Tous</option>
                 {TYPES.map(type => <option key={type} value={type}>{type}</option>)}
@@ -859,7 +861,7 @@ export default function ListeDevis() {
               <select
                 value={filtreStatut}
                 onChange={(e) => setFiltreStatut(e.target.value)}
-                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
               >
                 <option value="">Tous</option>
                 {STATUTS.map(statut => <option key={statut} value={statut}>{statut === 'EN_ATTENTE' ? 'En attente' : statut}</option>)}
@@ -871,7 +873,7 @@ export default function ListeDevis() {
                 type="date"
                 value={filtreDateDebut}
                 onChange={(e) => setFiltreDateDebut(e.target.value)}
-                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
               />
             </div>
             <div>
@@ -880,7 +882,7 @@ export default function ListeDevis() {
                 type="date"
                 value={filtreDateFin}
                 onChange={(e) => setFiltreDateFin(e.target.value)}
-                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
               />
             </div>
             <div>
@@ -888,7 +890,7 @@ export default function ListeDevis() {
               <select
                 value={filtreClient}
                 onChange={(e) => setFiltreClient(e.target.value)}
-                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
               >
                 <option value="">Tous</option>
                 {clients.map(client => (
@@ -902,21 +904,21 @@ export default function ListeDevis() {
         {vueGroupee ? (
           <div className="space-y-6">
             {devisGroupes.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500 font-semibold">
+              <div className="bg-surface rounded-lg shadow-md p-8 text-center text-gray-500 font-semibold">
                 Aucun devis ne correspond aux filtres appliqués.
               </div>
             ) : (
               devisGroupes.map((groupeClient) => (
-                <div key={groupeClient.clientNom} className="bg-white rounded-lg shadow-md overflow-hidden border border-argent">
+                <div key={groupeClient.clientNom} className="bg-surface rounded-lg shadow-md overflow-hidden border border-argent">
                   {/* En-tête Client */}
                   <div className="bg-navy text-white px-6 py-4 flex justify-between items-center flex-wrap gap-2">
                     <h4 className="text-lg font-bold flex items-center gap-2">
                       👤 {groupeClient.clientNom}
-                      <span className="text-xs bg-orange text-white px-2 py-0.5 rounded-full font-semibold">
+                      <span className="text-xs bg-rouge text-white px-2 py-0.5 rounded-full font-semibold">
                         {groupeClient.totalDevis} devis
                       </span>
                     </h4>
-                    <span className="font-bold text-orange-400">
+                    <span className="font-bold text-rouge-400">
                       Total cumulé : {formatFCFA(groupeClient.totalTTC)}
                     </span>
                   </div>
@@ -932,7 +934,7 @@ export default function ListeDevis() {
                               {cat.liste.length}
                             </span>
                           </span>
-                          <span className="text-sm font-bold text-orange">
+                          <span className="text-sm font-bold text-rouge">
                             Sous-total : {formatFCFA(cat.totalTTC)}
                           </span>
                         </div>
@@ -941,7 +943,7 @@ export default function ListeDevis() {
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm border-collapse">
                             <thead>
-                              <tr className="bg-gray-100 text-navy font-bold border-b border-argent">
+                              <tr className="bg-surfaceMuted text-navy font-bold border-b border-argent">
                                 <th className="px-4 py-2 text-left">N° Devis</th>
                                 <th className="px-4 py-2 text-left">Date</th>
                                 <th className="px-4 py-2 text-left">Objet</th>
@@ -955,19 +957,19 @@ export default function ListeDevis() {
                               {cat.liste.map((d, index) => {
                                 const configs = {
                                   'BROUILLON': { bg: 'bg-bleu', text: 'text-white', label: 'Brouillon' },
-                                  'EN_ATTENTE': { bg: 'bg-orange', text: 'text-white', label: 'En attente' },
+                                  'EN_ATTENTE': { bg: 'bg-rouge', text: 'text-white', label: 'En attente' },
                                   'VALIDE': { bg: 'bg-vert', text: 'text-white', label: 'Validé' },
-                                  'FACTURE': { bg: 'bg-orange', text: 'text-white', label: 'Facturé' },
+                                  'FACTURE': { bg: 'bg-rouge', text: 'text-white', label: 'Facturé' },
                                   'ANNULE': { bg: 'bg-rouge', text: 'text-white', label: 'Annulé' }
                                 }
                                 const config = configs[d.statut] || { bg: 'bg-argent', text: 'text-gray-700', label: d.statut }
 
                                 return (
-                                  <tr key={d.id} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                                  <tr key={d.id} className={index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                                     <td className="px-4 py-2 font-bold text-navy border-b border-argent">{d.numero}</td>
                                     <td className="px-4 py-2 border-b border-argent whitespace-nowrap">{formatDate(d.date)}</td>
                                     <td className="px-4 py-2 border-b border-argent max-w-[200px] truncate" title={d.objet}>{d.objet || '—'}</td>
-                                    <td className="px-4 py-2 font-bold text-orange border-b border-argent whitespace-nowrap">{formatFCFA(d.ttc || 0)}</td>
+                                    <td className="px-4 py-2 font-bold text-rouge border-b border-argent whitespace-nowrap">{formatFCFA(d.ttc || 0)}</td>
                                     <td className="px-4 py-2 border-b border-argent">
                                       <div className="flex flex-col gap-1 max-w-[130px]">
                                         <span className={`${config.bg} ${config.text} px-2 py-0.5 rounded-full text-xs font-bold text-center`}>
@@ -977,7 +979,7 @@ export default function ListeDevis() {
                                           <select
                                             value={d.statut}
                                             onChange={(e) => handleChangerStatut(d, e.target.value)}
-                                            className="text-xs px-1 py-0.5 border border-argent rounded focus:outline-none focus:border-orange bg-white cursor-pointer"
+                                            className="text-xs px-1 py-0.5 border border-argent rounded focus:outline-none focus:border-rouge bg-surface cursor-pointer"
                                           >
                                             <option value="BROUILLON">📝 Brouillon</option>
                                             <option value="EN_ATTENTE">⏳ En attente</option>
@@ -999,7 +1001,7 @@ export default function ListeDevis() {
                                         </button>
                                         <button
                                           onClick={() => handleModifier(d)}
-                                          className="px-2 py-1 bg-orange text-white rounded hover:bg-opacity-90 text-xs"
+                                          className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
                                           title="Modifier"
                                         >
                                           📝
@@ -1021,7 +1023,7 @@ export default function ListeDevis() {
                                         {d.statut !== 'FACTURE' && (
                                           <button
                                             onClick={() => handleConvertirEnFacture(d)}
-                                            className="px-2 py-1 bg-orange text-white rounded hover:bg-opacity-90 text-xs"
+                                            className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
                                             title="Convertir en Facture"
                                           >
                                             🔄
@@ -1068,7 +1070,7 @@ export default function ListeDevis() {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="bg-surface rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
@@ -1095,7 +1097,7 @@ export default function ListeDevis() {
                   {table.getRowModel().rows.map((row, index) => (
                     <tr
                       key={row.id}
-                      className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}
+                      className={index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}
                     >
                       {row.getVisibleCells().map(cell => (
                         <td key={cell.id} className="px-4 py-3 border-b border-argent">
@@ -1137,15 +1139,15 @@ export default function ListeDevis() {
       {/* Modal Visualisation */}
       {showModalVoir && devisSelectionne && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <h2 className="text-2xl font-bold" style={{ color: '#06006E' }}>
+          <div className="bg-surface rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-surface border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
                 Détails du Devis {devisSelectionne.numero}
               </h2>
               <button
                 onClick={() => setShowModalVoir(false)}
                 className="text-2xl font-bold hover:opacity-70"
-                style={{ color: '#E60000' }}
+                style={{ color: 'var(--color-accent)' }}
               >
                 ×
               </button>
@@ -1154,7 +1156,7 @@ export default function ListeDevis() {
             <div className="p-6 space-y-4">
 
               {/* ══ BANDEAU ENTÊTE ══ */}
-              <div className="rounded-lg text-white px-5 py-4 flex justify-between items-start" style={{ background: '#06006E' }}>
+              <div className="rounded-lg text-white px-5 py-4 flex justify-between items-start" style={{ background: 'var(--color-primary)' }}>
                 <div>
                   <div className="text-2xl font-bold tracking-widest">DEVIS</div>
                   <div className="text-sm font-bold opacity-90 mt-1">{devisSelectionne.numero}</div>
@@ -1181,9 +1183,9 @@ export default function ListeDevis() {
                 return (
               <div className="grid grid-cols-2 gap-4">
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>Client</div>
+                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: 'var(--color-primary)' }}>Client</div>
                   <div className="p-3 space-y-1">
-                    <p className="text-base font-bold" style={{ color: '#06006E' }}>{devisSelectionne.clientNom}</p>
+                    <p className="text-base font-bold" style={{ color: 'var(--color-primary)' }}>{devisSelectionne.clientNom}</p>
                     {clientComplet.raisonSociale && (
                       <p className="text-xs text-gray-500">{clientComplet.raisonSociale}</p>
                     )}
@@ -1213,13 +1215,13 @@ export default function ListeDevis() {
                   </div>
                 </div>
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>Informations</div>
+                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: 'var(--color-primary)' }}>Informations</div>
                   <div className="p-3 space-y-1">
-                    <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Référence :</span> {devisSelectionne.numero}</p>
-                    <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Date :</span> {formatDate(devisSelectionne.date)}</p>
-                    <p className="text-sm"><span className="font-semibold" style={{ color: '#06006E' }}>Validité :</span> 30 jours</p>
+                    <p className="text-sm"><span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Référence :</span> {devisSelectionne.numero}</p>
+                    <p className="text-sm"><span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Date :</span> {formatDate(devisSelectionne.date)}</p>
+                    <p className="text-sm"><span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Validité :</span> 30 jours</p>
                     <p className="text-sm">
-                      <span className="font-semibold" style={{ color: '#06006E' }}>Établi par :</span> {devisSelectionne.etabliPar || 'SIKA INDUSTRIE'}
+                      <span className="font-semibold" style={{ color: 'var(--color-primary)' }}>Établi par :</span> {devisSelectionne.etabliPar || 'SIKA INDUSTRIE'}
                     </p>
                     {(() => {
                       const auteur = utilisateurs.find(u => 
@@ -1232,7 +1234,7 @@ export default function ListeDevis() {
                     })()}
                     <hr className="my-1 border-gray-200"/>
                     <p className="text-xs font-bold uppercase tracking-widest mt-1" style={{ color: '#E05A00' }}>Consulté par</p>
-                    <p className="text-sm font-bold" style={{ color: '#06006E' }}>
+                    <p className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
                       {utilisateurConnecte?.nom || utilisateurConnecte?.login || 'Utilisateur inconnu'}
                     </p>
                     {utilisateurConnecte?.login && utilisateurConnecte?.nom && (
@@ -1254,8 +1256,8 @@ export default function ListeDevis() {
 
               {/* ══ OBJET ══ */}
               {devisSelectionne.objet && (
-                <div className="border-l-4 rounded-r-lg p-3" style={{ borderColor: '#06006E', background: '#f0f4ff' }}>
-                  <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: '#06006E' }}>Objet</p>
+                <div className="border-l-4 rounded-r-lg p-3" style={{ borderColor: 'var(--color-primary)', background: '#f0f4ff' }}>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: 'var(--color-primary)' }}>Objet</p>
                   <p className="text-sm text-gray-800">{devisSelectionne.objet}</p>
                 </div>
               )}
@@ -1263,7 +1265,7 @@ export default function ListeDevis() {
               {/* ══ SPÉCIFICATIONS TECHNIQUES ══ */}
               {devisSelectionne.specifications && Object.keys(devisSelectionne.specifications).length > 0 && (
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>Spécifications techniques</div>
+                  <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: 'var(--color-primary)' }}>Spécifications techniques</div>
                   <div className="p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
                     {Object.entries(devisSelectionne.specifications)
                       .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== 0)
@@ -1278,7 +1280,7 @@ export default function ListeDevis() {
                         return (
                           <div key={k} className="bg-navyClair rounded p-2 text-center">
                             <p className="text-xs font-bold uppercase" style={{ color: '#E05A00' }}>{labels[k] || k}</p>
-                            <p className="text-sm font-bold mt-0.5" style={{ color: '#06006E' }}>{String(v)}</p>
+                            <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--color-primary)' }}>{String(v)}</p>
                           </div>
                         )
                       })}
@@ -1291,7 +1293,7 @@ export default function ListeDevis() {
                 const lignes = devisSelectionne.lignes || devisSelectionne.lignesCommerciales || []
                 return lignes.length > 0 ? (
                   <div className="border rounded-lg overflow-hidden">
-                    <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>I. Détail des prestations</div>
+                    <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: 'var(--color-primary)' }}>I. Détail des prestations</div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead style={{ background: '#1a4a9b', color: 'white' }}>
@@ -1310,7 +1312,7 @@ export default function ListeDevis() {
                             const pu = parseFloat(ligne.pu || ligne.prixUnitaire || 0)
                             const montant = ligne.montant || (qte * pu) || 0
                             return (
-                              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                              <tr key={idx} className={idx % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                                 <td className="px-3 py-2 text-center text-gray-500">{idx + 1}</td>
                                 <td className="px-3 py-2">
                                   <span className="font-medium">{ligne.designation || '—'}</span>
@@ -1321,9 +1323,9 @@ export default function ListeDevis() {
                                   {ligne.typeTuyau ? <span className="text-xs text-blue-500 ml-1">· {ligne.typeTuyau}</span> : null}
                                 </td>
                                 <td className="px-3 py-2 text-center text-gray-600">{ligne.unite || '—'}</td>
-                                <td className="px-3 py-2 text-center font-bold" style={{ color: '#06006E' }}>{qte}</td>
+                                <td className="px-3 py-2 text-center font-bold" style={{ color: 'var(--color-primary)' }}>{qte}</td>
                                 <td className="px-3 py-2 text-right">{formatFCFA(pu)}</td>
-                                <td className="px-3 py-2 text-right font-bold" style={{ color: '#06006E' }}>{formatFCFA(montant)}</td>
+                                <td className="px-3 py-2 text-right font-bold" style={{ color: 'var(--color-primary)' }}>{formatFCFA(montant)}</td>
                               </tr>
                             )
                           })}
@@ -1336,7 +1338,7 @@ export default function ListeDevis() {
 
               {/* ══ RÉCAPITULATIF FINANCIER ══ */}
               <div className="border rounded-lg overflow-hidden">
-                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white flex items-center justify-between" style={{ background: '#06006E' }}>
+                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white flex items-center justify-between" style={{ background: 'var(--color-primary)' }}>
                   <span>Récapitulatif financier</span>
                   <span className="text-xs opacity-70 font-normal">Montants en Francs CFA (FCFA)</span>
                 </div>
@@ -1353,22 +1355,22 @@ export default function ListeDevis() {
                       </tr>
                     </>)}
                     <tr className="border-b border-blue-100" style={{ background: '#dce6f1' }}>
-                      <td className="px-4 py-2 font-semibold" style={{ color: '#06006E' }}>
+                      <td className="px-4 py-2 font-semibold" style={{ color: 'var(--color-primary)' }}>
                         💼 Montant Hors Taxes (HT)
                         <span className="ml-2 text-xs font-normal text-gray-500">— base imposable</span>
                       </td>
-                      <td className="px-4 py-2 text-right font-bold w-44" style={{ color: '#06006E' }}>{formatFCFA(devisSelectionne.montantHT)}</td>
+                      <td className="px-4 py-2 text-right font-bold w-44" style={{ color: 'var(--color-primary)' }}>{formatFCFA(devisSelectionne.montantHT)}</td>
                     </tr>
                     {devisSelectionne.montantTVA > 0 && (
-                      <tr className="border-b border-orange-100" style={{ background: '#fff8f0' }}>
-                        <td className="px-4 py-2 text-orange-700">
+                      <tr className="border-b border-rouge-100" style={{ background: '#fff8f0' }}>
+                        <td className="px-4 py-2 text-rouge-700">
                           🧾 TVA appliquée (taux 18%)
                           <span className="ml-2 text-xs font-normal text-gray-400">— taxe sur la valeur ajoutée</span>
                         </td>
-                        <td className="px-4 py-2 text-right font-bold text-orange-700 w-44">{formatFCFA(devisSelectionne.montantTVA)}</td>
+                        <td className="px-4 py-2 text-right font-bold text-rouge-700 w-44">{formatFCFA(devisSelectionne.montantTVA)}</td>
                       </tr>
                     )}
-                    <tr className="text-white" style={{ background: '#06006E' }}>
+                    <tr className="text-white" style={{ background: 'var(--color-primary)' }}>
                       <td className="px-4 py-3 font-bold text-base">
                         ✅ MONTANT TOTAL À PAYER (TTC)
                         <div className="text-xs font-normal opacity-75 mt-0.5">Toutes taxes comprises — net à régler</div>
@@ -1390,7 +1392,7 @@ export default function ListeDevis() {
 
               {/* ══ CONDITIONS ══ */}
               <div className="border rounded-lg overflow-hidden">
-                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>II. Conditions &amp; Validité</div>
+                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: 'var(--color-primary)' }}>II. Conditions &amp; Validité</div>
                 <div className="p-3 text-xs text-gray-600 leading-loose" style={{ background: '#f8f9ff' }}>
                   • Ce devis est valable <strong>trente (30) jours</strong> à compter de sa date d'émission.<br/>
                   • Pour acceptation, retourner ce document <strong>signé et cacheté</strong>.
@@ -1399,19 +1401,19 @@ export default function ListeDevis() {
 
               {/* ══ SIGNATURES ══ */}
               <div className="border rounded-lg overflow-hidden">
-                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: '#06006E' }}>III. Signatures</div>
+                <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: 'var(--color-primary)' }}>III. Signatures</div>
                 <div className="grid grid-cols-2 gap-0">
                   <div className="p-4 text-center border-r">
-                    <p className="text-xs font-bold uppercase mb-1" style={{ color: '#06006E' }}>Lu et approuvé — Le Client</p>
+                    <p className="text-xs font-bold uppercase mb-1" style={{ color: 'var(--color-primary)' }}>Lu et approuvé — Le Client</p>
                     <p className="text-xs text-gray-500 mb-2">Nom &amp; Fonction : ___________________</p>
-                    <div className="h-12 border-b-2 mx-4 mb-2" style={{ borderColor: '#06006E' }}></div>
+                    <div className="h-12 border-b-2 mx-4 mb-2" style={{ borderColor: 'var(--color-primary)' }}></div>
                     <p className="text-xs text-gray-400">Date : ___ / ___ / _______</p>
                     <p className="text-xs text-gray-400">Cachet &amp; Signature</p>
                   </div>
                   <div className="p-4 text-center" style={{ background: '#f0f4ff' }}>
-                    <p className="text-xs font-bold uppercase text-white mb-1 -mx-4 -mt-4 px-4 py-1.5" style={{ background: '#06006E' }}>Pour SIKA INDUSTRIE — Le Gérant</p>
-                    <p className="text-sm font-bold mt-1 mb-2" style={{ color: '#06006E' }}>KOMLAN AMEMATCHRON</p>
-                    <div className="h-12 border-b-2 mx-4 mb-2" style={{ borderColor: '#06006E' }}></div>
+                    <p className="text-xs font-bold uppercase text-white mb-1 -mx-4 -mt-4 px-4 py-1.5" style={{ background: 'var(--color-primary)' }}>Pour SIKA INDUSTRIE — Le Gérant</p>
+                    <p className="text-sm font-bold mt-1 mb-2" style={{ color: 'var(--color-primary)' }}>KOMLAN AMEMATCHRON</p>
+                    <div className="h-12 border-b-2 mx-4 mb-2" style={{ borderColor: 'var(--color-primary)' }}></div>
                     <p className="text-xs text-gray-400">Date : ___ / ___ / _______</p>
                     <p className="text-xs text-gray-400">Cachet &amp; Signature</p>
                   </div>
@@ -1427,7 +1429,7 @@ export default function ListeDevis() {
                       setShowModalVoir(false)
                     }}
                     className="px-4 py-2 rounded font-semibold text-white"
-                    style={{ backgroundColor: '#1A7A4A' }}
+                    style={{ backgroundColor: 'var(--color-success)' }}
                   >
                     ✅ Valider
                   </button>
@@ -1451,7 +1453,7 @@ export default function ListeDevis() {
                       handleConvertirEnFacture(devisSelectionne)
                     }}
                     className="px-4 py-2 rounded font-semibold text-white"
-                    style={{ backgroundColor: '#E60000' }}
+                    style={{ backgroundColor: 'var(--color-accent)' }}
                   >
                     🔄 Convertir en Facture
                   </button>
@@ -1461,7 +1463,7 @@ export default function ListeDevis() {
                     handlePrintDevis(devisSelectionne)
                   }}
                   className="px-4 py-2 rounded font-semibold text-white"
-                  style={{ backgroundColor: '#1B2A4A' }}
+                  style={{ backgroundColor: 'var(--color-primary)' }}
                 >
                   🖨️ Imprimer
                 </button>
@@ -1471,14 +1473,14 @@ export default function ListeDevis() {
                     handleModifier(devisSelectionne)
                   }}
                   className="px-4 py-2 rounded font-semibold text-white"
-                  style={{ backgroundColor: '#1F5C99' }}
+                  style={{ backgroundColor: 'var(--color-secondary)' }}
                 >
                   Modifier
                 </button>
                 <button
                   onClick={() => setShowModalVoir(false)}
                   className="px-4 py-2 rounded font-semibold"
-                  style={{ backgroundColor: '#E8ECF4', color: '#06006E' }}
+                  style={{ backgroundColor: 'var(--color-surface-muted)', color: 'var(--color-primary)' }}
                 >
                   Fermer
                 </button>

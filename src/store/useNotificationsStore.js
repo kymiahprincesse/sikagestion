@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { idbStorage } from '../lib/idbStorage';
 
 export const TYPES_NOTIFICATION = {
   URGENT: 'URGENT',
@@ -339,6 +340,7 @@ export const useNotificationsStore = create(
     }),
     {
       name: 'sika_notifications',
+      storage: createJSONStorage(() => idbStorage),
       partialize: (state) => ({
         // Ne pas persister les toasts (éphémères)
         notifications: state.notifications,

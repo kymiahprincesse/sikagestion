@@ -9,15 +9,9 @@ import { useSupabaseSync } from '../hooks/useSupabaseSync'
 export default function SyncStatusIndicator() {
   const { isConnected, isChecking, lastCheck, error, isOnline, pendingOperations, reconnectAttempts, forceReconnect } = useSupabaseSync()
   const [showDetails, setShowDetails] = useState(false)
-  const [lastSync, setLastSync] = useState(null)
-  const [now, setNow] = useState(() => Date.now())
+  const lastSync = (isConnected && lastCheck) ? new Date(lastCheck) : null;
 
-  // Mise à jour du timestamp de dernière sync lorsque la connexion est confirmée
-  useEffect(() => {
-    if (isConnected && lastCheck) {
-      setLastSync(new Date())
-    }
-  }, [isConnected, lastCheck])
+  const [now, setNow] = useState(() => Date.now())
 
   // Rafraîchir l'affichage "il y a Xs" toutes les 10 secondes
   useEffect(() => {
@@ -38,7 +32,7 @@ export default function SyncStatusIndicator() {
 
   const getStatusColor = () => {
     if (!isOnline) return 'text-gray-400'
-    if (isChecking) return 'text-orange-500'
+    if (isChecking) return 'text-rouge-500'
     if (!isConnected) return 'text-red-500'
     return 'text-green-500'
   }
@@ -69,7 +63,7 @@ export default function SyncStatusIndicator() {
           {getStatusText()}
         </span>
         {pendingOperations > 0 && (
-          <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">
+          <span className="text-xs bg-rouge-100 text-rouge-600 px-1.5 py-0.5 rounded-full">
             {pendingOperations}
           </span>
         )}
@@ -81,7 +75,7 @@ export default function SyncStatusIndicator() {
       </button>
 
       {showDetails && (
-        <div className="absolute top-full right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl p-4 z-50">
+        <div className="absolute top-full right-0 mt-2 w-72 bg-surface border border-gray-200 rounded-lg shadow-xl p-4 z-50">
           <div className="flex items-center gap-2 mb-3">
             {isConnected ? (
               <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -113,13 +107,13 @@ export default function SyncStatusIndicator() {
               </span>
             </div>
             {reconnectAttempts > 0 && (
-              <div className="flex justify-between items-center text-orange-600">
+              <div className="flex justify-between items-center text-rouge-600">
                 <span>Tentatives:</span>
                 <span>{reconnectAttempts}/10</span>
               </div>
             )}
             {pendingOperations > 0 && (
-              <div className="flex justify-between items-center text-orange-600">
+              <div className="flex justify-between items-center text-rouge-600">
                 <span>Opérations en attente:</span>
                 <span>{pendingOperations}</span>
               </div>

@@ -140,8 +140,7 @@ export default function DevisReservoir() {
       }
     }
     loadDevis()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state?.devisId])
+  }, [location.state?.devisId, getDevisById, ajouterNotification])
 
   const [accordeonOuvert, setAccordeonOuvert] = useState({
     A1: true,
@@ -435,7 +434,7 @@ export default function DevisReservoir() {
       <div className="max-w-7xl mx-auto">
         
         {/* BARRE ACTIONS */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
+        <div className="bg-surface rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
           <button
             onClick={handleNouveau}
             className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition"
@@ -450,7 +449,7 @@ export default function DevisReservoir() {
           </button>
           <button
             onClick={handleGenerePDF}
-            className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition"
           >
             📄 PDF complet (A+B)
           </button>
@@ -469,7 +468,7 @@ export default function DevisReservoir() {
           <div className="lg:col-span-2 space-y-6">
             
             {/* EN-TÊTE DEVIS */}
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-surface rounded-lg shadow-md p-6">
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-semibold text-navy mb-2">N° Devis</label>
@@ -482,8 +481,8 @@ export default function DevisReservoir() {
                   <div className="mt-2">
                     <span className="text-xs font-semibold text-bleu uppercase tracking-wide">Type de devis</span>
                     <div className="mt-1">
-                      <span className="inline-flex items-center gap-2 px-3 py-1 bg-orange text-white text-xs font-bold rounded-full uppercase tracking-wide">
-                        <span className="w-2 h-2 rounded-full bg-white" />
+                      <span className="inline-flex items-center gap-2 px-3 py-1 bg-rouge text-white text-xs font-bold rounded-full uppercase tracking-wide">
+                        <span className="w-2 h-2 rounded-full bg-surface" />
                         {devisData.type}
                       </span>
                     </div>
@@ -495,7 +494,7 @@ export default function DevisReservoir() {
                     type="date"
                     value={devisData.date}
                     onChange={(e) => setDevisData(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                   />
                 </div>
               </div>
@@ -509,7 +508,7 @@ export default function DevisReservoir() {
               </div>
               
               {clientSelectionne && (
-                <div className="bg-orangeClair border-l-4 border-orange p-4 rounded">
+                <div className="bg-rougeClair border-l-4 border-rouge p-4 rounded">
                   <p className="text-sm text-navy">
                     <strong>{clientSelectionne.nom}</strong> - {clientSelectionne.ville}, {clientSelectionne.pays}
                   </p>
@@ -519,8 +518,8 @@ export default function DevisReservoir() {
             </div>
 
             {/* PARAMÈTRES RÉSERVOIR */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">
+            <div className="bg-surface rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-rouge pb-2">
                 Paramètres du Réservoir
               </h2>
               
@@ -532,13 +531,13 @@ export default function DevisReservoir() {
                       type="number"
                       value={devisData.volume}
                       onChange={(e) => setDevisData(prev => ({ ...prev, volume: e.target.value }))}
-                      className="flex-1 px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                      className="flex-1 px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                       placeholder="0"
                     />
                     <select
                       value={devisData.volumeUnit}
                       onChange={(e) => setDevisData(prev => ({ ...prev, volumeUnit: e.target.value }))}
-                      className="px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                      className="px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                     >
                       <option value="m³">m³</option>
                       <option value="litres">litres</option>
@@ -551,7 +550,7 @@ export default function DevisReservoir() {
                   <select
                     value={devisData.forme}
                     onChange={(e) => setDevisData(prev => ({ ...prev, forme: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                   >
                     {FORMES_RESERVOIR.map(forme => (
                       <option key={forme} value={forme}>{forme}</option>
@@ -564,7 +563,7 @@ export default function DevisReservoir() {
                   <select
                     value={devisData.typeAcier}
                     onChange={(e) => setDevisData(prev => ({ ...prev, typeAcier: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                   >
                     {TYPES_ACIER.map(type => (
                       <option key={type} value={type}>{type}</option>
@@ -578,7 +577,7 @@ export default function DevisReservoir() {
                     type="number"
                     value={devisData.pression}
                     onChange={(e) => setDevisData(prev => ({ ...prev, pression: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                     placeholder="0"
                   />
                 </div>
@@ -589,7 +588,7 @@ export default function DevisReservoir() {
                     type="number"
                     value={devisData.temperature}
                     onChange={(e) => setDevisData(prev => ({ ...prev, temperature: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                     placeholder="20"
                   />
                 </div>
@@ -599,7 +598,7 @@ export default function DevisReservoir() {
                   <select
                     value={devisData.revetement}
                     onChange={(e) => setDevisData(prev => ({ ...prev, revetement: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                   >
                     {REVETEMENTS.map(rev => (
                       <option key={rev} value={rev}>{rev}</option>
@@ -614,7 +613,7 @@ export default function DevisReservoir() {
                   type="text"
                   value={devisData.lieuMontage}
                   onChange={(e) => setDevisData(prev => ({ ...prev, lieuMontage: e.target.value }))}
-                  className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                  className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                   placeholder="Ex: Monrovia, Zone Industrielle..."
                 />
               </div>
@@ -627,7 +626,7 @@ export default function DevisReservoir() {
                     step="0.01"
                     value={devisData.diametre}
                     onChange={(e) => setDevisData(prev => ({ ...prev, diametre: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                     placeholder="0"
                   />
                 </div>
@@ -638,7 +637,7 @@ export default function DevisReservoir() {
                     step="0.01"
                     value={devisData.hauteur}
                     onChange={(e) => setDevisData(prev => ({ ...prev, hauteur: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                     placeholder="0"
                   />
                 </div>
@@ -649,7 +648,7 @@ export default function DevisReservoir() {
                     step="0.1"
                     value={devisData.epaisseur}
                     onChange={(e) => setDevisData(prev => ({ ...prev, epaisseur: e.target.value }))}
-                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                    className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                     placeholder="0"
                   />
                 </div>
@@ -657,8 +656,8 @@ export default function DevisReservoir() {
             </div>
 
             {/* SECTION A - OFFRE TECHNIQUE */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">
+            <div className="bg-surface rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-rouge pb-2">
                 SECTION A — OFFRE TECHNIQUE
               </h2>
               
@@ -676,7 +675,7 @@ export default function DevisReservoir() {
                     <textarea
                       value={devisData.etendueTravaux}
                       onChange={(e) => setDevisData(prev => ({ ...prev, etendueTravaux: e.target.value }))}
-                      className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                      className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                       rows="4"
                       placeholder="Décrire l'étendue des travaux..."
                     />
@@ -696,7 +695,7 @@ export default function DevisReservoir() {
                 {accordeonOuvert.A2 && (
                   <div className="p-4 space-y-2">
                     {ETAPES_DESCRIPTIF.map((etape, index) => (
-                      <label key={index} className="flex items-center gap-3 p-2 hover:bg-orangeClair rounded cursor-pointer">
+                      <label key={index} className="flex items-center gap-3 p-2 hover:bg-rougeClair rounded cursor-pointer">
                         <input
                           type="checkbox"
                           checked={devisData.etapesRealisees[etape] || false}
@@ -707,7 +706,7 @@ export default function DevisReservoir() {
                               [etape]: e.target.checked
                             }
                           }))}
-                          className="w-5 h-5 text-orange focus:ring-orange"
+                          className="w-5 h-5 text-rouge focus:ring-rouge"
                         />
                         <span className="text-sm text-navy">{index + 1}. {etape}</span>
                       </label>
@@ -732,7 +731,7 @@ export default function DevisReservoir() {
                       <textarea
                         value={devisData.moyensHumains}
                         onChange={(e) => setDevisData(prev => ({ ...prev, moyensHumains: e.target.value }))}
-                        className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                        className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                         rows="3"
                         placeholder="Ex: 2 soudeurs qualifiés, 1 chef de chantier..."
                       />
@@ -742,7 +741,7 @@ export default function DevisReservoir() {
                       <textarea
                         value={devisData.outillages}
                         onChange={(e) => setDevisData(prev => ({ ...prev, outillages: e.target.value }))}
-                        className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                        className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                         rows="3"
                         placeholder="Ex: Poste de soudure, cintreuse, grue..."
                       />
@@ -765,7 +764,7 @@ export default function DevisReservoir() {
                     <textarea
                       value={devisData.gestionSecurite}
                       onChange={(e) => setDevisData(prev => ({ ...prev, gestionSecurite: e.target.value }))}
-                      className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                      className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                       rows="4"
                       placeholder="Mesures de sécurité, EPI, procédures..."
                     />
@@ -787,7 +786,7 @@ export default function DevisReservoir() {
                     <textarea
                       value={devisData.planning}
                       onChange={(e) => setDevisData(prev => ({ ...prev, planning: e.target.value }))}
-                      className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                      className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                       rows="4"
                       placeholder="Ex: Phase 1 (5 jours), Phase 2 (10 jours)..."
                     />
@@ -811,7 +810,7 @@ export default function DevisReservoir() {
                       <textarea
                         value={devisData.limitesClient}
                         onChange={(e) => setDevisData(prev => ({ ...prev, limitesClient: e.target.value }))}
-                        className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                        className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                         rows="3"
                         placeholder="Ce qui est à la charge du client..."
                       />
@@ -821,7 +820,7 @@ export default function DevisReservoir() {
                       <textarea
                         value={devisData.limitesSika}
                         onChange={(e) => setDevisData(prev => ({ ...prev, limitesSika: e.target.value }))}
-                        className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                        className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                         rows="3"
                         placeholder="Ce qui est à la charge de SIKA..."
                       />
@@ -832,8 +831,8 @@ export default function DevisReservoir() {
             </div>
 
             {/* NOTES / OBSERVATIONS */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">
+            <div className="bg-surface rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-rouge pb-2">
                 📝 Notes / Observations
               </h2>
               <textarea
@@ -841,13 +840,13 @@ export default function DevisReservoir() {
                 onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Informations complémentaires, conditions particulières, remarques client..."
                 rows={4}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
             </div>
 
             {/* SECTION B - OFFRE COMMERCIALE */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">
+            <div className="bg-surface rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-rouge pb-2">
                 SECTION B — OFFRE COMMERCIALE
               </h2>
               
@@ -867,16 +866,15 @@ export default function DevisReservoir() {
                       const qte = parseFloat(ligne.qte) || 0
                       const pu = parseFloat(ligne.pu) || 0
                       const montantAuto = qte * pu
-                      const montant = (ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null) ? parseFloat(ligne.montant) || 0 : montantAuto
                       
                       return (
-                        <tr key={ligne.id} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                        <tr key={ligne.id} className={index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                           <td className="border border-argent px-4 py-2">
                             <input
                               type="text"
                               value={ligne.designation}
                               onChange={(e) => modifierLigneCommerciale(ligne.id, 'designation', e.target.value)}
-                              className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange"
+                              className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-rouge"
                               placeholder="Désignation..."
                             />
                           </td>
@@ -885,7 +883,7 @@ export default function DevisReservoir() {
                               type="number"
                               value={ligne.qte}
                               onChange={(e) => modifierLigneCommerciale(ligne.id, 'qte', e.target.value)}
-                              className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange"
+                              className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge"
                             />
                           </td>
                           <td className="border border-argent px-4 py-2">
@@ -894,7 +892,7 @@ export default function DevisReservoir() {
                               value={ligne.pu || ''}
                               onChange={(e) => modifierLigneCommerciale(ligne.id, 'pu', e.target.value)}
                               placeholder="0"
-                              className="w-full px-2 py-1 border-2 border-orange rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-orange bg-orangeClair"
+                              className="w-full px-2 py-1 border-2 border-rouge rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-rouge bg-rougeClair"
                             />
                           </td>
                           <td className="border border-argent px-3 py-2">
@@ -948,14 +946,14 @@ export default function DevisReservoir() {
                       type="number"
                       value={devisData.tauxRemise}
                       onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))}
-                      className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange"
+                      className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge"
                     />
                     <span className="text-navy">%</span>
                   </div>
                   <span className="text-lg font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
                 </div>
                 
-                <div className="flex justify-between items-center bg-orangeClair p-2 rounded">
+                <div className="flex justify-between items-center bg-rougeClair p-2 rounded">
                   <span className="text-navy font-bold">MONTANT TOTAL HT</span>
                   <span className="text-xl font-bold text-navy">{formatFCFA(totaux.montantHT)}</span>
                 </div>
@@ -987,7 +985,7 @@ export default function DevisReservoir() {
                           nouvelles[index].libelle = e.target.value
                           setDevisData(prev => ({ ...prev, modalitesPaiement: nouvelles }))
                         }}
-                        className="flex-1 px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+                        className="flex-1 px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
                       />
                       <div className="flex items-center gap-2">
                         <input
@@ -998,7 +996,7 @@ export default function DevisReservoir() {
                             nouvelles[index].pourcentage = parseFloat(e.target.value) || 0
                             setDevisData(prev => ({ ...prev, modalitesPaiement: nouvelles }))
                           }}
-                          className="w-20 px-2 py-2 border border-argent rounded-lg text-center focus:outline-none focus:border-orange"
+                          className="w-20 px-2 py-2 border border-argent rounded-lg text-center focus:outline-none focus:border-rouge"
                         />
                         <span className="text-navy font-semibold">%</span>
                         <span className="text-bleu font-semibold w-32 text-right">
@@ -1014,8 +1012,8 @@ export default function DevisReservoir() {
 
           {/* COLONNE DROITE - Helper calcul */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-6">
-              <h3 className="text-lg font-bold text-navy mb-4 border-b-2 border-orange pb-2">
+            <div className="bg-surface rounded-lg shadow-md p-6 sticky top-6">
+              <h3 className="text-lg font-bold text-navy mb-4 border-b-2 border-rouge pb-2">
                 📊 Helper Calcul (Temps Réel)
               </h3>
               
@@ -1023,22 +1021,22 @@ export default function DevisReservoir() {
                 <div className="bg-navyClair p-4 rounded-lg">
                   <p className="text-xs text-bleu mb-2">Surface cylindrique</p>
                   <p className="text-sm text-navy mb-1">π × D × H + 2 × π × (D/2)²</p>
-                  <p className="text-2xl font-bold text-orange">{surfaceCylindrique.toFixed(2)} m²</p>
+                  <p className="text-2xl font-bold text-rouge">{surfaceCylindrique.toFixed(2)} m²</p>
                 </div>
                 
                 <div className="bg-navyClair p-4 rounded-lg">
                   <p className="text-xs text-bleu mb-2">Poids acier</p>
                   <p className="text-sm text-navy mb-1">Surface × épaisseur × 7 850 kg/m³</p>
-                  <p className="text-2xl font-bold text-orange">{poidsAcier.toFixed(0)} kg</p>
+                  <p className="text-2xl font-bold text-rouge">{poidsAcier.toFixed(0)} kg</p>
                 </div>
                 
                 <div className="bg-navyClair p-4 rounded-lg">
                   <p className="text-xs text-bleu mb-2">Temps soudure estimé</p>
                   <p className="text-sm text-navy mb-1">Poids / 15 kg/h</p>
-                  <p className="text-2xl font-bold text-orange">{tempsSoudure.toFixed(1)} h</p>
+                  <p className="text-2xl font-bold text-rouge">{tempsSoudure.toFixed(1)} h</p>
                 </div>
                 
-                <div className="bg-orangeClair border-l-4 border-orange p-4 rounded">
+                <div className="bg-rougeClair border-l-4 border-rouge p-4 rounded">
                   <p className="text-xs text-bleu mb-2">Statut</p>
                   <p className="text-lg font-bold text-navy">{devisData.statut}</p>
                 </div>
@@ -1056,7 +1054,7 @@ export default function DevisReservoir() {
 
         {/* ZONE PDF CACHÉE */}
         <div className="hidden">
-          <div ref={pdfRef} className="bg-white p-8" style={{ width: '210mm' }}>
+          <div ref={pdfRef} className="bg-surface p-8" style={{ width: '210mm' }}>
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-navy mb-2">SIKA INDUSTRIE</h1>
               <h2 className="text-xl text-bleu">DEVIS RÉSERVOIR</h2>
@@ -1099,7 +1097,7 @@ export default function DevisReservoir() {
                   </tr>
                 </thead>
                 <tbody>
-                  {devisData.lignesCommerciales.map((ligne, index) => (
+                  {devisData.lignesCommerciales.map((ligne) => (
                     <tr key={ligne.id}>
                       <td className="border border-argent px-2 py-1">{ligne.designation}</td>
                       <td className="border border-argent px-2 py-1 text-center">{ligne.qte}</td>
@@ -1132,7 +1130,7 @@ export default function DevisReservoir() {
       </div>
 
       {/* BARRE ACTIONS BAS */}
-      <div className="bg-white border-t-4 border-orange shadow-lg rounded-lg mt-6 px-4 py-3">
+      <div className="bg-surface border-t-4 border-rouge shadow-lg rounded-lg mt-6 px-4 py-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
@@ -1147,7 +1145,7 @@ export default function DevisReservoir() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-navy font-bold text-sm hidden sm:block">TTC : {formatFCFA(totaux.ttc)}</span>
-            <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+            <button onClick={handleGenerePDF} className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
               📄 PDF complet
             </button>
             <button onClick={handleEnregistrer} className="flex items-center gap-2 px-5 py-3 bg-vert text-white rounded-lg hover:bg-opacity-90 transition font-bold text-base shadow-lg">

@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { getTodayISO, generateSecureId } from '../utils/format';
 import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
+import { idbStorage } from '../lib/idbStorage';
 
 function toSupabaseRow(f) {
   return {
@@ -356,6 +357,7 @@ export const useFacturesStore = create(
     }),
     {
       name: 'sika_factures',
+      storage: createJSONStorage(() => idbStorage),
       partialize: (state) => ({ compteurFacture: state.compteurFacture })
     }
   )

@@ -11,7 +11,7 @@ const ToastContainer = () => {
       case 'error':
         return <XCircle className="w-6 h-6 text-red-600" />;
       case 'warning':
-        return <AlertTriangle className="w-6 h-6 text-orange-500" />;
+        return <AlertTriangle className="w-6 h-6 text-rouge-500" />;
       case 'info':
       default:
         return <Info className="w-6 h-6 text-blue-600" />;
@@ -21,14 +21,14 @@ const ToastContainer = () => {
   const getStyles = (type) => {
     switch (type) {
       case 'success':
-        return 'bg-white border-l-4 border-l-green-500 border border-green-200 shadow-xl';
+        return 'bg-surface border-l-4 border-l-green-500 border border-green-200 shadow-xl';
       case 'error':
-        return 'bg-white border-l-4 border-l-red-500 border border-red-200 shadow-xl';
+        return 'bg-surface border-l-4 border-l-red-500 border border-red-200 shadow-xl';
       case 'warning':
-        return 'bg-white border-l-4 border-l-orange-500 border border-orange-200 shadow-xl';
+        return 'bg-surface border-l-4 border-l-orange-500 border border-rouge-200 shadow-xl';
       case 'info':
       default:
-        return 'bg-white border-l-4 border-l-blue-500 border border-blue-200 shadow-xl';
+        return 'bg-surface border-l-4 border-l-blue-500 border border-blue-200 shadow-xl';
     }
   };
 

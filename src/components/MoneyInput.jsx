@@ -23,7 +23,7 @@ export default function MoneyInput({ value, onChange, label, placeholder = '0' }
           value={displayValue}
           onChange={handleChange}
           placeholder={placeholder}
-          className="w-full px-4 py-2 pr-16 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+          className="w-full px-4 py-2 pr-16 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
         />
         <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-bleu font-medium">
           FCFA

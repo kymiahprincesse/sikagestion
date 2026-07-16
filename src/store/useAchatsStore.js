@@ -1,8 +1,9 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '../lib/supabaseClient';
 import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
+import { idbStorage } from '../lib/idbStorage';
 
 function achatToRow(a) {
   return {
@@ -138,7 +139,7 @@ export const useAchatsStore = create(
     }),
     {
       name: 'sika_achats',
-      partialize: () => ({}),
+      storage: createJSONStorage(() => idbStorage),
     }
   )
 );

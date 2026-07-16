@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Bell, BellOff, Check, X } from 'lucide-react'
+import { Bell, BellOff, Check } from 'lucide-react'
 import { requestNotificationPermission } from '../utils/notifications'
 
 export default function NotificationSettings() {
@@ -17,7 +17,7 @@ export default function NotificationSettings() {
     try {
       const saved = localStorage.getItem('notification_preferences')
       if (saved) return { ...defaults, ...JSON.parse(saved) }
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
     return defaults
   })
 
@@ -60,7 +60,7 @@ export default function NotificationSettings() {
       <button
         onClick={() => setShowSettings(!showSettings)}
         className="p-2 rounded-lg transition-all hover:bg-opacity-10 hover:bg-bleu relative"
-        style={{ color: '#1F5C99' }}
+        style={{ color: 'var(--color-secondary)' }}
         title="Paramètres notifications"
       >
         {permission === 'granted' ? (
@@ -69,26 +69,26 @@ export default function NotificationSettings() {
           <BellOff size={20} />
         )}
         {permission !== 'granted' && (
-          <span className="absolute top-0 right-0 w-2 h-2 rounded-full" style={{ backgroundColor: '#E60000' }}></span>
+          <span className="absolute top-0 right-0 w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }}></span>
         )}
       </button>
 
       {showSettings && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50" style={{ borderColor: '#C8C8D0' }}>
-          <div className="p-4 border-b" style={{ borderColor: '#C8C8D0', backgroundColor: '#1B2A4A' }}>
+        <div className="absolute right-0 mt-2 w-80 bg-surface rounded-lg shadow-xl border z-50" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-primary)' }}>
             <h3 className="text-lg font-bold text-white">Notifications Push</h3>
           </div>
 
           <div className="p-4 space-y-4">
             {permission !== 'granted' && (
-              <div className="p-3 rounded-lg" style={{ backgroundColor: '#FFE6E6' }}>
-                <p className="text-sm mb-3" style={{ color: '#E60000' }}>
+              <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-accent-light)' }}>
+                <p className="text-sm mb-3" style={{ color: 'var(--color-accent)' }}>
                   Les notifications navigateur sont désactivées. Activez-les pour recevoir des alertes en temps réel.
                 </p>
                 <button
                   onClick={handleEnableNotifications}
                   className="w-full px-4 py-2 rounded-lg font-semibold text-white transition-all hover:opacity-90"
-                  style={{ backgroundColor: '#E60000' }}
+                  style={{ backgroundColor: 'var(--color-accent)' }}
                 >
                   Activer les Notifications
                 </button>
@@ -98,14 +98,14 @@ export default function NotificationSettings() {
             {permission === 'granted' && (
               <>
                 <div className="flex items-center gap-2 p-2 rounded-lg" style={{ backgroundColor: '#E8F5E9' }}>
-                  <Check size={18} style={{ color: '#1A7A4A' }} />
-                  <span className="text-sm font-medium" style={{ color: '#1A7A4A' }}>
+                  <Check size={18} style={{ color: 'var(--color-success)' }} />
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-success)' }}>
                     Notifications activées
                   </span>
                 </div>
 
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold" style={{ color: '#1B2A4A' }}>Types de notifications :</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>Types de notifications :</p>
 
                   {[
                     { key: 'alertesBudget', label: 'Alertes Budget (80%)', icon: '⚠️' },
@@ -115,16 +115,16 @@ export default function NotificationSettings() {
                     { key: 'encaissements', label: 'Encaissements', icon: '💰' },
                     { key: 'tachesRetard', label: 'Tâches en Retard', icon: '⏰' }
                   ].map(({ key, label, icon }) => (
-                    <label key={key} className="flex items-center justify-between p-2 rounded-lg cursor-pointer hover:bg-opacity-50" style={{ backgroundColor: preferences[key] ? '#E8ECF4' : 'transparent' }}>
+                    <label key={key} className="flex items-center justify-between p-2 rounded-lg cursor-pointer hover:bg-opacity-50" style={{ backgroundColor: preferences[key] ? 'var(--color-surface-muted)' : 'transparent' }}>
                       <span className="flex items-center gap-2 text-sm">
                         <span>{icon}</span>
-                        <span style={{ color: '#1B2A4A' }}>{label}</span>
+                        <span style={{ color: 'var(--color-primary)' }}>{label}</span>
                       </span>
                       <input
                         type="checkbox"
                         checked={preferences[key]}
                         onChange={() => handleTogglePreference(key)}
-                        className="w-5 h-5 rounded focus:ring-2 focus:ring-orange"
+                        className="w-5 h-5 rounded focus:ring-2 focus:ring-rouge"
                       />
                     </label>
                   ))}
@@ -133,11 +133,11 @@ export default function NotificationSettings() {
             )}
           </div>
 
-          <div className="p-4 border-t flex justify-end" style={{ borderColor: '#C8C8D0' }}>
+          <div className="p-4 border-t flex justify-end" style={{ borderColor: 'var(--color-border)' }}>
             <button
               onClick={() => setShowSettings(false)}
               className="px-4 py-2 rounded-lg font-semibold transition-all hover:bg-opacity-10"
-              style={{ color: '#1B2A4A', backgroundColor: '#E8ECF4' }}
+              style={{ color: 'var(--color-primary)', backgroundColor: 'var(--color-surface-muted)' }}
             >
               Fermer
             </button>

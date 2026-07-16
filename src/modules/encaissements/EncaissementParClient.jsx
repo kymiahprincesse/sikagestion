@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNotifications } from '../../components/NotificationProvider'
 import { useEncaissementsStore } from '../../store/useEncaissementsStore'
 import { useFacturesStore } from '../../store/useFacturesStore'
@@ -127,14 +127,14 @@ export default function EncaissementParClient() {
     resetForm()
   }
 
-  const handleAddReglement = (encaissement) => {
+  const handleAddReglement = useCallback((encaissement) => {
     setCurrentEncaissement(encaissement)
     setFormData({
       ...encaissement,
       dateEncaissement: new Date().toISOString().split('T')[0]
     })
     setShowReglementModal(true)
-  }
+  }, [])
 
   const handleSaveReglement = () => {
     updateEncaissement(currentEncaissement.id, {
@@ -153,7 +153,7 @@ export default function EncaissementParClient() {
     resetForm()
   }
 
-  const handleDelete = async (encaissement) => {
+  const handleDelete = useCallback(async (encaissement) => {
     const ok = await confirmDelete(`l'encaissement de ${formatFCFA(encaissement.montant)}`)
     if (!ok) return
     deleteEncaissement(encaissement.id)
@@ -164,20 +164,20 @@ export default function EncaissementParClient() {
       avant: encaissement,
       impactFinancier: -encaissement.montant
     })
-  }
+  }, [confirmDelete, deleteEncaissement, addLog])
 
-  const handleEdit = (encaissement) => {
+  const handleEdit = useCallback((encaissement) => {
     setCurrentEncaissement(encaissement)
     setFormData(encaissement)
     setShowModal(true)
-  }
+  }, [])
 
-  const handleView = (encaissement) => {
+  const handleView = useCallback((encaissement) => {
     setCurrentEncaissement(encaissement)
     setShowViewModal(true)
-  }
+  }, [])
 
-  const handlePrint = async (encaissement) => {
+  const handlePrint = useCallback(async (encaissement) => {
     const client = clients.find(c => c.id === encaissement.clientId);
     const facture = factures.find(f => f.id === encaissement.factureId);
     const ctx = await createSikaPDF(`REÇU D'ENCAISSEMENT - ${encaissement.reference || encaissement.id}`);
@@ -243,7 +243,7 @@ export default function EncaissementParClient() {
       action: 'PRINT',
       utilisateur: 'Gérant'
     });
-  }
+  }, [clients, factures, addLog])
 
   const resetForm = () => {
     setFormData({
@@ -418,7 +418,7 @@ export default function EncaissementParClient() {
     {
       accessorKey: 'montant',
       header: 'MONTANT',
-      cell: info => <span className="font-bold text-orange">{formatFCFA(info.getValue())}</span>
+      cell: info => <span className="font-bold text-rouge">{formatFCFA(info.getValue())}</span>
     },
     {
       accessorKey: 'modePaiement',
@@ -448,7 +448,7 @@ export default function EncaissementParClient() {
           {row.original.mouvementCaisseId ? (
             <span className="text-xs text-vert font-semibold">✓ Synchronisé</span>
           ) : (
-            <span className="text-xs text-orange">⏳ En attente</span>
+            <span className="text-xs text-rouge">⏳ En attente</span>
           )}
         </div>
       )
@@ -478,6 +478,7 @@ export default function EncaissementParClient() {
     }
   ], [handleEdit, handleView, handlePrint, handleAddReglement, handleDelete])
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: encaissementsFiltres,
     columns,
@@ -492,13 +493,13 @@ export default function EncaissementParClient() {
 
   return (
     <div className="p-6 bg-navyClair min-h-screen">
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-surface rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-navy">💰 GESTION DES ENCAISSEMENTS</h1>
           <p className="text-sm text-bleu">Suivi des règlements clients et soldes</p>
         </div>
 
-        <div className="bg-orangeClair border-2 border-orange rounded-lg p-4 mb-6">
+        <div className="bg-rougeClair border-2 border-rouge rounded-lg p-4 mb-6">
           <h3 className="text-lg font-bold text-navy mb-3">🎯 SÉLECTION CLIENT</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -514,19 +515,19 @@ export default function EncaissementParClient() {
           <div className="bg-navyClair border-2 border-bleu rounded-lg p-4 mb-6">
             <h3 className="text-lg font-bold text-navy mb-3">💵 SOLDES CLIENT</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white p-3 rounded-lg border-2 border-argent">
+              <div className="bg-surface p-3 rounded-lg border-2 border-argent">
                 <div className="text-xs text-bleu font-semibold">Solde initial</div>
                 <div className="text-xl font-bold text-bleu">{formatFCFA(soldesClient.soldeInitial)}</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border-2 border-argent">
+              <div className="bg-surface p-3 rounded-lg border-2 border-argent">
                 <div className="text-xs text-bleu font-semibold">Montant total TTC</div>
-                <div className="text-xl font-bold text-orange">{formatFCFA(soldesClient.montantTotalTTC)}</div>
+                <div className="text-xl font-bold text-rouge">{formatFCFA(soldesClient.montantTotalTTC)}</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border-2 border-argent">
+              <div className="bg-surface p-3 rounded-lg border-2 border-argent">
                 <div className="text-xs text-bleu font-semibold">Total réglé</div>
                 <div className="text-xl font-bold text-vert">{formatFCFA(soldesClient.totalRegle)}</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border-2 border-argent">
+              <div className="bg-surface p-3 rounded-lg border-2 border-argent">
                 <div className="text-xs text-bleu font-semibold">Reste à payer</div>
                 <div className="text-xl font-bold text-rouge">{formatFCFA(soldesClient.resteAPayer)}</div>
               </div>
@@ -550,7 +551,7 @@ export default function EncaissementParClient() {
               setFormData({ factureId: '', montant: '', modePaiement: '', dateEncaissement: new Date().toISOString().split('T')[0], reference: genererReferenceEncaissement(encaissements), observation: '' })
               setShowModal(true)
             }}
-            className="px-4 py-2 bg-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
+            className="px-4 py-2 bg-rouge text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
           >
             ➕ Nouvel Encaissement
           </button>
@@ -601,7 +602,7 @@ export default function EncaissementParClient() {
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row, idx) => (
-                <tr key={row.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                <tr key={row.id} className={idx % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                   {row.getVisibleCells().map(cell => (
                     <td key={cell.id} className="px-4 py-3 text-sm border-b border-argent">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -639,12 +640,12 @@ export default function EncaissementParClient() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-navy text-white p-4 rounded-t-lg flex justify-between items-center">
               <h2 className="text-xl font-bold">
                 {currentEncaissement ? '📝 Modifier l\'encaissement' : '➕ Nouvel encaissement'}
               </h2>
-              <button onClick={resetForm} className="text-2xl hover:text-orange">×</button>
+              <button onClick={resetForm} className="text-2xl hover:text-rouge">×</button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -654,7 +655,7 @@ export default function EncaissementParClient() {
                   <select
                     value={formData.factureId}
                     onChange={(e) => setFormData({ ...formData, factureId: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                     required
                   >
                     <option value="">Sélectionner une facture</option>
@@ -675,7 +676,7 @@ export default function EncaissementParClient() {
                     step="0.01"
                     value={formData.montant}
                     onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                     required
                   />
                 </div>
@@ -685,7 +686,7 @@ export default function EncaissementParClient() {
                   <select
                     value={formData.modePaiement}
                     onChange={(e) => setFormData({ ...formData, modePaiement: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                     required
                   >
                     <option value="">Sélectionner un mode</option>
@@ -701,7 +702,7 @@ export default function EncaissementParClient() {
                     type="date"
                     value={formData.dateEncaissement}
                     onChange={(e) => setFormData({ ...formData, dateEncaissement: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                     required
                   />
                 </div>
@@ -712,7 +713,7 @@ export default function EncaissementParClient() {
                     type="text"
                     value={formData.reference}
                     onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                   />
                 </div>
 
@@ -721,7 +722,7 @@ export default function EncaissementParClient() {
                   <textarea
                     value={formData.observation}
                     onChange={(e) => setFormData({ ...formData, observation: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                     rows="3"
                   />
                 </div>
@@ -730,7 +731,7 @@ export default function EncaissementParClient() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
+                  className="flex-1 px-6 py-3 bg-rouge text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
                 >
                   {currentEncaissement ? '💾 Enregistrer' : '➕ Créer'}
                 </button>
@@ -749,10 +750,10 @@ export default function EncaissementParClient() {
 
       {showViewModal && currentEncaissement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full">
+          <div className="bg-surface rounded-lg shadow-2xl max-w-2xl w-full">
             <div className="bg-bleu text-white p-4 rounded-t-lg flex justify-between items-center">
               <h2 className="text-xl font-bold">👁 Détails de l'encaissement</h2>
-              <button onClick={() => setShowViewModal(false)} className="text-2xl hover:text-orange">×</button>
+              <button onClick={() => setShowViewModal(false)} className="text-2xl hover:text-rouge">×</button>
             </div>
             
             <div className="p-6 space-y-4">
@@ -767,7 +768,7 @@ export default function EncaissementParClient() {
                 </div>
                 <div>
                   <div className="text-sm text-bleu font-semibold">Montant</div>
-                  <div className="text-orange font-bold text-xl">{formatFCFA(currentEncaissement.montant)}</div>
+                  <div className="text-rouge font-bold text-xl">{formatFCFA(currentEncaissement.montant)}</div>
                 </div>
                 <div>
                   <div className="text-sm text-bleu font-semibold">Mode de paiement</div>
@@ -802,10 +803,10 @@ export default function EncaissementParClient() {
 
       {showReglementModal && currentEncaissement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
+          <div className="bg-surface rounded-lg shadow-2xl max-w-md w-full">
             <div className="bg-vert text-white p-4 rounded-t-lg flex justify-between items-center">
               <h2 className="text-xl font-bold">💳 Modifier le règlement</h2>
-              <button onClick={() => setShowReglementModal(false)} className="text-2xl hover:text-orange">×</button>
+              <button onClick={() => setShowReglementModal(false)} className="text-2xl hover:text-rouge">×</button>
             </div>
             
             <div className="p-6 space-y-4">
@@ -822,7 +823,7 @@ export default function EncaissementParClient() {
                   step="0.01"
                   value={formData.montant}
                   onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                  className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                   required
                 />
               </div>
@@ -832,7 +833,7 @@ export default function EncaissementParClient() {
                 <select
                   value={formData.modePaiement}
                   onChange={(e) => setFormData({ ...formData, modePaiement: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                  className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                   required
                 >
                   <option value="">Sélectionner un mode</option>
@@ -848,7 +849,7 @@ export default function EncaissementParClient() {
                   type="date"
                   value={formData.dateEncaissement}
                   onChange={(e) => setFormData({ ...formData, dateEncaissement: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                  className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                   required
                 />
               </div>

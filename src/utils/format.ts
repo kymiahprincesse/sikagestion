@@ -4,7 +4,7 @@
  */
 
 // Formatage des montants en FCFA avec points comme séparateurs
-export const formatFCFA = (montant) => {
+export const formatFCFA = (montant?: number | null): string => {
   if (montant === null || montant === undefined) return '0 FCFA';
 
   const formatter = new Intl.NumberFormat('fr-CI', {
@@ -20,7 +20,7 @@ export const formatFCFA = (montant) => {
 };
 
 // Formatage des dates au format JJ/MM/AAAA
-export const formatDate = (dateISO) => {
+export const formatDate = (dateISO?: string | null): string => {
   if (!dateISO) return '';
   
   const date = new Date(dateISO);
@@ -32,7 +32,7 @@ export const formatDate = (dateISO) => {
 };
 
 // Formatage des dates au format long "Abidjan, le JJ mois AAAA"
-export const formatDateLong = (dateISO) => {
+export const formatDateLong = (dateISO?: string | null): string => {
   if (!dateISO) return '';
   
   const date = new Date(dateISO);
@@ -49,32 +49,32 @@ export const formatDateLong = (dateISO) => {
 };
 
 // Conversion d'une date au format JJ/MM/AAAA vers ISO
-export const parseDateFR = (dateFR) => {
+export const parseDateFR = (dateFR?: string | null): string | null => {
   if (!dateFR) return null;
   
   const parts = dateFR.split('/');
   if (parts.length !== 3) return null;
   
   const [jour, mois, annee] = parts;
-  const date = new Date(annee, mois - 1, jour);
+  const date = new Date(Number(annee), Number(mois) - 1, Number(jour));
   
   return date.toISOString().split('T')[0];
 };
 
 // Calcul de la TVA (18%)
-export const calcTVA = (montantHT) => {
+export const calcTVA = (montantHT?: number | null): number => {
   if (!montantHT) return 0;
   return montantHT * 0.18;
 };
 
 // Calcul du montant TTC
-export const calcTTC = (montantHT) => {
+export const calcTTC = (montantHT?: number | null): number => {
   if (!montantHT) return 0;
   return montantHT * 1.18;
 };
 
 // Calcul du budget carburant
-export const calcBudgetCarburant = (distanceKm, params) => {
+export const calcBudgetCarburant = (distanceKm: number, params: { consommationMoyenne: number; prixCarburant: number }): number => {
   if (!distanceKm || !params) return 0;
   
   const { consommationMoyenne, prixCarburant } = params;
@@ -84,7 +84,7 @@ export const calcBudgetCarburant = (distanceKm, params) => {
 };
 
 // Calcul du budget repas
-export const calcBudgetRepas = (nbTechniciens, nbJours, params) => {
+export const calcBudgetRepas = (nbTechniciens: number, nbJours: number, params: { indemniteRepas: number }): number => {
   if (!nbTechniciens || !nbJours || !params) return 0;
   
   const { indemniteRepas } = params;
@@ -92,7 +92,7 @@ export const calcBudgetRepas = (nbTechniciens, nbJours, params) => {
 };
 
 // Formatage des nombres sans devise
-export const formatNumber = (nombre) => {
+export const formatNumber = (nombre?: number | null): string => {
   if (nombre === null || nombre === undefined) return '0';
 
   const formatted = new Intl.NumberFormat('fr-CI', {
@@ -106,7 +106,7 @@ export const formatNumber = (nombre) => {
 };
 
 // Formatage des montants avec points sans devise (pour tableaux PDF, etc.)
-export const formatNumberPoints = (nombre) => {
+export const formatNumberPoints = (nombre?: number | string | null): string => {
   if (nombre === null || nombre === undefined || nombre === '') return '0';
   const num = typeof nombre === 'string' ? parseFloat(nombre) : nombre;
   if (isNaN(num)) return '0';
@@ -122,14 +122,14 @@ export const formatNumberPoints = (nombre) => {
 };
 
 // Formatage des pourcentages
-export const formatPourcentage = (valeur) => {
+export const formatPourcentage = (valeur?: number | null): string => {
   if (valeur === null || valeur === undefined) return '0%';
   
   return `${formatNumber(valeur)}%`;
 };
 
 // Formatage des numéros de téléphone ivoiriens
-export const formatTelephone = (numero) => {
+export const formatTelephone = (numero?: string | null): string => {
   if (!numero) return '';
   
   // Retire tous les caractères non numériques
@@ -144,13 +144,13 @@ export const formatTelephone = (numero) => {
 };
 
 // Extraction du montant HT depuis TTC
-export const calcHT = (montantTTC) => {
+export const calcHT = (montantTTC?: number | null): number => {
   if (!montantTTC) return 0;
   return montantTTC / 1.18;
 };
 
 // Formatage d'une durée en heures
-export const formatHeures = (heures) => {
+export const formatHeures = (heures?: number | null): string => {
   if (heures === null || heures === undefined) return '0h';
   
   const h = Math.floor(heures);
@@ -161,16 +161,16 @@ export const formatHeures = (heures) => {
 };
 
 // Date du jour au format ISO (YYYY-MM-DD)
-export const getTodayISO = () => new Date().toISOString().split('T')[0];
+export const getTodayISO = (): string => new Date().toISOString().split('T')[0];
 
 // Parsing numérique sécurisé
-export const safeParseFloat = (valeur, defaut = 0) => {
+export const safeParseFloat = (valeur?: any, defaut: number = 0): number => {
   if (valeur === null || valeur === undefined || valeur === '') return defaut;
   const parsed = parseFloat(valeur);
   return isNaN(parsed) ? defaut : parsed;
 };
 
-export const safeParseInt = (valeur, defaut = 0) => {
+export const safeParseInt = (valeur?: any, defaut: number = 0): number => {
   if (valeur === null || valeur === undefined || valeur === '') return defaut;
   const parsed = parseInt(valeur, 10);
   return isNaN(parsed) ? defaut : parsed;
@@ -182,7 +182,7 @@ export const safeParseInt = (valeur, defaut = 0) => {
  * @param {string} prefix - Préfixe optionnel pour l'ID
  * @returns {string} ID unique
  */
-export const generateSecureId = (prefix = '') => {
+export const generateSecureId = (prefix: string = ''): string => {
   const timestamp = Date.now().toString(36);
   const randomValues = new Uint8Array(8);
   crypto.getRandomValues(randomValues);

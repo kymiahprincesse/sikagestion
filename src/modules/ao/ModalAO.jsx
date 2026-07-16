@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAOStore, STATUTS_AO } from '../../store/useAOStore';
 import { useClientsStore } from '../../store/useClientsStore';
 import { useAuditStore } from '../../store/useAuditStore';
@@ -112,14 +112,14 @@ export default function ModalAO({ ao, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-surface rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="bg-navy text-white px-6 py-4 flex items-center justify-between sticky top-0">
           <h2 className="text-xl font-bold">
             {ao ? 'Modifier l\'Appel d\'Offres' : 'Nouvel Appel d\'Offres'}
           </h2>
           <button
             onClick={onClose}
-            className="text-white hover:text-orange transition text-2xl"
+            className="text-white hover:text-rouge transition text-2xl"
           >
             ×
           </button>
@@ -136,7 +136,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="dateDevis"
                 value={formData.dateDevis}
                 onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-orange ${
+                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-rouge ${
                   errors.dateDevis ? 'border-rouge' : 'border-argent'
                 }`}
               />
@@ -153,7 +153,7 @@ export default function ModalAO({ ao, onClose }) {
                 value={formData.numeroDevis}
                 onChange={handleChange}
                 placeholder="Auto-généré si vide"
-                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-orange bg-gray-50"
+                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-rouge bg-background"
                 disabled={!ao}
               />
             </div>
@@ -166,7 +166,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="client"
                 value={formData.client}
                 onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-orange ${
+                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-rouge ${
                   errors.client ? 'border-rouge' : 'border-argent'
                 }`}
               >
@@ -189,7 +189,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="referenceAO"
                 value={formData.referenceAO}
                 onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-orange ${
+                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-rouge ${
                   errors.referenceAO ? 'border-rouge' : 'border-argent'
                 }`}
               />
@@ -204,7 +204,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="secteurActivite"
                 value={formData.secteurActivite}
                 onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-orange ${
+                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-rouge ${
                   errors.secteurActivite ? 'border-rouge' : 'border-argent'
                 }`}
               >
@@ -228,7 +228,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="prestationSouhaitee"
                 value={formData.prestationSouhaitee}
                 onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-orange ${
+                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-rouge ${
                   errors.prestationSouhaitee ? 'border-rouge' : 'border-argent'
                 }`}
               >
@@ -252,7 +252,7 @@ export default function ModalAO({ ao, onClose }) {
                 value={formData.designations}
                 onChange={handleChange}
                 rows="3"
-                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-orange"
+                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-rouge"
                 placeholder="Description détaillée des travaux..."
               />
             </div>
@@ -266,7 +266,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="receptionAO"
                 value={formData.receptionAO}
                 onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-orange ${
+                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-rouge ${
                   errors.receptionAO ? 'border-rouge' : 'border-argent'
                 }`}
               />
@@ -282,7 +282,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="dateVisiteChantier"
                 value={formData.dateVisiteChantier}
                 onChange={handleChange}
-                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-orange"
+                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-rouge"
               />
             </div>
 
@@ -295,7 +295,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="dateReponseAO"
                 value={formData.dateReponseAO}
                 onChange={handleChange}
-                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-orange ${
+                className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:border-rouge ${
                   errors.dateReponseAO ? 'border-rouge' : 'border-argent'
                 }`}
               />
@@ -311,7 +311,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="montantRetenue"
                 value={formData.montantRetenue}
                 onChange={handleChange}
-                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-orange"
+                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-rouge"
                 placeholder="0"
                 min="0"
                 step="1000"
@@ -326,7 +326,7 @@ export default function ModalAO({ ao, onClose }) {
                 name="statut"
                 value={formData.statut}
                 onChange={handleChange}
-                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-orange"
+                className="w-full border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-rouge"
               >
                 <option value={STATUTS_AO.A_CHIFFRER}>A chiffrer</option>
                 <option value={STATUTS_AO.DECLINE}>Décliné</option>
@@ -348,7 +348,7 @@ export default function ModalAO({ ao, onClose }) {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-orange text-white rounded-lg hover:bg-orange-600 transition"
+              className="px-6 py-2 bg-rouge text-white rounded-lg hover:bg-rouge-600 transition"
             >
               {ao ? 'Mettre à jour' : 'Créer'}
             </button>

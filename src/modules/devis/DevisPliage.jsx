@@ -37,9 +37,10 @@ export default function DevisPliage() {
   const { clients } = useClientsStore()
   const { ajouterNotification } = useNotificationsStore()
   const { confirm } = useNotifications()
+  const navigate = useNavigate()
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: '',
+    numero: location.state?.devisId ? '' : getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'PLIAGE',
@@ -60,12 +61,6 @@ export default function DevisPliage() {
 
   const [devisId, setDevisId] = useState(null)
 
-  // Générer le numéro après le montage (évite setState pendant le render)
-  useEffect(() => {
-    if (!devisData.numero && !location.state?.devisId) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
-    }
-  }, [devisData.numero, location.state?.devisId, getNextNumero])
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
@@ -99,7 +94,7 @@ export default function DevisPliage() {
       }
     }
     loadDevis()
-  }, [location.state, location.state?.devisId, getDevisById])
+  }, [location.state, location.state?.devisId, getDevisById, ajouterNotification])
 
   const calculerMontant = (ligne) => {
     const qte = parseFloat(ligne.qte) || 0
@@ -300,9 +295,9 @@ export default function DevisPliage() {
           icone: '✅',
           titre: 'SUCCÈS',
           message: `Devis ${nouveau.numero} enregistré avec succès - Montant: ${formatFCFA(totaux.ttc)}`,
-          lien: '/devis/liste'
         })
       }
+      navigate('/devis/liste')
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement:', error)
       ajouterNotification({
@@ -410,7 +405,7 @@ export default function DevisPliage() {
   return (
     <div className="min-h-screen bg-navyClair p-6">
       {/* BARRE ACTIONS */}
-      <div className="bg-white border-b-4 border-orange p-4 mb-6 rounded-lg shadow-lg sticky top-0 z-10">
+      <div className="bg-surface border-b-4 border-rouge p-4 mb-6 rounded-lg shadow-lg sticky top-0 z-10">
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={nouveauDevis}
@@ -426,7 +421,7 @@ export default function DevisPliage() {
           </button>
           <button
             onClick={genererPDF}
-            className="px-4 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors font-medium"
+            className="px-4 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium"
           >
             📄 PDF
           </button>
@@ -440,9 +435,9 @@ export default function DevisPliage() {
       </div>
 
       {/* FORMULAIRE */}
-      <div className="bg-white rounded-lg shadow-lg p-8">
+      <div className="bg-surface rounded-lg shadow-lg p-8">
         {/* EN-TÊTE */}
-        <div className="border-b-2 border-orange pb-6 mb-6">
+        <div className="border-b-2 border-rouge pb-6 mb-6">
           <div className="flex justify-between items-start mb-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-navy rounded-full flex items-center justify-center">
@@ -474,7 +469,7 @@ export default function DevisPliage() {
                 onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))}
                 placeholder="Description de la mission"
                 rows={3}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
             </div>
             <div>
@@ -484,14 +479,14 @@ export default function DevisPliage() {
                 onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Informations complémentaires, conditions particulières, remarques client..."
                 rows={3}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
             </div>
           </div>
         </div>
 
         {/* PANEL SPÉCIFICATIONS PLIAGE */}
-        <div className="bg-navyClair border-l-4 border-orange p-4 mb-6 rounded-lg">
+        <div className="bg-navyClair border-l-4 border-rouge p-4 mb-6 rounded-lg">
           <h3 className="text-lg font-bold text-navy mb-4">Spécifications Pliage</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -499,7 +494,7 @@ export default function DevisPliage() {
               <select
                 value={specifications.typeTole}
                 onChange={(e) => setSpecifications(prev => ({ ...prev, typeTole: e.target.value }))}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               >
                 {TYPES_TOLE.map(type => (
                   <option key={type} value={type}>{type}</option>
@@ -514,7 +509,7 @@ export default function DevisPliage() {
                 onChange={(e) => setSpecifications(prev => ({ ...prev, epaisseur: parseFloat(e.target.value) || 0 }))}
                 min="0"
                 step="0.1"
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
             </div>
             <div>
@@ -525,7 +520,7 @@ export default function DevisPliage() {
                 onChange={(e) => setSpecifications(prev => ({ ...prev, nombrePlis: parseInt(e.target.value) || 0 }))}
                 min="0"
                 step="1"
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
             </div>
             <div>
@@ -533,7 +528,7 @@ export default function DevisPliage() {
               <select
                 value={specifications.unitePrix}
                 onChange={(e) => setSpecifications(prev => ({ ...prev, unitePrix: e.target.value }))}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               >
                 {UNITES_PRIX.map(unite => (
                   <option key={unite.value} value={unite.value}>{unite.label}</option>
@@ -561,14 +556,14 @@ export default function DevisPliage() {
                   const montant = calculerMontant(ligne)
 
                   return (
-                    <tr key={ligne.id} className="hover:bg-orangeClair transition-colors">
+                    <tr key={ligne.id} className="hover:bg-rougeClair transition-colors">
                       <td className="border border-argent px-4 py-2">
                         <input
                           type="text"
                           value={ligne.designation}
                           onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)}
                           placeholder="Description de la pièce..."
-                          className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:ring-1 focus:ring-orange"
+                          className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:ring-1 focus:ring-rouge"
                         />
                       </td>
                       <td className="border border-argent px-4 py-2">
@@ -578,7 +573,7 @@ export default function DevisPliage() {
                           onChange={(e) => modifierLigne(ligne.id, 'qte', parseInt(e.target.value) || 0)}
                           min="0"
                           step="1"
-                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
+                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-rouge"
                         />
                       </td>
                       <td className="border border-argent px-4 py-2">
@@ -588,10 +583,10 @@ export default function DevisPliage() {
                           onChange={(e) => modifierLigne(ligne.id, 'pu', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="1"
-                          className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:ring-1 focus:ring-orange"
+                          className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:ring-1 focus:ring-rouge"
                         />
                       </td>
-                      <td className="border border-argent px-4 py-2 bg-orangeClair">
+                      <td className="border border-argent px-4 py-2 bg-rougeClair">
                         <div className="text-right font-bold text-navy">{formatFCFA(montant)}</div>
                       </td>
                       <td className="border border-argent px-2 py-2">
@@ -637,7 +632,7 @@ export default function DevisPliage() {
 
           <button
             onClick={ajouterLigne}
-            className="mt-4 px-6 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors font-medium"
+            className="mt-4 px-6 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium"
           >
             ➕ Ajouter une ligne
           </button>
@@ -645,7 +640,7 @@ export default function DevisPliage() {
 
         {/* TOTAUX */}
         <div className="flex justify-end">
-          <div className="w-full md:w-1/2 bg-navyClair p-4 rounded-lg border-2 border-orange">
+          <div className="w-full md:w-1/2 bg-navyClair p-4 rounded-lg border-2 border-rouge">
             <div className="space-y-3">
               <div className="flex justify-between items-center pb-2 border-b border-argent">
                 <span className="font-bold text-navy">MONTANT BRUT HT</span>
@@ -661,14 +656,14 @@ export default function DevisPliage() {
                     max="100"
                     value={devisData.tauxRemise}
                     onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))}
-                    className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
+                    className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-rouge"
                   />
                   <span className="text-navy">%</span>
                 </div>
                 <span className="font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
               </div>
 
-              <div className="flex justify-between items-center pb-2 border-b border-argent bg-orangeClair p-2 rounded">
+              <div className="flex justify-between items-center pb-2 border-b border-argent bg-rougeClair p-2 rounded">
                 <span className="font-bold text-navy">MONTANT TOTAL HT</span>
                 <span className="font-bold text-navy text-lg">{formatFCFA(totaux.montantHT)}</span>
               </div>
@@ -686,12 +681,12 @@ export default function DevisPliage() {
                     TVA (18%)
                   </label>
                 </div>
-                <span className="font-bold text-orange">{formatFCFA(totaux.tva)}</span>
+                <span className="font-bold text-rouge">{formatFCFA(totaux.tva)}</span>
               </div>
 
-              <div className="flex justify-between items-center pt-2 border-t-2 border-orange">
+              <div className="flex justify-between items-center pt-2 border-t-2 border-rouge">
                 <span className="font-bold text-navy text-lg">MONTANT TTC</span>
-                <span className="font-bold text-orange text-xl">{formatFCFA(totaux.ttc)}</span>
+                <span className="font-bold text-rouge text-xl">{formatFCFA(totaux.ttc)}</span>
               </div>
             </div>
           </div>
@@ -700,9 +695,9 @@ export default function DevisPliage() {
 
       {/* PDF TEMPLATE (caché) */}
       <div ref={pdfRef} className="hidden print:block">
-        <div className="p-8 bg-white">
+        <div className="p-8 bg-surface">
           {/* En-tête PDF */}
-          <div className="flex justify-between items-start mb-8 border-b-4 border-orange pb-4">
+          <div className="flex justify-between items-start mb-8 border-b-4 border-rouge pb-4">
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 bg-navy rounded-full flex items-center justify-center">
                 <div className="text-center">
@@ -766,7 +761,7 @@ export default function DevisPliage() {
             </thead>
             <tbody>
               {devisData.lignes.map((ligne, index) => (
-                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                <tr key={index} className={index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                   <td className="border border-argent px-4 py-2 text-sm">{ligne.designation}</td>
                   <td className="border border-argent px-4 py-2 text-center text-sm font-bold">{ligne.qte}</td>
                   <td className="border border-argent px-4 py-2 text-right text-sm">{formatFCFA(ligne.pu)}</td>
@@ -780,19 +775,19 @@ export default function DevisPliage() {
                 <td className="border border-navy px-4 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantBrut)}</td>
               </tr>
               {devisData.tauxRemise > 0 && (
-                <tr className="bg-white">
+                <tr className="bg-surface">
                   <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-rouge">REMISE {devisData.tauxRemise}%</td>
                   <td className="border border-navy px-4 py-2 text-right font-bold text-rouge">- {formatFCFA(totaux.remise)}</td>
                 </tr>
               )}
-              <tr className="bg-orangeClair">
+              <tr className="bg-rougeClair">
                 <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-navy">MONTANT TOTAL HT</td>
                 <td className="border border-navy px-4 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantHT)}</td>
               </tr>
               {devisData.tvaActive && (
-                <tr className="bg-white">
-                  <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-orange">TVA (18%)</td>
-                  <td className="border border-navy px-4 py-2 text-right font-bold text-orange">{formatFCFA(totaux.tva)}</td>
+                <tr className="bg-surface">
+                  <td colSpan="3" className="border border-navy px-4 py-2 text-right font-bold text-rouge">TVA (18%)</td>
+                  <td className="border border-navy px-4 py-2 text-right font-bold text-rouge">{formatFCFA(totaux.tva)}</td>
                 </tr>
               )}
               <tr className="bg-navy text-white">

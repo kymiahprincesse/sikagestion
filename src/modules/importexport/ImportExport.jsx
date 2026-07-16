@@ -16,14 +16,14 @@ import { useNotifications } from '../../components/NotificationProvider';
 import GenerateExampleFile from './GenerateExampleFile';
 
 const COLORS = {
-  navy: '#06006E',
-  orange: '#E60000',
-  blue: '#06006E',
-  green: '#1A7A4A',
-  red: '#E60000',
-  silver: '#C8C8D0',
-  lightOrange: '#FFE6E6',
-  lightNavy: '#E8ECF4'
+  navy: 'var(--color-primary)',
+  orange: 'var(--color-accent)',
+  blue: 'var(--color-primary)',
+  green: 'var(--color-success)',
+  red: 'var(--color-accent)',
+  silver: 'var(--color-border)',
+  lightOrange: 'var(--color-accent-light)',
+  lightNavy: 'var(--color-surface-muted)'
 };
 
 const MODULES_CONFIG = {
@@ -445,7 +445,7 @@ const ImportExport = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold" style={{ color: COLORS.navy }}>
@@ -460,7 +460,7 @@ const ImportExport = () => {
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
               activeTab === 'import'
                 ? 'text-white shadow-lg'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                : 'bg-surface text-gray-600 hover:bg-gray-50'
             }`}
             style={activeTab === 'import' ? { backgroundColor: COLORS.orange } : {}}
           >
@@ -472,7 +472,7 @@ const ImportExport = () => {
             className={`px-6 py-3 rounded-lg font-medium transition-all ${
               activeTab === 'export'
                 ? 'text-white shadow-lg'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                : 'bg-surface text-gray-600 hover:bg-gray-50'
             }`}
             style={activeTab === 'export' ? { backgroundColor: COLORS.orange } : {}}
           >
@@ -483,7 +483,7 @@ const ImportExport = () => {
 
         {activeTab === 'import' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-surface rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold mb-4" style={{ color: COLORS.navy }}>
                 <FileSpreadsheet className="inline-block w-6 h-6 mr-2" />
                 Import depuis Excel
@@ -707,7 +707,7 @@ const ImportExport = () => {
 
         {activeTab === 'export' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-surface rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold mb-4" style={{ color: COLORS.navy }}>
                 Exporter les données
               </h2>

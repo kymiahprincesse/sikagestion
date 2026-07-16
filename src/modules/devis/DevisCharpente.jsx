@@ -60,6 +60,7 @@ export default function DevisCharpente() {
 
     const devisExist = getDevisById(idFromState)
     if (devisExist) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDevisData({
         numero: devisExist.numero,
         date: devisExist.date || new Date().toISOString().split('T')[0],
@@ -86,18 +87,10 @@ export default function DevisCharpente() {
         message: 'Devis non trouvé. Il a peut-être été supprimé.'
       })
     }
-  // getDevisById est stable dans le store Zustand ; location.state?.devisId est la seule dépendance utile
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state?.devisId])
+  }, [location.state?.devisId, getDevisById, ajouterNotification])
 
-  const calculerPoidsLineaire = (ligne) => {
-    return 0
-  }
 
   const calculerMontant = (ligne) => {
-    if (ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null) {
-      return parseFloat(ligne.montant) || 0
-    }
     const quantite = parseFloat(ligne.quantite) || 1
     const pu = parseFloat(ligne.pu) || 0
     return quantite * pu
@@ -326,14 +319,14 @@ export default function DevisCharpente() {
     <div className="min-h-screen bg-navyClair p-6">
       <div className="max-w-6xl mx-auto">
         
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
+        <div className="bg-surface rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-3">
           <button onClick={handleNouveau} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
             ➕ Nouveau
           </button>
           <button onClick={handleEnregistrer} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-vert text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
             {isSaving ? '⏳ Enregistrement...' : '💾 Enregistrer'}
           </button>
-          <button onClick={handleGenerePDF} disabled={isGeneratingPDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
+          <button onClick={handleGenerePDF} disabled={isGeneratingPDF} className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
             {isGeneratingPDF ? '⏳ PDF...' : '📄 PDF'}
           </button>
           <button
@@ -345,20 +338,20 @@ export default function DevisCharpente() {
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">N° Devis</label>
               <input type="text" value={devisData.numero} readOnly className="w-full px-3 py-2 border border-argent rounded-lg bg-navyClair font-bold text-navy" />
               <div className="mt-2">
-                <span className="inline-block px-3 py-1 bg-orange text-white text-xs font-bold rounded-full uppercase tracking-wide">
+                <span className="inline-block px-3 py-1 bg-rouge text-white text-xs font-bold rounded-full uppercase tracking-wide">
                   {devisData.type}
                 </span>
               </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Date</label>
-              <input type="date" value={devisData.date} onChange={(e) => setDevisData(prev => ({ ...prev, date: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" />
+              <input type="date" value={devisData.date} onChange={(e) => setDevisData(prev => ({ ...prev, date: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" />
             </div>
           </div>
           
@@ -369,7 +362,7 @@ export default function DevisCharpente() {
 
           <div className="mb-4">
             <label className="block text-sm font-semibold text-navy mb-2">Objet</label>
-            <input type="text" value={devisData.objet} onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" placeholder="Ex: Charpente métallique hangar industriel..." />
+            <input type="text" value={devisData.objet} onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" placeholder="Ex: Charpente métallique hangar industriel..." />
           </div>
 
           <div className="mb-4">
@@ -379,36 +372,36 @@ export default function DevisCharpente() {
               onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
               rows={3}
               placeholder="Informations complémentaires, remarques, conditions particulières..."
-              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange"
+              className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge"
             />
           </div>
 
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Portée (m)</label>
-              <input type="number" step="0.1" value={devisData.portee} onChange={(e) => setDevisData(prev => ({ ...prev, portee: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" />
+              <input type="number" step="0.1" value={devisData.portee} onChange={(e) => setDevisData(prev => ({ ...prev, portee: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Hauteur (m)</label>
-              <input type="number" step="0.1" value={devisData.hauteur} onChange={(e) => setDevisData(prev => ({ ...prev, hauteur: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange" />
+              <input type="number" step="0.1" value={devisData.hauteur} onChange={(e) => setDevisData(prev => ({ ...prev, hauteur: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-navy mb-2">Traitement de surface</label>
-              <select value={devisData.traitement} onChange={(e) => setDevisData(prev => ({ ...prev, traitement: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-orange">
+              <select value={devisData.traitement} onChange={(e) => setDevisData(prev => ({ ...prev, traitement: e.target.value }))} className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:border-rouge">
                 {TRAITEMENTS.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
           
           {clientSelectionne && (
-            <div className="bg-orangeClair border-l-4 border-orange p-4 rounded">
+            <div className="bg-rougeClair border-l-4 border-rouge p-4 rounded">
               <p className="text-sm text-navy"><strong>{clientSelectionne.nom}</strong> - {clientSelectionne.ville}</p>
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-orange pb-2">Détail de la charpente métallique</h2>
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold text-navy mb-4 border-b-2 border-rouge pb-2">Détail de la charpente métallique</h2>
           
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
@@ -426,18 +419,18 @@ export default function DevisCharpente() {
                 {devisData.lignes.map((ligne, index) => {
                   const montant = calculerMontant(ligne)
                   return (
-                    <tr key={ligne.id} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                    <tr key={ligne.id} className={index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                       <td className="border border-argent px-4 py-2">
-                        <input type="text" value={ligne.designation} onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-orange" placeholder="Désignation..." />
+                        <input type="text" value={ligne.designation} onChange={(e) => modifierLigne(ligne.id, 'designation', e.target.value)} className="w-full px-2 py-1 border border-argent rounded focus:outline-none focus:border-rouge" placeholder="Désignation..." />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="text" value={ligne.surface} onChange={(e) => modifierLigne(ligne.id, 'surface', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" placeholder="m²..." />
+                        <input type="text" value={ligne.surface} onChange={(e) => modifierLigne(ligne.id, 'surface', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge" placeholder="m²..." />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" value={ligne.quantite} onChange={(e) => modifierLigne(ligne.id, 'quantite', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                        <input type="number" value={ligne.quantite} onChange={(e) => modifierLigne(ligne.id, 'quantite', e.target.value)} className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge" />
                       </td>
                       <td className="border border-argent px-4 py-2">
-                        <input type="number" value={ligne.pu || ''} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} placeholder="0" className="w-full px-2 py-1 border-2 border-orange rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-orange bg-orangeClair" />
+                        <input type="number" value={ligne.pu || ''} onChange={(e) => modifierLigne(ligne.id, 'pu', e.target.value)} placeholder="0" className="w-full px-2 py-1 border-2 border-rouge rounded text-right font-semibold focus:outline-none focus:ring-2 focus:ring-rouge bg-rougeClair" />
                       </td>
                       <td className="border border-argent px-3 py-2">
                         <input
@@ -474,13 +467,13 @@ export default function DevisCharpente() {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="text-navy font-semibold">REMISE</span>
-                <input type="number" min="0" max="100" value={devisData.tauxRemise} onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))} className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-orange" />
+                <input type="number" min="0" max="100" value={devisData.tauxRemise} onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))} className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:border-rouge" />
                 <span className="text-navy">%</span>
               </div>
               <span className="text-lg font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
             </div>
             
-            <div className="flex justify-between items-center bg-orangeClair p-2 rounded">
+            <div className="flex justify-between items-center bg-rougeClair p-2 rounded">
               <span className="text-navy font-bold">MONTANT TOTAL HT</span>
               <span className="text-xl font-bold text-navy">{formatFCFA(totaux.montantHT)}</span>
             </div>
@@ -500,7 +493,7 @@ export default function DevisCharpente() {
         </div>
 
         <div className="hidden">
-          <div ref={pdfRef} className="bg-white p-8" style={{ width: '210mm' }}>
+          <div ref={pdfRef} className="bg-surface p-8" style={{ width: '210mm' }}>
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-navy mb-2">SIKA INDUSTRIE</h1>
               <h2 className="text-xl text-bleu">DEVIS CHARPENTE MÉTALLIQUE</h2>
@@ -511,7 +504,7 @@ export default function DevisCharpente() {
       </div>
 
       {/* BARRE ACTIONS BAS */}
-      <div className="bg-white border-t-4 border-orange shadow-lg rounded-lg mt-6 px-4 py-3">
+      <div className="bg-surface border-t-4 border-rouge shadow-lg rounded-lg mt-6 px-4 py-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={handleNouveau} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
@@ -526,7 +519,7 @@ export default function DevisCharpente() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-navy font-bold text-sm hidden sm:block">TTC : {formatFCFA(totaux.ttc)}</span>
-            <button onClick={handleGenerePDF} disabled={isGeneratingPDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm disabled:opacity-50">
+            <button onClick={handleGenerePDF} disabled={isGeneratingPDF} className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm disabled:opacity-50">
               {isGeneratingPDF ? '⏳ PDF...' : '📄 PDF'}
             </button>
             <button onClick={handleEnregistrer} disabled={isSaving} className="flex items-center gap-2 px-5 py-3 bg-vert text-white rounded-lg hover:bg-opacity-90 transition font-bold text-base shadow-lg disabled:opacity-50">

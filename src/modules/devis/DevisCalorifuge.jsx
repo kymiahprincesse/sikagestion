@@ -60,7 +60,7 @@ export default function DevisCalorifuge() {
   // ════════════════════════════════════════
 
   const [devisData, setDevisData] = useState(() => ({
-    numero: '',
+    numero: location.state?.devisId ? '' : getNextNumero(),
     date: new Date().toISOString().split('T')[0],
     clientId: null,
     type: 'CALORIFUGE',
@@ -77,12 +77,7 @@ export default function DevisCalorifuge() {
   const [showDesignationSuggestions, setShowDesignationSuggestions] = useState({})
   const [designationSearch, setDesignationSearch] = useState({})
 
-  // Générer le numéro après le montage (évite setState pendant le render)
-  useEffect(() => {
-    if (!devisData.numero && !location.state?.devisId) {
-      setDevisData(prev => ({ ...prev, numero: getNextNumero() }))
-    }
-  }, [devisData.numero, location.state?.devisId, getNextNumero])
+
 
   // Charger un devis existant si on vient de la liste avec location.state
   useEffect(() => {
@@ -116,7 +111,7 @@ export default function DevisCalorifuge() {
       }
     }
     loadDevis()
-  }, [location.state, location.state?.devisId, getDevisById])
+  }, [location.state, location.state?.devisId, getDevisById, ajouterNotification])
 
   // Calculs automatiques avec synchronisation QTE/ML/PT
   const calculerQte = (ligne) => {
@@ -170,9 +165,6 @@ export default function DevisCalorifuge() {
   }
 
   const calculerMontant = (ligne) => {
-    if (ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null) {
-      return safeParseFloat(ligne.montant, 0)
-    }
     const qte = calculerQte(ligne)
     const pu = safeParseFloat(ligne.pu, 0)
     return qte * pu
@@ -495,7 +487,7 @@ export default function DevisCalorifuge() {
   return (
     <div className="min-h-screen bg-navyClair p-6">
       {/* BARRE ACTIONS */}
-      <div className="bg-white border-b-4 border-orange p-4 mb-6 rounded-lg shadow-lg sticky top-0 z-10">
+      <div className="bg-surface border-b-4 border-rouge p-4 mb-6 rounded-lg shadow-lg sticky top-0 z-10">
         <div className="flex gap-3 flex-wrap">
           <button
             onClick={nouveauDevis}
@@ -511,7 +503,7 @@ export default function DevisCalorifuge() {
           </button>
           <button
             onClick={genererPDF}
-            className="px-4 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors font-medium"
+            className="px-4 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium"
           >
             📄 Générer PDF
           </button>
@@ -531,9 +523,9 @@ export default function DevisCalorifuge() {
       </div>
 
       {/* FORMULAIRE */}
-      <div className="bg-white rounded-lg shadow-lg p-8">
+      <div className="bg-surface rounded-lg shadow-lg p-8">
         {/* EN-TÊTE */}
-        <div className="border-b-2 border-orange pb-6 mb-6">
+        <div className="border-b-2 border-rouge pb-6 mb-6">
           <div className="flex justify-between items-start mb-4">
             <div className="text-navy">
               <div className="text-3xl font-bold">SIKA</div>
@@ -552,7 +544,7 @@ export default function DevisCalorifuge() {
                 type="date"
                 value={devisData.date}
                 onChange={(e) => setDevisData(prev => ({ ...prev, date: e.target.value }))}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
               <div className="text-sm text-navy mt-1">{formatDateLong(devisData.date)}</div>
             </div>
@@ -580,7 +572,7 @@ export default function DevisCalorifuge() {
                 value={devisData.demandePar}
                 onChange={(e) => setDevisData(prev => ({ ...prev, demandePar: e.target.value }))}
                 placeholder="Nom du contact client"
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
             </div>
             <div>
@@ -590,7 +582,7 @@ export default function DevisCalorifuge() {
                 onChange={(e) => setDevisData(prev => ({ ...prev, objet: e.target.value }))}
                 placeholder="Description de la mission"
                 rows={3}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
             </div>
             <div>
@@ -600,7 +592,7 @@ export default function DevisCalorifuge() {
                 onChange={(e) => setDevisData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Informations complémentaires, conditions particulières, remarques client..."
                 rows={3}
-                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange"
+                className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge"
               />
             </div>
           </div>
@@ -629,7 +621,7 @@ export default function DevisCalorifuge() {
                   const suggestions = filtrerDesignations(designationSearch[ligne.id] || ligne.designation)
  
                   return (
-                    <tr key={ligne.id} className="hover:bg-orangeClair transition-colors">
+                    <tr key={ligne.id} className="hover:bg-rougeClair transition-colors">
                       <td className="border border-argent px-3 py-3">
                         <div className="relative flex flex-col gap-2">
                           <input
@@ -642,7 +634,7 @@ export default function DevisCalorifuge() {
                             }}
                             onFocus={() => setShowDesignationSuggestions(prev => ({ ...prev, [ligne.id]: true }))}
                             placeholder="Saisir ou sélectionner la désignation..."
-                            className="w-full px-2 py-1.5 border border-argent rounded focus:outline-none focus:ring-1 focus:ring-orange font-medium"
+                            className="w-full px-2 py-1.5 border border-argent rounded focus:outline-none focus:ring-1 focus:ring-rouge font-medium"
                           />
                           {showDesignationSuggestions[ligne.id] && suggestions.length > 0 && (
                             <>
@@ -650,12 +642,12 @@ export default function DevisCalorifuge() {
                                 className="fixed inset-0 z-10" 
                                 onClick={() => setShowDesignationSuggestions(prev => ({ ...prev, [ligne.id]: false }))}
                               />
-                              <div className="absolute z-20 w-full mt-1 bg-white border border-orange rounded shadow-lg max-h-48 overflow-y-auto">
+                              <div className="absolute z-20 w-full mt-1 bg-surface border border-rouge rounded shadow-lg max-h-48 overflow-y-auto">
                                 {suggestions.map((designation, i) => (
                                   <button
                                     key={i}
                                     onClick={() => selectionnerDesignation(ligne.id, designation)}
-                                    className="w-full px-3 py-2 text-left hover:bg-orangeClair transition-colors border-b border-argent last:border-b-0 text-sm"
+                                    className="w-full px-3 py-2 text-left hover:bg-rougeClair transition-colors border-b border-argent last:border-b-0 text-sm"
                                   >
                                     {designation}
                                   </button>
@@ -677,7 +669,7 @@ export default function DevisCalorifuge() {
                           min="0"
                           step="0.01"
                           placeholder="0"
-                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange font-semibold text-bleu"
+                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-rouge font-semibold text-bleu"
                         />
                       </td>
                       <td className="border border-argent px-2 py-2">
@@ -692,7 +684,7 @@ export default function DevisCalorifuge() {
                           min="0"
                           step="0.01"
                           placeholder="0"
-                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange font-semibold text-bleu"
+                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-rouge font-semibold text-bleu"
                         />
                       </td>
                       <td className="border border-argent px-2 py-2 bg-navyClair">
@@ -710,7 +702,7 @@ export default function DevisCalorifuge() {
                           }}
                           min="0"
                           step="0.01"
-                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange font-bold text-navy bg-white"
+                          className="w-full px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-rouge font-bold text-navy bg-surface"
                           title="Saisir la quantité - ML et PT se synchroniseront automatiquement"
                         />
                       </td>
@@ -721,10 +713,10 @@ export default function DevisCalorifuge() {
                           onChange={(e) => modifierLigne(ligne.id, 'pu', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="1"
-                          className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:ring-1 focus:ring-orange"
+                          className="w-full px-2 py-1 border border-argent rounded text-right focus:outline-none focus:ring-1 focus:ring-rouge"
                         />
                       </td>
-                      <td className="border border-argent px-2 py-2 bg-orangeClair">
+                      <td className="border border-argent px-2 py-2 bg-rougeClair">
                         <input
                           type="number"
                           value={ligne.montant !== '' && ligne.montant !== undefined && ligne.montant !== null ? ligne.montant : montantAuto || ''}
@@ -732,7 +724,7 @@ export default function DevisCalorifuge() {
                           placeholder={montantAuto > 0 ? String(montantAuto) : '0'}
                           min="0"
                           step="1"
-                          className="w-full px-2 py-1 border border-orange rounded text-right font-bold text-navy focus:outline-none focus:ring-1 focus:ring-orange bg-white"
+                          className="w-full px-2 py-1 border border-rouge rounded text-right font-bold text-navy focus:outline-none focus:ring-1 focus:ring-rouge bg-surface"
                           title="Saisissable — laissez vide pour calculer automatiquement (Qte x PU)"
                         />
                         {(ligne.montant === '' || ligne.montant === undefined || ligne.montant === null) && montantAuto > 0 && (
@@ -782,7 +774,7 @@ export default function DevisCalorifuge() {
 
           <button
             onClick={ajouterLigne}
-            className="mt-4 px-6 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors font-medium"
+            className="mt-4 px-6 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors font-medium"
           >
             ➕ Ajouter une ligne
           </button>
@@ -790,7 +782,7 @@ export default function DevisCalorifuge() {
 
         {/* TOTAUX */}
         <div className="flex justify-end">
-          <div className="w-full md:w-1/2 bg-navyClair border-l-4 border-orange p-4 rounded-r-lg">
+          <div className="w-full md:w-1/2 bg-navyClair border-l-4 border-rouge p-4 rounded-r-lg">
             <div className="space-y-2">
               <div className="flex justify-between items-center pb-2 border-b border-argent">
                 <span className="text-sm font-medium text-bleu">MONTANT BRUT HT</span>
@@ -806,14 +798,14 @@ export default function DevisCalorifuge() {
                     max="100"
                     value={devisData.tauxRemise}
                     onChange={(e) => setDevisData(prev => ({ ...prev, tauxRemise: e.target.value }))}
-                    className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-orange"
+                    className="w-16 px-2 py-1 border border-argent rounded text-center focus:outline-none focus:ring-1 focus:ring-rouge"
                   />
                   <span className="text-navy">%</span>
                 </div>
                 <span className="font-bold text-rouge">- {formatFCFA(totaux.remise)}</span>
               </div>
 
-              <div className="flex justify-between items-center pb-2 border-b border-argent bg-orange bg-opacity-20 p-2 rounded">
+              <div className="flex justify-between items-center pb-2 border-b border-argent bg-rouge bg-opacity-20 p-2 rounded">
                 <span className="font-bold text-navy">MONTANT TOTAL HT</span>
                 <span className="font-bold text-navy text-lg">{formatFCFA(totaux.montantHT)}</span>
               </div>
@@ -821,11 +813,11 @@ export default function DevisCalorifuge() {
               {devisData.tvaActive && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-bleu">TVA (18%)</span>
-                  <span className="text-lg font-bold text-orange">{formatFCFA(totaux.tva)}</span>
+                  <span className="text-lg font-bold text-rouge">{formatFCFA(totaux.tva)}</span>
                 </div>
               )}
 
-              <div className="border-t-2 border-orange pt-2 flex justify-between items-center">
+              <div className="border-t-2 border-rouge pt-2 flex justify-between items-center">
                 <span className="text-base font-bold text-navy">MONTANT TTC</span>
                 <span className="text-xl font-bold text-navy">{formatFCFA(totaux.ttc)}</span>
               </div>
@@ -835,7 +827,7 @@ export default function DevisCalorifuge() {
       </div>
 
       {/* BARRE ACTIONS BAS */}
-      <div className="bg-white border-t-4 border-orange shadow-lg rounded-lg mt-6 px-4 py-3">
+      <div className="bg-surface border-t-4 border-rouge shadow-lg rounded-lg mt-6 px-4 py-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={nouveauDevis} className="flex items-center gap-2 px-4 py-2 bg-bleu text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
@@ -850,7 +842,7 @@ export default function DevisCalorifuge() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-navy font-bold text-sm hidden sm:block">TTC : {formatFCFA(totaux.ttc)}</span>
-            <button onClick={genererPDF} className="flex items-center gap-2 px-4 py-2 bg-orange text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
+            <button onClick={genererPDF} className="flex items-center gap-2 px-4 py-2 bg-rouge text-white rounded-lg hover:bg-opacity-90 transition font-medium text-sm">
               📄 PDF
             </button>
             <button onClick={enregistrerDevis} className="flex items-center gap-2 px-5 py-3 bg-vert text-white rounded-lg hover:bg-opacity-90 transition font-bold text-base shadow-lg">
@@ -862,9 +854,9 @@ export default function DevisCalorifuge() {
 
       {/* PDF TEMPLATE (caché) */}
       <div ref={pdfRef} className="hidden print:block">
-        <div className="p-8 bg-white">
+        <div className="p-8 bg-surface">
           {/* En-tête PDF */}
-          <div className="flex justify-between items-start mb-8 border-b-4 border-orange pb-4">
+          <div className="flex justify-between items-start mb-8 border-b-4 border-rouge pb-4">
             <div className="text-navy">
               <div className="text-4xl font-bold">SIKA</div>
               <div className="text-lg font-medium">INDUSTRIE</div>
@@ -910,7 +902,7 @@ export default function DevisCalorifuge() {
             <tbody>
               {devisData.lignes.map((ligne, index) => {
                 return (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                  <tr key={index} className={index % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                     <td className="border border-argent px-3 py-2 text-sm">{ligne.designation}</td>
                     <td className="border border-argent px-3 py-2 text-center text-sm font-semibold">{ligne.ml || '—'}</td>
                     <td className="border border-argent px-3 py-2 text-center text-sm font-semibold">{ligne.pt || '—'}</td>
@@ -927,19 +919,19 @@ export default function DevisCalorifuge() {
                 <td className="border border-navy px-3 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantBrut)}</td>
               </tr>
               {devisData.tauxRemise > 0 && (
-                <tr className="bg-white">
+                <tr className="bg-surface">
                   <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-rouge">REMISE {devisData.tauxRemise}%</td>
                   <td className="border border-navy px-3 py-2 text-right font-bold text-rouge">- {formatFCFA(totaux.remise)}</td>
                 </tr>
               )}
-              <tr className="bg-orangeClair">
+              <tr className="bg-rougeClair">
                 <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-navy">MONTANT TOTAL HT</td>
                 <td className="border border-navy px-3 py-2 text-right font-bold text-navy">{formatFCFA(totaux.montantHT)}</td>
               </tr>
               {devisData.tvaActive && (
-                <tr className="bg-white">
-                  <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-orange">TVA (18%)</td>
-                  <td className="border border-navy px-3 py-2 text-right font-bold text-orange">{formatFCFA(totaux.tva)}</td>
+                <tr className="bg-surface">
+                  <td colSpan="5" className="border border-navy px-3 py-2 text-right font-bold text-rouge">TVA (18%)</td>
+                  <td className="border border-navy px-3 py-2 text-right font-bold text-rouge">{formatFCFA(totaux.tva)}</td>
                 </tr>
               )}
               <tr className="bg-navy text-white">

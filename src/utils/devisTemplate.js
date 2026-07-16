@@ -316,7 +316,7 @@ export function generateDevisHTML(data, baseUrl = '') {
       .page-footer {
         display: block !important;
         position: fixed;
-        bottom: 8mm !important; /* Position sécurisée de 8mm pour être visible et ne pas être coupée par l'imprimante ou le PDF */
+        bottom: 0 !important; /* Position fixée au bord inférieur (gérée avec @page margin) */
         left: 15mm !important;  /* Aligné avec les marges gauche/droite */
         right: 15mm !important;
         width: calc(100% - 30mm) !important;
@@ -378,18 +378,7 @@ export function generateDevisHTML(data, baseUrl = '') {
       margin-top: 30px;
     }
     
-    .pied-suite-barre {
-      display: none; /* Masqué par défaut à l'écran, affiché si multi-page à l'impression via JS */
-      background: #1A3A8F !important;
-      color: white !important;
-      font-size: 8pt;
-      font-weight: bold;
-      padding: 4px 12px;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      margin-bottom: 4px;
-    }
+
     
     .footer-img {
       width: 100%;
@@ -414,7 +403,9 @@ export function generateDevisHTML(data, baseUrl = '') {
 ${draftWatermark}
 
 <div class="page">
-
+  <table style="width: 100%; border: none; margin: 0; padding: 0;">
+    <thead><tr><td style="border: none; height: 0;"></td></tr></thead>
+    <tbody><tr><td style="border: none; padding: 0;">
   <!-- ══ ENTÊTE IMAGE SIKA — page 1 uniquement ══ -->
   <img class="header-img" src="${baseUrl}/entete-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
 
@@ -522,31 +513,19 @@ ${draftWatermark}
 
 
 
+  <!-- Fermeture du wrapper global pour l'impression -->
+    </td></tr></tbody>
+    <tfoot><tr><td style="border: none;">
+      <div style="height: 35mm;"></div> <!-- Espace réservé pour le pied de page -->
+    </td></tr></tfoot>
+  </table>
+
   <!-- ══ PIED DE PAGE UNIQUE ET AUTOMATIQUE ══ -->
   <div class="page-footer" id="page-footer">
-    <div class="pied-suite-barre" id="pied-suite-barre">
-      <span>Réf. : ${reference} &mdash; ${type || companyName} &mdash; Document confidentiel</span>
-      <span>${companyName} &bull; T&#233;l : ${companyTel} &bull; Page <span class="page-number"></span></span>
-    </div>
     <img class="footer-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
   </div>
 
 </div>
-
-<script>
-  // Détecte si le contenu dépasse une page A4 et active le pied de suite
-  window.addEventListener('load', function() {
-    var A4_HEIGHT_PX = 1122; // ~297mm à 96dpi
-    var body = document.body;
-    var contentHeight = body.scrollHeight;
-    if (contentHeight > A4_HEIGHT_PX * 1.05) {
-      // Multi-page détecté : afficher la barre de pied de suite à l'impression
-      var style = document.createElement('style');
-      style.innerHTML = '@media print { .pied-suite-barre { display: flex !important; } }';
-      document.head.appendChild(style);
-    }
-  });
-</script>
 
 </body>
 </html>`;

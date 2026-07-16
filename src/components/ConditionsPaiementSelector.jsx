@@ -37,7 +37,7 @@ export default function ConditionsPaiementSelector({ value, onChange, className 
         <select
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value))}
-          className={`flex-1 px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange ${className}`}
+          className={`flex-1 px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge ${className}`}
         >
           {conditions.map(c => (
             <option key={c.value} value={c.value}>{c.label}</option>
@@ -56,7 +56,7 @@ export default function ConditionsPaiementSelector({ value, onChange, className 
         <button
           type="button"
           onClick={() => setShowManageModal(true)}
-          className="px-3 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors"
+          className="px-3 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors"
           title="Gérer les conditions"
         >
           ⚙️
@@ -64,14 +64,14 @@ export default function ConditionsPaiementSelector({ value, onChange, className 
       </div>
 
       {showCustomInput && (
-        <div className="mt-2 flex gap-2 p-3 bg-navyClair rounded-lg border border-orange">
+        <div className="mt-2 flex gap-2 p-3 bg-navyClair rounded-lg border border-rouge">
           <input
             type="number"
             min="1"
             value={customValue}
             onChange={(e) => setCustomValue(e.target.value)}
             placeholder="Nombre de jours"
-            className="flex-1 px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-orange focus:border-orange"
+            className="flex-1 px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -103,7 +103,7 @@ export default function ConditionsPaiementSelector({ value, onChange, className 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-navy/80" onClick={() => setShowManageModal(false)}></div>
           
-          <div className="relative bg-white rounded-lg shadow-2xl max-w-md w-full">
+          <div className="relative bg-surface rounded-lg shadow-2xl max-w-md w-full">
             <div className="bg-navy text-white p-4 rounded-t-lg">
               <h3 className="text-xl font-bold">Gérer les conditions de paiement</h3>
             </div>
@@ -134,7 +134,7 @@ export default function ConditionsPaiementSelector({ value, onChange, className 
                 <button
                   type="button"
                   onClick={() => setShowManageModal(false)}
-                  className="w-full px-4 py-2 bg-orange text-white rounded-lg hover:bg-orange/90 transition-colors"
+                  className="w-full px-4 py-2 bg-rouge text-white rounded-lg hover:bg-rouge/90 transition-colors"
                 >
                   Fermer
                 </button>

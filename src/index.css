@@ -2,16 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-primary:    #1A3A8F;
-  --color-secondary:  #4A6DB5;
-  --color-accent:     #D42B2B;
-  --color-white:      #FFFFFF;
+@layer base {
+  :root {
+    --color-primary: #1B2A4A;
+    --color-secondary: #1F5C99;
+    --color-accent: #E60000;
+    --color-accent-light: #FFE6E6;
+    --color-success: #1A7A4A;
+    --color-text-main: #1B2A4A;
+    --color-text-muted: #C8C8D0;
+    --color-border: #C8C8D0;
+    --color-surface: #FFFFFF;
+    --color-surface-muted: #E8ECF4;
+    --color-bg: #F9FAFB;
+    --color-bg-light: #F8F9FA;
+  }
+
+  .dark {
+    --color-primary: #1e293b;
+    --color-secondary: #3b82f6;
+    --color-accent: #ef4444;
+    --color-accent-light: #450a0a;
+    --color-success: #22c55e;
+    --color-text-main: #f8fafc;
+    --color-text-muted: #94a3b8;
+    --color-border: #334155;
+    --color-surface: #0f172a;
+    --color-surface-muted: #1e293b;
+    --color-bg: #020617;
+    --color-bg-light: #0f172a;
+  }
 }
+
 
 @layer base {
   body {
-    @apply bg-white text-gray-900 antialiased;
+    background-color: var(--color-bg);
+    color: var(--color-text-main);
+    @apply antialiased;
   }
 }
 
@@ -74,24 +102,23 @@
 
   /* Futuristic UI elements */
   .glass-panel {
-    background: rgba(255, 255, 255, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(226, 232, 240, 0.8);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .dark .glass-panel {
+    background-color: var(--color-surface);
   }
 
   .glass-sidebar {
-    background: linear-gradient(180deg, rgba(15, 25, 48, 0.96) 0%, rgba(22, 38, 74, 0.98) 100%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: var(--color-primary);
+    border-right: 1px solid var(--color-border);
+    @apply backdrop-blur-xl;
   }
 
   .glass-header {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .glow-blue {
@@ -141,12 +168,12 @@
   
   .table-container table {
     min-width: 600px;
+    width: 100%;
   }
   
   /* Formulaires optimisés tactile */
   input, select, textarea, button {
     font-size: 16px !important; /* Empêche le zoom iOS */
-    min-height: 44px; /* Zone tactile minimale */
   }
   
   /* Boutons plus grands sur mobile */
@@ -212,7 +239,9 @@
   .btn-action,
   .no-print,
   button,
-  nav { 
+  nav,
+  .pwa-install-btn,
+  .toast-container { 
     display: none !important; 
   }
 
@@ -273,8 +302,11 @@
     print-color-adjust: exact;
   }
 
-  /* Pas de coupure à l'intérieur d'une ligne */
-  tr { page-break-inside: avoid; }
+  /* Pas de coupure à l'intérieur d'une ligne ou bloc */
+  tr, .avoid-page-break, .total-section, .signature-section { 
+    page-break-inside: avoid; 
+    break-inside: avoid;
+  }
 
   /* Marges page */
   @page {

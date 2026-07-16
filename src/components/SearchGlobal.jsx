@@ -24,7 +24,7 @@ const MODULES = {
   AO: {
     nom: 'Appels d\'Offres',
     icone: '📋',
-    couleur: 'text-orange',
+    couleur: 'text-rouge',
     route: '/appels-offres'
   },
   ENCAISSEMENTS: {
@@ -42,7 +42,7 @@ const MODULES = {
   PROJETS: {
     nom: 'Planification',
     icone: '📊',
-    couleur: 'text-orange',
+    couleur: 'text-rouge',
     route: '/planification'
   }
 };
@@ -76,19 +76,21 @@ export default function SearchGlobal() {
   const projets = usePlanificationStore((state) => state.projets);
   const clients = useClientsStore((state) => state.clients);
 
-  const ajouterHistorique = (recherche) => {
-    const nouvelHistorique = [
-      recherche,
-      ...historique.filter(h => h !== recherche)
-    ].slice(0, 5);
-    
-    setHistorique(nouvelHistorique);
-    try {
-      sessionStorage.setItem('sika_search_history', JSON.stringify(nouvelHistorique));
-    } catch (e) {
-      // Storage plein ou inaccessible - ignorer
-    }
-  };
+  const ajouterHistorique = useCallback((recherche) => {
+    setHistorique(prev => {
+      const nouvelHistorique = [
+        recherche,
+        ...prev.filter(h => h !== recherche)
+      ].slice(0, 5);
+      
+      try {
+        sessionStorage.setItem('sika_search_history', JSON.stringify(nouvelHistorique));
+      } catch {
+        // Storage plein ou inaccessible - ignorer
+      }
+      return nouvelHistorique;
+    });
+  }, []);
 
   const handleSelectResult = useCallback((resultat) => {
     ajouterHistorique(query);
@@ -100,7 +102,7 @@ export default function SearchGlobal() {
     if (module) {
       navigate(`${module.route}?id=${resultat.id}`);
     }
-  }, [query, navigate]);
+  }, [query, navigate, ajouterHistorique]);
 
   // Raccourci clavier Ctrl+K
   useEffect(() => {
@@ -278,13 +280,11 @@ export default function SearchGlobal() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, resultats, selectedIndex, handleSelectResult]);
 
-  // Réinitialiser l'index de sélection quand la recherche change ou les résultats changent
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query, resultats.length]);
+
 
   const handleHistoriqueClick = (recherche) => {
     setQuery(recherche);
+    setSelectedIndex(0);
     inputRef.current?.focus();
   };
 
@@ -306,10 +306,11 @@ export default function SearchGlobal() {
           onChange={(e) => {
             setQuery(e.target.value);
             setIsOpen(true);
+            setSelectedIndex(0);
           }}
           onFocus={() => setIsOpen(true)}
           placeholder="Rechercher... (Ctrl+K)"
-          className="w-80 px-4 py-2 pl-10 bg-white border-2 border-argent rounded-lg focus:outline-none focus:border-orange transition-colors"
+          className="w-80 px-4 py-2 pl-10 bg-surface border-2 border-argent rounded-lg focus:outline-none focus:border-rouge transition-colors"
         />
         <svg
           className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-argent"
@@ -327,7 +328,7 @@ export default function SearchGlobal() {
       </div>
 
       {isOpen && (
-        <div className="absolute top-full mt-2 w-[600px] max-h-[500px] overflow-y-auto bg-white border-2 border-argent rounded-lg shadow-2xl z-50">
+        <div className="absolute top-full mt-2 w-[600px] max-h-[500px] overflow-y-auto bg-surface border-2 border-argent rounded-lg shadow-2xl z-50">
           {query.trim() === '' && historique.length > 0 && (
             <div className="p-3 border-b border-argent">
               <p className="text-xs font-bold text-navy mb-2">RECHERCHES RÉCENTES</p>
@@ -363,7 +364,7 @@ export default function SearchGlobal() {
                   </p>
                 </div>
                 
-                {items.map((item, idx) => {
+                {items.map((item) => {
                   const globalIndex = resultats.indexOf(item);
                   const isSelected = globalIndex === selectedIndex;
                   
@@ -371,8 +372,8 @@ export default function SearchGlobal() {
                     <button
                       key={`${moduleKey}-${item.id}`}
                       onClick={() => handleSelectResult(item)}
-                      className={`w-full text-left px-4 py-3 hover:bg-orangeClair transition-colors border-l-4 ${
-                        isSelected ? 'bg-orangeClair border-orange' : 'border-transparent'
+                      className={`w-full text-left px-4 py-3 hover:bg-rougeClair transition-colors border-l-4 ${
+                        isSelected ? 'bg-rougeClair border-rouge' : 'border-transparent'
                       }`}
                     >
                       <div className="flex items-start gap-3">

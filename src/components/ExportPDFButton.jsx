@@ -39,7 +39,7 @@ export default function ExportPDFButton({
   return (
     <button
       onClick={handleExport}
-      className="px-4 py-2 bg-orange text-white rounded-lg font-medium hover:bg-orange/90 transition-colors flex items-center gap-2"
+      className="px-4 py-2 bg-rouge text-white rounded-lg font-medium hover:bg-rouge/90 transition-colors flex items-center gap-2"
     >
       <span className="text-lg">📄</span>
       <span>Exporter PDF</span>

@@ -32,7 +32,7 @@ export default function SuiviAO() {
   const badges = [
     { label: 'A chiffrer', statut: STATUTS_AO.A_CHIFFRER, count: stats.aChiffrer, color: 'bg-bleu text-white' },
     { label: 'Décliné', statut: STATUTS_AO.DECLINE, count: stats.decline, color: 'bg-gray-500 text-white' },
-    { label: 'En attente', statut: STATUTS_AO.EN_ATTENTE, count: stats.enAttente, color: 'bg-orange text-white' },
+    { label: 'En attente', statut: STATUTS_AO.EN_ATTENTE, count: stats.enAttente, color: 'bg-rouge text-white' },
     { label: 'Soumis', statut: STATUTS_AO.SOUMIS, count: stats.soumis, color: 'bg-purple-600 text-white' },
     { label: 'Gagné', statut: STATUTS_AO.GAGNE, count: stats.gagne, color: 'bg-vert text-white' },
     { label: 'Perdu', statut: STATUTS_AO.PERDU, count: stats.perdu, color: 'bg-rouge text-white' }
@@ -259,7 +259,7 @@ export default function SuiviAO() {
 
   const getRowClass = (ao) => {
     if (ao.statut === STATUTS_AO.DECLINE || ao.statut === STATUTS_AO.PERDU) {
-      return 'bg-gray-100 text-gray-500';
+      return 'bg-surfaceMuted text-gray-500';
     }
 
     if (ao.dateReponseAO) {
@@ -272,14 +272,14 @@ export default function SuiviAO() {
       }
     }
 
-    return 'hover:bg-orange-light';
+    return 'hover:bg-rouge-light';
   };
 
   const getStatutBadge = (statut) => {
     const config = {
       [STATUTS_AO.A_CHIFFRER]: { label: 'A chiffrer', color: 'bg-bleu' },
       [STATUTS_AO.DECLINE]: { label: 'Décliné', color: 'bg-gray-500' },
-      [STATUTS_AO.EN_ATTENTE]: { label: 'En attente', color: 'bg-orange' },
+      [STATUTS_AO.EN_ATTENTE]: { label: 'En attente', color: 'bg-rouge' },
       [STATUTS_AO.SOUMIS]: { label: 'Soumis', color: 'bg-purple-600' },
       [STATUTS_AO.GAGNE]: { label: 'Gagné', color: 'bg-vert' },
       [STATUTS_AO.PERDU]: { label: 'Perdu', color: 'bg-rouge' }
@@ -290,16 +290,16 @@ export default function SuiviAO() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <SikaHeader module="SUIVI DES APPELS D'OFFRES" />
 
       <div className="p-6">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex gap-3">
               <button
                 onClick={handleNouvelAO}
-                className="bg-orange text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition flex items-center gap-2"
+                className="bg-rouge text-white px-4 py-2 rounded-lg hover:bg-rouge-600 transition flex items-center gap-2"
               >
                 ➕ Nouvel AO
               </button>
@@ -323,7 +323,7 @@ export default function SuiviAO() {
                 placeholder="🔍 Recherche..."
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
-                className="border border-argent rounded-lg px-4 py-2 w-64 focus:outline-none focus:border-orange"
+                className="border border-argent rounded-lg px-4 py-2 w-64 focus:outline-none focus:border-rouge"
               />
             </div>
           </div>
@@ -358,7 +358,7 @@ export default function SuiviAO() {
             <select
               value={filtreSecteur}
               onChange={(e) => setFiltreSecteur(e.target.value)}
-              className="border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-orange"
+              className="border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-rouge"
             >
               <option value="">Tous les secteurs</option>
               {secteurs.map((secteur) => (
@@ -370,7 +370,7 @@ export default function SuiviAO() {
               type="date"
               value={dateDebut}
               onChange={(e) => setDateDebut(e.target.value)}
-              className="border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-orange"
+              className="border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-rouge"
               placeholder="Date début"
             />
 
@@ -378,7 +378,7 @@ export default function SuiviAO() {
               type="date"
               value={dateFin}
               onChange={(e) => setDateFin(e.target.value)}
-              className="border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-orange"
+              className="border border-argent rounded-lg px-4 py-2 focus:outline-none focus:border-rouge"
               placeholder="Date fin"
             />
 
@@ -399,7 +399,7 @@ export default function SuiviAO() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-surface rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-navy text-white">

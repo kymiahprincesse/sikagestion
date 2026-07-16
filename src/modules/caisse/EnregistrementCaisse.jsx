@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNotifications } from '../../components/NotificationProvider'
 import { useCaisseStore } from '../../store/useCaisseStore'
 import { useAuditStore } from '../../store/useAuditStore'
@@ -6,21 +6,16 @@ import { useNotificationsStore } from '../../store/useNotificationsStore'
 import { formatDate, formatFCFA } from '../../utils/format'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
-import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
+import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant } from '../../utils/printUtils'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function EnregistrementCaisse() {
-  const { mouvements, soldeCaisse, addMouvement, updateMouvement, deleteMouvement, setMouvements } = useCaisseStore()
+  const { mouvements, addMouvement, updateMouvement, deleteMouvement, setMouvements } = useCaisseStore()
   const { addLog } = useAuditStore()
   const { ajouterNotification } = useNotificationsStore()
   const { confirmDelete } = useNotifications()
-
-  const [loading, setLoading] = useState(false)
-
-  // Charger les données de caisse au montage pour s'assurer que c'est à jour
   useEffect(() => {
     const fetchMouvements = async () => {
-      setLoading(true)
       try {
         const { data, error } = await supabase
           .from('mouvements_caisse')
@@ -47,9 +42,7 @@ export default function EnregistrementCaisse() {
           setMouvements(mapped)
         }
       } catch (err) {
-        console.error('Erreur de chargement des mouvements de caisse:', err)
-      } finally {
-        setLoading(false)
+        console.error('Erreur chargement caisse:', err)
       }
     }
     fetchMouvements()
@@ -239,7 +232,7 @@ export default function EnregistrementCaisse() {
     resetForm()
   }
 
-  const handleDelete = async (mouvement) => {
+  const handleDelete = useCallback(async (mouvement) => {
     const ok = await confirmDelete(`le mouvement "${mouvement.libelles}" de ${formatFCFA(mouvement.montant)}`)
     if (!ok) return
     deleteMouvement(mouvement.id)
@@ -250,9 +243,9 @@ export default function EnregistrementCaisse() {
       avant: mouvement,
       impactFinancier: mouvement.type === 'ENTREE' ? -mouvement.montant : mouvement.montant
     })
-  }
+  }, [confirmDelete, deleteMouvement, addLog])
 
-  const handleEdit = (mouvement) => {
+  const handleEdit = useCallback((mouvement) => {
     setCurrentMouvement(mouvement)
     setFormData({
       date: mouvement.date,
@@ -267,14 +260,14 @@ export default function EnregistrementCaisse() {
       modePaiement: mouvement.modePaiement || ''
     })
     setShowModal(true)
-  }
+  }, [])
 
-  const handleView = (mouvement) => {
+  const handleView = useCallback((mouvement) => {
     setCurrentMouvement(mouvement)
     setShowViewModal(true)
-  }
+  }, [])
 
-  const handlePrint = async (mouvement) => {
+  const handlePrint = useCallback(async (mouvement) => {
     const ctx = await createSikaPDF(`MOUVEMENT DE CAISSE - ${mouvement.reference || mouvement.id}`);
     const { doc, startY, MARGE_G, PAGE_W } = ctx;
     
@@ -288,9 +281,12 @@ export default function EnregistrementCaisse() {
     const infos = [
       ['Date', formatDate(mouvement.date)],
       ['Référence', mouvement.reference || 'N/A'],
-      ['Type', mouvement.type]
+      ['Bénéficiaire', mouvement.beneficiaire || 'N/A'],
+      ['Libellé', mouvement.libelles || mouvement.description || 'N/A'],
+      ['Type', mouvement.type],
+      ['Montant', `${formatMontant(mouvement.montant)} FCFA`]
     ];
-    
+
     infos.forEach(([label, value]) => {
       doc.setFont('helvetica', 'bold');
       doc.text(label + ' :', MARGE_G, y);
@@ -327,7 +323,7 @@ export default function EnregistrementCaisse() {
       action: 'PRINT',
       utilisateur: 'Gérant'
     });
-  }
+  }, [addLog])
 
   const resetForm = () => {
     setFormData({
@@ -535,7 +531,7 @@ export default function EnregistrementCaisse() {
       cell: info => {
         const value = info.getValue()
         return (
-          <span className={`font-bold text-lg ${value < 0 ? 'text-rouge' : 'text-orange'}`}>
+          <span className={`font-bold text-lg ${value < 0 ? 'text-rouge' : 'text-rouge'}`}>
             {formatFCFA(value)}
           </span>
         )
@@ -561,8 +557,9 @@ export default function EnregistrementCaisse() {
         </div>
       )
     }
-  ], [])
+  ], [handleEdit, handleView, handlePrint, handleDelete])
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: mouvementsFiltres,
     columns,
@@ -577,7 +574,7 @@ export default function EnregistrementCaisse() {
 
   return (
     <div className="p-6 bg-navyClair min-h-screen">
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-surface rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-navy">💰 ENREGISTREMENT CAISSE</h1>
         </div>
@@ -617,7 +614,7 @@ export default function EnregistrementCaisse() {
           </button>
           <button
             onClick={exportExcel}
-            className="px-4 py-2 bg-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
+            className="px-4 py-2 bg-rouge text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
           >
             📊 Excel
           </button>
@@ -635,13 +632,13 @@ export default function EnregistrementCaisse() {
             placeholder="🔍 Recherche..."
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
-            className="px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+            className="px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
           />
           
           <select
             value={filtreType}
             onChange={(e) => setFiltreType(e.target.value)}
-            className="px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+            className="px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
           >
             <option value="">Tous les types</option>
             <option value="ENTREE">✅ Entrée</option>
@@ -653,14 +650,14 @@ export default function EnregistrementCaisse() {
               type="date"
               value={filtreDateDebut}
               onChange={(e) => setFiltreDateDebut(e.target.value)}
-              className="px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none flex-1"
+              className="px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none flex-1"
               placeholder="Date début"
             />
             <input
               type="date"
               value={filtreDateFin}
               onChange={(e) => setFiltreDateFin(e.target.value)}
-              className="px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none flex-1"
+              className="px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none flex-1"
               placeholder="Date fin"
             />
           </div>
@@ -671,14 +668,14 @@ export default function EnregistrementCaisse() {
               placeholder="Montant min"
               value={filtreMontantMin}
               onChange={(e) => setFiltreMontantMin(e.target.value)}
-              className="px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none flex-1"
+              className="px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none flex-1"
             />
             <input
               type="number"
               placeholder="Montant max"
               value={filtreMontantMax}
               onChange={(e) => setFiltreMontantMax(e.target.value)}
-              className="px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none flex-1"
+              className="px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none flex-1"
             />
           </div>
         </div>
@@ -705,7 +702,7 @@ export default function EnregistrementCaisse() {
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row, idx) => (
-                <tr key={row.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-navyClair'}>
+                <tr key={row.id} className={idx % 2 === 0 ? 'bg-surface' : 'bg-navyClair'}>
                   {row.getVisibleCells().map(cell => (
                     <td key={cell.id} className="px-4 py-3 text-sm border-b border-argent">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -717,20 +714,20 @@ export default function EnregistrementCaisse() {
           </table>
         </div>
 
-        <div className="mt-6 bg-orangeClair border-2 border-orange rounded-lg p-4">
+        <div className="mt-6 bg-rougeClair border-2 border-rouge rounded-lg p-4">
           <h3 className="text-lg font-bold text-navy mb-3">📊 TOTAUX</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-3 rounded-lg border-2 border-argent">
+            <div className="bg-surface p-3 rounded-lg border-2 border-argent">
               <div className="text-xs text-bleu font-semibold">Total ENTREE</div>
               <div className="text-xl font-bold text-vert">{formatFCFA(totaux.totalEntree)}</div>
             </div>
-            <div className="bg-white p-3 rounded-lg border-2 border-argent">
+            <div className="bg-surface p-3 rounded-lg border-2 border-argent">
               <div className="text-xs text-bleu font-semibold">Total SORTIR</div>
               <div className="text-xl font-bold text-rouge">{formatFCFA(totaux.totalSortir)}</div>
             </div>
-            <div className="bg-white p-3 rounded-lg border-2 border-orange">
+            <div className="bg-surface p-3 rounded-lg border-2 border-rouge">
               <div className="text-xs text-bleu font-semibold">SOLDE FINAL</div>
-              <div className={`text-2xl font-bold ${totaux.soldeFinal < 0 ? 'text-rouge' : 'text-orange'}`}>
+              <div className={`text-2xl font-bold ${totaux.soldeFinal < 0 ? 'text-rouge' : 'text-rouge'}`}>
                 {formatFCFA(totaux.soldeFinal)}
               </div>
             </div>
@@ -763,16 +760,16 @@ export default function EnregistrementCaisse() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-surface rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="bg-navy text-white p-4 rounded-t-lg flex justify-between items-center">
               <h2 className="text-xl font-bold">
                 {currentMouvement ? '📝 Modifier le mouvement' : '➕ Nouveau mouvement'}
               </h2>
-              <button onClick={resetForm} className="text-2xl hover:text-orange">×</button>
+              <button onClick={resetForm} className="text-2xl hover:text-rouge">×</button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="bg-orangeClair border-2 border-orange rounded-lg p-4 mb-4">
+              <div className="bg-rougeClair border-2 border-rouge rounded-lg p-4 mb-4">
                 <p className="text-sm font-bold text-rouge">⚠️ RÈGLES IMPORTANTES :</p>
                 <ul className="text-xs text-navy mt-2 space-y-1">
                   <li>• ENTREE et SORTIR ne peuvent pas être simultanés</li>
@@ -789,7 +786,7 @@ export default function EnregistrementCaisse() {
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                     required
                   />
                 </div>
@@ -800,7 +797,7 @@ export default function EnregistrementCaisse() {
                     type="text"
                     value={formData.reference}
                     readOnly
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg bg-surfaceMuted text-gray-700 cursor-not-allowed"
                     placeholder="Générée automatiquement"
                   />
                 </div>
@@ -810,7 +807,7 @@ export default function EnregistrementCaisse() {
                   <textarea
                     value={formData.libelles}
                     onChange={(e) => setFormData({ ...formData, libelles: e.target.value, description: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                     rows="2"
                     placeholder="Description du mouvement (mentionner référence projet si applicable)"
                     required
@@ -822,7 +819,7 @@ export default function EnregistrementCaisse() {
                   <select
                     value={formData.categorie}
                     onChange={(e) => setFormData({ ...formData, categorie: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                   >
                     <option value="">Sélectionner une catégorie</option>
                     <option value="PAIEMENT_CLIENT">Paiement Client</option>
@@ -845,7 +842,7 @@ export default function EnregistrementCaisse() {
                     type="text"
                     value={formData.beneficiaire}
                     onChange={(e) => setFormData({ ...formData, beneficiaire: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                     placeholder="Nom du bénéficiaire"
                   />
                 </div>
@@ -855,7 +852,7 @@ export default function EnregistrementCaisse() {
                   <select
                     value={formData.modePaiement}
                     onChange={(e) => setFormData({ ...formData, modePaiement: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-orange focus:outline-none"
+                    className="w-full px-4 py-2 border-2 border-argent rounded-lg focus:border-rouge focus:outline-none"
                   >
                     <option value="">Sélectionner un mode</option>
                     <option value="ESPECES">Espèces</option>
@@ -873,7 +870,7 @@ export default function EnregistrementCaisse() {
                     step="0.01"
                     value={formData.entree}
                     onChange={(e) => handleEntreeChange(e.target.value)}
-                    className="w-full px-4 py-2 border-2 border-vert rounded-lg focus:border-vert focus:outline-none bg-white"
+                    className="w-full px-4 py-2 border-2 border-vert rounded-lg focus:border-vert focus:outline-none bg-surface"
                     placeholder="Montant entrée"
                   />
                 </div>
@@ -885,7 +882,7 @@ export default function EnregistrementCaisse() {
                     step="0.01"
                     value={formData.sortir}
                     onChange={(e) => handleSortirChange(e.target.value)}
-                    className="w-full px-4 py-2 border-2 border-rouge rounded-lg focus:border-rouge focus:outline-none bg-white"
+                    className="w-full px-4 py-2 border-2 border-rouge rounded-lg focus:border-rouge focus:outline-none bg-surface"
                     placeholder="Montant sortie"
                   />
                 </div>
@@ -894,7 +891,7 @@ export default function EnregistrementCaisse() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-orange text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
+                  className="flex-1 px-6 py-3 bg-rouge text-white rounded-lg font-semibold hover:bg-opacity-90 transition"
                 >
                   {currentMouvement ? '💾 Enregistrer' : '➕ Créer'}
                 </button>
@@ -913,10 +910,10 @@ export default function EnregistrementCaisse() {
 
       {showViewModal && currentMouvement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full">
+          <div className="bg-surface rounded-lg shadow-2xl max-w-2xl w-full">
             <div className="bg-bleu text-white p-4 rounded-t-lg flex justify-between items-center">
               <h2 className="text-xl font-bold">👁 Détails du mouvement</h2>
-              <button onClick={() => setShowViewModal(false)} className="text-2xl hover:text-orange">×</button>
+              <button onClick={() => setShowViewModal(false)} className="text-2xl hover:text-rouge">×</button>
             </div>
             
             <div className="p-6 space-y-4">
@@ -955,7 +952,7 @@ export default function EnregistrementCaisse() {
                 </div>
                 <div className="col-span-2">
                   <div className="text-sm text-bleu font-semibold">Solde après opération</div>
-                  <div className="text-orange font-bold text-2xl">{formatFCFA(currentMouvement.solde)}</div>
+                  <div className="text-rouge font-bold text-2xl">{formatFCFA(currentMouvement.solde)}</div>
                 </div>
               </div>
               

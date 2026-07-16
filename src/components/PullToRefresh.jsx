@@ -71,34 +71,6 @@ export function PullToRefresh({ onRefresh, children, enabled = true }) {
     }
   }, [isPulling, pullDistance, onRefresh]);
 
-  // Pour desktop - wheel event
-  const handleWheel = useCallback((e) => {
-    if (!enabled || !isAtTop() || isRefreshing) return;
-    
-    if (e.deltaY < 0) {
-      // Scroll vers le haut
-      const diff = Math.abs(e.deltaY);
-      const resistance = 0.3;
-      const newDistance = Math.min(pullDistance + diff * resistance, MAX_PULL);
-      setPullDistance(newDistance);
-    }
-  }, [enabled, isRefreshing, pullDistance]);
-
-  const handleWheelEnd = useCallback(async () => {
-    if (pullDistance >= PULL_THRESHOLD) {
-      setIsRefreshing(true);
-      setPullDistance(PULL_THRESHOLD);
-
-      try {
-        await onRefresh?.();
-      } finally {
-        setIsRefreshing(false);
-        setPullDistance(0);
-      }
-    } else {
-      setPullDistance(0);
-    }
-  }, [pullDistance, onRefresh]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -139,7 +111,7 @@ export function PullToRefresh({ onRefresh, children, enabled = true }) {
       >
         <div
           className={`
-            w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center
+            w-10 h-10 rounded-full bg-surface shadow-lg flex items-center justify-center
             ${isRefreshing ? 'animate-spin' : ''}
             ${pullDistance >= PULL_THRESHOLD ? 'bg-blue-500 text-white' : 'text-gray-500'}
           `}

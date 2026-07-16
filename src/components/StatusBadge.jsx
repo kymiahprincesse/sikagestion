@@ -4,7 +4,7 @@ export default function StatusBadge({ status }) {
     'Payé': { bg: 'bg-vert', text: 'text-white', label: 'Payé' },
     'Perdu': { bg: 'bg-rouge', text: 'text-white', label: 'Perdu' },
     'Retard': { bg: 'bg-rouge', text: 'text-white', label: 'Retard' },
-    'Attente': { bg: 'bg-orange', text: 'text-white', label: 'Attente' },
+    'Attente': { bg: 'bg-rouge', text: 'text-white', label: 'Attente' },
     'Brouillon': { bg: 'bg-bleu', text: 'text-white', label: 'Brouillon' },
     'Décliné': { bg: 'bg-argent', text: 'text-gray-700', label: 'Décliné' },
   }

@@ -7,10 +7,10 @@ import { useAudit } from '../../hooks/useAudit';
 import { filtrerSuperAdmin, isSuperAdmin, normalizeRole } from '../../utils/filterSuperAdmin';
 
 const ROLE_CONFIG = {
-  ADMIN:      { couleur: '#E60000', fond: '#FFE6E6', label: 'Administrateur', icone: '👑', desc: 'Accès complet à tous les modules. Gère les utilisateurs et les paramètres système.' },
-  COMPTABLE:  { couleur: '#1B2A4A', fond: '#E8ECF4', label: 'Comptable',       icone: '📊', desc: 'Factures, encaissements, caisse, journal, fournisseurs. Export financier.' },
-  SECRETAIRE: { couleur: '#1A7A4A', fond: '#E8F5E9', label: 'Secrétaire',      icone: '📋', desc: 'Clients, devis, factures (lecture), appels d\'offres, planification.' },
-  TECHNICIEN: { couleur: '#1F5C99', fond: '#E3F0FB', label: 'Technicien',      icone: '🔧', desc: 'Planification et appels d\'offres en lecture seule. Peut modifier les tâches.' }
+  ADMIN:      { couleur: 'var(--color-accent)', fond: 'var(--color-accent-light)', label: 'Administrateur', icone: '👑', desc: 'Accès complet à tous les modules. Gère les utilisateurs et les paramètres système.' },
+  COMPTABLE:  { couleur: 'var(--color-primary)', fond: 'var(--color-surface-muted)', label: 'Comptable',       icone: '📊', desc: 'Factures, encaissements, caisse, journal, fournisseurs. Export financier.' },
+  SECRETAIRE: { couleur: 'var(--color-success)', fond: '#E8F5E9', label: 'Secrétaire',      icone: '📋', desc: 'Clients, devis, factures (lecture), appels d\'offres, planification.' },
+  TECHNICIEN: { couleur: 'var(--color-secondary)', fond: '#E3F0FB', label: 'Technicien',      icone: '🔧', desc: 'Planification et appels d\'offres en lecture seule. Peut modifier les tâches.' }
 };
 
 const MODULES_TABLE = [
@@ -42,8 +42,8 @@ const PermBadge = ({ allowed, label }) => (
     title={ACTIONS_FULL[label] || label}
     style={{
       background: allowed ? '#E8F5E9' : '#F5F5F5',
-      color: allowed ? '#1A7A4A' : '#C8C8D0',
-      border: `1px solid ${allowed ? '#1A7A4A' : '#E0E0E0'}`,
+      color: allowed ? 'var(--color-success)' : 'var(--color-border)',
+      border: `1px solid ${allowed ? 'var(--color-success)' : '#E0E0E0'}`,
       fontSize: '10px', fontWeight: 700,
       padding: '1px 5px', borderRadius: '4px',
       display: 'inline-block', minWidth: '20px', textAlign: 'center'
@@ -73,8 +73,8 @@ const BTN = ({ onClick, color, bg, border, children, title, disabled }) => (
 
 const InputField = ({ label, type = 'text', value, onChange, placeholder, required, autoComplete = 'on' }) => (
   <div>
-    <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
-      {label}{required && <span style={{ color: '#E60000' }}> *</span>}
+    <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>
+      {label}{required && <span style={{ color: 'var(--color-accent)' }}> *</span>}
     </label>
     <input
       type={type}
@@ -83,7 +83,7 @@ const InputField = ({ label, type = 'text', value, onChange, placeholder, requir
       placeholder={placeholder}
       autoComplete={autoComplete}
       style={{
-        width: '100%', padding: '8px 12px', border: '1.5px solid #C8C8D0',
+        width: '100%', padding: '8px 12px', border: '1.5px solid var(--color-border)',
         borderRadius: '6px', fontSize: '13px', outline: 'none',
         boxSizing: 'border-box'
       }}
@@ -128,7 +128,7 @@ const Utilisateurs = () => {
 
   useEffect(() => {
     fetchUtilisateurs();
-  }, []);
+  }, [fetchUtilisateurs]);
 
   const connectedRole = normalizeRole(utilisateurConnecte?.role);
   const isAdminUser = utilisateurConnecte && (connectedRole === 'ADMIN' || isSuperAdmin(utilisateurConnecte));
@@ -291,28 +291,28 @@ const Utilisateurs = () => {
   };
 
 
-  const roleColor = (role) => ROLE_CONFIG[role]?.couleur || '#C8C8D0';
+  const roleColor = (role) => ROLE_CONFIG[role]?.couleur || 'var(--color-border)';
   const roleFond = (role) => ROLE_CONFIG[role]?.fond || '#F5F5F5';
 
   const tabStyle = (t) => ({
     padding: '10px 20px', borderRadius: '8px 8px 0 0', fontWeight: 700,
     fontSize: '14px', cursor: 'pointer', border: 'none',
     background: onglet === t ? 'white' : 'transparent',
-    color: onglet === t ? '#1B2A4A' : 'rgba(255,255,255,0.75)',
-    borderBottom: onglet === t ? '3px solid #E60000' : '3px solid transparent',
+    color: onglet === t ? 'var(--color-primary)' : 'rgba(255,255,255,0.75)',
+    borderBottom: onglet === t ? '3px solid var(--color-accent)' : '3px solid transparent',
     transition: 'all 0.15s'
   });
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#E8ECF4' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-surface-muted)' }}>
 
       {/* ─── HEADER ─────────────────────────────────────────────── */}
-      <div style={{ background: '#1B2A4A', padding: '20px 28px 0' }}>
+      <div style={{ background: 'var(--color-primary)', padding: '20px 28px 0' }}>
         <div style={{ maxWidth: '1300px', margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
             <div>
               <h1 style={{ color: 'white', fontSize: '22px', fontWeight: 800, margin: 0 }}>🔐 Gestion des Utilisateurs</h1>
-              <p style={{ color: '#C8C8D0', fontSize: '13px', margin: '4px 0 0' }}>Administration du personnel SIKA INDUSTRIE — droits et rôles</p>
+              <p style={{ color: 'var(--color-border)', fontSize: '13px', margin: '4px 0 0' }}>Administration du personnel SIKA INDUSTRIE — droits et rôles</p>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
@@ -324,7 +324,7 @@ const Utilisateurs = () => {
               </button>
               <button
                 onClick={() => navigate('/parametres')}
-                style={{ background: '#E60000', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}
+                style={{ background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}
               >
                 ⚙️ Paramètres
               </button>
@@ -367,7 +367,7 @@ const Utilisateurs = () => {
             minWidth: '320px', maxWidth: '480px',
             padding: '14px 18px', borderRadius: '12px',
             boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-            background: message.type === 'success' ? '#1A7A4A' : '#E60000',
+            background: message.type === 'success' ? 'var(--color-success)' : 'var(--color-accent)',
             color: 'white',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             fontWeight: 700, fontSize: '14px',
@@ -387,20 +387,20 @@ const Utilisateurs = () => {
             {/* Toolbar */}
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#C8C8D0' }}>🔍</span>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-border)' }}>🔍</span>
                 <input
                   type="text"
                   placeholder="Rechercher par nom, login ou rôle..."
                   value={recherche}
                   onChange={e => setRecherche(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px 9px 34px', border: '1.5px solid #C8C8D0', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '9px 12px 9px 34px', border: '1.5px solid var(--color-border)', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {['TOUS', 'ADMIN', 'COMPTABLE', 'SECRETAIRE', 'TECHNICIEN'].map(r => (
                   <button key={r} onClick={() => setFiltreRole(r)} style={{
-                    padding: '7px 14px', borderRadius: '6px', border: `1.5px solid ${filtreRole === r ? '#E60000' : '#C8C8D0'}`,
-                    background: filtreRole === r ? '#E60000' : 'white', color: filtreRole === r ? 'white' : '#1B2A4A',
+                    padding: '7px 14px', borderRadius: '6px', border: `1.5px solid ${filtreRole === r ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                    background: filtreRole === r ? 'var(--color-accent)' : 'white', color: filtreRole === r ? 'white' : 'var(--color-primary)',
                     fontWeight: 600, fontSize: '12px', cursor: 'pointer'
                   }}>
                     {r === 'TOUS' ? 'Tous' : `${ROLE_CONFIG[r]?.icone} ${r}`}
@@ -409,7 +409,7 @@ const Utilisateurs = () => {
               </div>
               <button
                 onClick={() => { setModeAjout(!modeAjout); setFormData({ nom: '', login: '', motDePasse: '', role: 'TECHNICIEN', telephone: '' }); setModeEdition(null); setModeMotDePasse(null); }}
-                style={{ background: '#E60000', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}
+                style={{ background: 'var(--color-accent)', color: 'white', border: 'none', borderRadius: '8px', padding: '9px 18px', fontWeight: 700, cursor: 'pointer', fontSize: '13px', whiteSpace: 'nowrap' }}
               >
                 ➕ Nouvel utilisateur
               </button>
@@ -417,9 +417,9 @@ const Utilisateurs = () => {
 
             {/* ── FORMULAIRE AJOUT ── */}
             {modeAjout && (
-              <div style={{ background: 'white', borderRadius: '10px', border: '2px solid #E60000', padding: '20px', marginBottom: '20px', boxShadow: '0 4px 16px rgba(230,0,0,0.1)' }}>
-                <h3 style={{ color: '#1B2A4A', fontWeight: 800, fontSize: '15px', margin: '0 0 8px' }}>➕ Créer un nouvel utilisateur</h3>
-                <div style={{ background: '#E3F0FB', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '12px', color: '#1F5C99', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ background: 'white', borderRadius: '10px', border: '2px solid var(--color-accent)', padding: '20px', marginBottom: '20px', boxShadow: '0 4px 16px rgba(230,0,0,0.1)' }}>
+                <h3 style={{ color: 'var(--color-primary)', fontWeight: 800, fontSize: '15px', margin: '0 0 8px' }}>➕ Créer un nouvel utilisateur</h3>
+                <div style={{ background: '#E3F0FB', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '12px', color: 'var(--color-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   🔗 Un compte Supabase Auth sera créé — l'utilisateur pourra se connecter et récupérer son mot de passe par email.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
@@ -428,8 +428,8 @@ const Utilisateurs = () => {
                   <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Ex: nom@sikaindustrie.ci" required autoComplete="off" />
                   <InputField label="Téléphone" value={formData.telephone || ''} onChange={e => setFormData({ ...formData, telephone: e.target.value })} placeholder="Ex: 07 97 25 25 26" autoComplete="off" />
                   <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
-                      Mot de passe <span style={{ color: '#E60000' }}>*</span>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                      Mot de passe <span style={{ color: 'var(--color-accent)' }}>*</span>
                     </label>
                     <div style={{ position: 'relative' }}>
                       <input
@@ -437,7 +437,7 @@ const Utilisateurs = () => {
                         value={formData.motDePasse || ''}
                         onChange={e => setFormData({ ...formData, motDePasse: e.target.value })}
                         placeholder="Min. 6 caractères"
-                        style={{ width: '100%', padding: '8px 36px 8px 12px', border: '1.5px solid #C8C8D0', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '8px 36px 8px 12px', border: '1.5px solid var(--color-border)', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
                       />
                       <button type="button" onClick={() => setShowPwd(p => ({ ...p, ajout: !p.ajout }))}
                         style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
@@ -446,9 +446,9 @@ const Utilisateurs = () => {
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>Rôle <span style={{ color: '#E60000' }}>*</span></label>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>Rôle <span style={{ color: 'var(--color-accent)' }}>*</span></label>
                     <select value={formData.role || 'TECHNICIEN'} onChange={e => setFormData({ ...formData, role: e.target.value })}
-                      style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #C8C8D0', borderRadius: '6px', fontSize: '13px' }}>
+                      style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--color-border)', borderRadius: '6px', fontSize: '13px' }}>
                       {Object.entries(ROLE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.icone} {v.label}</option>)}
                     </select>
                   </div>
@@ -459,8 +459,8 @@ const Utilisateurs = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <BTN onClick={handleSauvegarderAjout} color="#1A7A4A" disabled={loadingCreate}>{loadingCreate ? '⏳ Création Supabase...' : '✓ Créer l\'utilisateur'}</BTN>
-                  <BTN onClick={() => { setModeAjout(false); setFormData({}); }} color="#C8C8D0" bg="#F5F5F5" disabled={loadingCreate}>✕ Annuler</BTN>
+                  <BTN onClick={handleSauvegarderAjout} color="var(--color-success)" disabled={loadingCreate}>{loadingCreate ? '⏳ Création Supabase...' : '✓ Créer l\'utilisateur'}</BTN>
+                  <BTN onClick={() => { setModeAjout(false); setFormData({}); }} color="var(--color-border)" bg="#F5F5F5" disabled={loadingCreate}>✕ Annuler</BTN>
                 </div>
               </div>
             )}
@@ -468,7 +468,7 @@ const Utilisateurs = () => {
             {/* ── LISTE ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {utilisateursFiltres.length === 0 && (
-                <div style={{ background: 'white', borderRadius: '10px', padding: '32px', textAlign: 'center', color: '#C8C8D0' }}>
+                <div style={{ background: 'white', borderRadius: '10px', padding: '32px', textAlign: 'center', color: 'var(--color-border)' }}>
                   Aucun utilisateur trouvé
                 </div>
               )}
@@ -478,17 +478,17 @@ const Utilisateurs = () => {
                   <div key={user.id} style={{
                     background: 'white', borderRadius: '10px', overflow: 'hidden',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                    border: `1px solid ${user.actif ? '#E8ECF4' : '#F5F5F5'}`,
+                    border: `1px solid ${user.actif ? 'var(--color-surface-muted)' : '#F5F5F5'}`,
                     opacity: user.actif ? 1 : 0.65
                   }}>
                     {/* Card Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 18px', borderLeft: `4px solid ${rc.couleur || '#C8C8D0'}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 18px', borderLeft: `4px solid ${rc.couleur || 'var(--color-border)'}` }}>
                       {/* Avatar */}
                       <div style={{
                         width: '46px', height: '46px', borderRadius: '50%', flexShrink: 0,
                         background: rc.fond || '#F5F5F5', color: rc.couleur || '#666',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontWeight: 800, fontSize: '15px', border: `2px solid ${rc.couleur || '#C8C8D0'}`
+                        fontWeight: 800, fontSize: '15px', border: `2px solid ${rc.couleur || 'var(--color-border)'}`
                       }}>
                         {getInitiales(user.nom)}
                       </div>
@@ -502,22 +502,22 @@ const Utilisateurs = () => {
                             <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="adresse@sikaindustrie.ci" autoComplete="off" />
                             <InputField label="Téléphone" value={formData.telephone || ''} onChange={e => setFormData({ ...formData, telephone: e.target.value })} placeholder="07 97 25 25 26" autoComplete="off" />
                             <div>
-                              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>Rôle</label>
+                              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>Rôle</label>
                               <select value={formData.role || ''} onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #C8C8D0', borderRadius: '6px', fontSize: '13px' }}>
+                                style={{ width: '100%', padding: '7px 10px', border: '1.5px solid var(--color-border)', borderRadius: '6px', fontSize: '13px' }}>
                                 {Object.entries(ROLE_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.icone} {v.label}</option>)}
                               </select>
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <BTN onClick={handleSauvegarderEdition} color="#1A7A4A">✓ Sauvegarder</BTN>
-                            <BTN onClick={() => { setModeEdition(null); setFormData({}); }} color="#C8C8D0" bg="#F5F5F5">✕ Annuler</BTN>
+                            <BTN onClick={handleSauvegarderEdition} color="var(--color-success)">✓ Sauvegarder</BTN>
+                            <BTN onClick={() => { setModeEdition(null); setFormData({}); }} color="var(--color-border)" bg="#F5F5F5">✕ Annuler</BTN>
                           </div>
                         </div>
                       ) : modeMotDePasse === user.id ? (
                         /* ── Formulaire changement MDP inline ── */
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: '0 0 10px', fontWeight: 700, color: '#1B2A4A', fontSize: '13px' }}>🔑 Changer le mot de passe — {user.nom}</p>
+                          <p style={{ margin: '0 0 10px', fontWeight: 700, color: 'var(--color-primary)', fontSize: '13px' }}>🔑 Changer le mot de passe — {user.nom}</p>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '10px' }}>
                             {[
                               { key: 'ancien', label: 'Ancien MDP', showKey: 'ancien' },
@@ -525,12 +525,12 @@ const Utilisateurs = () => {
                               { key: 'confirmation', label: 'Confirmer', showKey: 'conf' }
                             ].map(f => (
                               <div key={f.key}>
-                                <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>{f.label}</label>
+                                <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>{f.label}</label>
                                 <div style={{ position: 'relative' }}>
                                   <input type={showPwd[f.showKey] ? 'text' : 'password'}
                                     value={passwordData[f.key]}
                                     onChange={e => setPasswordData({ ...passwordData, [f.key]: e.target.value })}
-                                    style={{ width: '100%', padding: '7px 30px 7px 10px', border: '1.5px solid #C8C8D0', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                                    style={{ width: '100%', padding: '7px 30px 7px 10px', border: '1.5px solid var(--color-border)', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
                                   />
                                   <button type="button" onClick={() => setShowPwd(p => ({ ...p, [f.showKey]: !p[f.showKey] }))}
                                     style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px' }}>
@@ -541,11 +541,11 @@ const Utilisateurs = () => {
                             ))}
                           </div>
                           {passwordData.nouveau && passwordData.confirmation && passwordData.nouveau !== passwordData.confirmation && (
-                            <p style={{ color: '#E60000', fontSize: '12px', margin: '0 0 8px' }}>⚠️ Les mots de passe ne correspondent pas</p>
+                            <p style={{ color: 'var(--color-accent)', fontSize: '12px', margin: '0 0 8px' }}>⚠️ Les mots de passe ne correspondent pas</p>
                           )}
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <BTN onClick={handleSauvegarderMotDePasse} color="#1A7A4A">✓ Confirmer</BTN>
-                            <BTN onClick={() => { setModeMotDePasse(null); setPasswordData({ ancien: '', nouveau: '', confirmation: '' }); }} color="#C8C8D0" bg="#F5F5F5">✕ Annuler</BTN>
+                            <BTN onClick={handleSauvegarderMotDePasse} color="var(--color-success)">✓ Confirmer</BTN>
+                            <BTN onClick={() => { setModeMotDePasse(null); setPasswordData({ ancien: '', nouveau: '', confirmation: '' }); }} color="var(--color-border)" bg="#F5F5F5">✕ Annuler</BTN>
                           </div>
                         </div>
                       ) : (
@@ -553,19 +553,19 @@ const Utilisateurs = () => {
                         <>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 800, color: '#1B2A4A', fontSize: '15px' }}>{user.nom}</span>
+                              <span style={{ fontWeight: 800, color: 'var(--color-primary)', fontSize: '15px' }}>{user.nom}</span>
                               <span style={{ background: rc.fond, color: rc.couleur, border: `1px solid ${rc.couleur}`, borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700 }}>
                                 {rc.icone} {rc.label || user.role}
                               </span>
-                              <span style={{ background: user.actif ? '#E8F5E9' : '#F5F5F5', color: user.actif ? '#1A7A4A' : '#C8C8D0', border: `1px solid ${user.actif ? '#1A7A4A' : '#C8C8D0'}`, borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700 }}>
+                              <span style={{ background: user.actif ? '#E8F5E9' : '#F5F5F5', color: user.actif ? 'var(--color-success)' : 'var(--color-border)', border: `1px solid ${user.actif ? 'var(--color-success)' : 'var(--color-border)'}`, borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700 }}>
                                 {user.actif ? '● Actif' : '○ Inactif'}
                               </span>
                               {user.auth_user_id ? (
-                                <span title="Compte Supabase Auth actif — connexion et récupération par email disponibles" style={{ background: '#E3F0FB', color: '#1F5C99', border: '1px solid #1F5C99', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700, cursor: 'default' }}>
+                                <span title="Compte Supabase Auth actif — connexion et récupération par email disponibles" style={{ background: '#E3F0FB', color: 'var(--color-secondary)', border: '1px solid var(--color-secondary)', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700, cursor: 'default' }}>
                                   🔗 Supabase Auth
                                 </span>
                               ) : (
-                                <span title="Compte local uniquement — pas de récupération email" style={{ background: '#F5F5F5', color: '#888', border: '1px solid #C8C8D0', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700, cursor: 'default' }}>
+                                <span title="Compte local uniquement — pas de récupération email" style={{ background: '#F5F5F5', color: '#888', border: '1px solid var(--color-border)', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', fontWeight: 700, cursor: 'default' }}>
                                   💾 Local
                                 </span>
                               )}
@@ -574,30 +574,30 @@ const Utilisateurs = () => {
                               Login : <strong>{user.login}</strong> &nbsp;|&nbsp; ID : #{String(user.id).padStart(3, '0')}
                             </div>
                             {user.email && (
-                              <div style={{ fontSize: '11px', color: '#1F5C99', marginTop: '2px' }}>
+                              <div style={{ fontSize: '11px', color: 'var(--color-secondary)', marginTop: '2px' }}>
                                 ✉️ {user.email}
                               </div>
                             )}
                             {user.telephone && (
-                              <div style={{ fontSize: '11px', color: '#1A7A4A', marginTop: '2px' }}>
+                              <div style={{ fontSize: '11px', color: 'var(--color-success)', marginTop: '2px' }}>
                                 📞 {user.telephone}
                               </div>
                             )}
                           </div>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                            <BTN onClick={() => handleEditer(user)} color="#1F5C99">✏️ Modifier</BTN>
-                            <BTN onClick={() => handleChangerMotDePasse(user.id)} color="#1B2A4A">🔑 MDP</BTN>
-                            <BTN onClick={() => setModalReinit({ open: true, user, mdp: '', mdpConfirm: '' })} color="#E60000" bg="#FFE6E6" border>🔄 Réinit</BTN>
+                            <BTN onClick={() => handleEditer(user)} color="var(--color-secondary)">✏️ Modifier</BTN>
+                            <BTN onClick={() => handleChangerMotDePasse(user.id)} color="var(--color-primary)">🔑 MDP</BTN>
+                            <BTN onClick={() => setModalReinit({ open: true, user, mdp: '', mdpConfirm: '' })} color="var(--color-accent)" bg="var(--color-accent-light)" border>🔄 Réinit</BTN>
                             {!user.auth_user_id && user.email && (
-                              <BTN onClick={() => setModalLierAuth({ open: true, user, mdp: '' })} color="#1F5C99" bg="#E3F0FB" border>🔗 Lier Auth</BTN>
+                              <BTN onClick={() => setModalLierAuth({ open: true, user, mdp: '' })} color="var(--color-secondary)" bg="#E3F0FB" border>🔗 Lier Auth</BTN>
                             )}
                             {user.auth_user_id && user.email && (
                               <BTN onClick={() => handleEnvoyerEmailRecup(user)} color="#6B7280" bg="#F3F4F6" border>📧 Email récup</BTN>
                             )}
-                            <BTN onClick={() => handleToggleActif(user.id)} color={user.actif ? '#E60000' : '#1A7A4A'} bg={user.actif ? '#FFE6E6' : '#E8F5E9'} border>
+                            <BTN onClick={() => handleToggleActif(user.id)} color={user.actif ? 'var(--color-accent)' : 'var(--color-success)'} bg={user.actif ? 'var(--color-accent-light)' : '#E8F5E9'} border>
                               {user.actif ? '⊘ Désactiver' : '✓ Activer'}
                             </BTN>
-                            <BTN onClick={() => setModalDelete({ open: true, user })} color="#E60000">🗑️ Supprimer</BTN>
+                            <BTN onClick={() => setModalDelete({ open: true, user })} color="var(--color-accent)">🗑️ Supprimer</BTN>
                           </div>
                         </>
                       )}
@@ -620,19 +620,19 @@ const Utilisateurs = () => {
         {/* ══════════════════════════════════════════════════════════ */}
         {onglet === 'permissions' && (
           <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <div style={{ background: '#1B2A4A', padding: '16px 24px', borderBottom: '3px solid #E60000' }}>
+            <div style={{ background: 'var(--color-primary)', padding: '16px 24px', borderBottom: '3px solid var(--color-accent)' }}>
               <h2 style={{ color: 'white', margin: 0, fontSize: '17px', fontWeight: 800 }}>🔐 Matrice complète des droits d'accès</h2>
-              <p style={{ color: '#C8C8D0', fontSize: '12px', margin: '4px 0 0' }}>Permissions par module et par rôle — L=Lire C=Créer M=Modifier S=Supprimer V=Valider E=Exporter</p>
+              <p style={{ color: 'var(--color-border)', fontSize: '12px', margin: '4px 0 0' }}>Permissions par module et par rôle — L=Lire C=Créer M=Modifier S=Supprimer V=Valider E=Exporter</p>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                 <thead>
-                  <tr style={{ background: '#E8ECF4' }}>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: '#1B2A4A', fontSize: '13px', borderBottom: '2px solid #C8C8D0', minWidth: '160px' }}>
+                  <tr style={{ background: 'var(--color-surface-muted)' }}>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--color-primary)', fontSize: '13px', borderBottom: '2px solid var(--color-border)', minWidth: '160px' }}>
                       Module
                     </th>
                     {Object.entries(ROLE_CONFIG).map(([role, rc]) => (
-                      <th key={role} style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '2px solid #C8C8D0', minWidth: '170px' }}>
+                      <th key={role} style={{ padding: '12px 16px', textAlign: 'center', borderBottom: '2px solid var(--color-border)', minWidth: '170px' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: rc.fond, color: rc.couleur, borderRadius: '20px', padding: '4px 12px', fontWeight: 700, fontSize: '12px', border: `1px solid ${rc.couleur}` }}>
                           {rc.icone} {rc.label}
                         </div>
@@ -643,7 +643,7 @@ const Utilisateurs = () => {
                 <tbody>
                   {MODULES_TABLE.map((mod, idx) => (
                     <tr key={mod.key} style={{ background: idx % 2 === 0 ? 'white' : '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
-                      <td style={{ padding: '10px 16px', fontWeight: 600, color: '#1B2A4A', fontSize: '13px' }}>
+                      <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--color-primary)', fontSize: '13px' }}>
                         {mod.label}
                       </td>
                       {Object.keys(ROLE_CONFIG).map(role => {
@@ -665,9 +665,9 @@ const Utilisateurs = () => {
             </div>
 
             {/* Légende */}
-            <div style={{ padding: '16px 24px', background: '#F8F9FA', borderTop: '1px solid #E8ECF4' }}>
+            <div style={{ padding: '16px 24px', background: 'var(--color-bg-light)', borderTop: '1px solid var(--color-surface-muted)' }}>
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <strong style={{ color: '#1B2A4A', fontSize: '13px' }}>Légende :</strong>
+                <strong style={{ color: 'var(--color-primary)', fontSize: '13px' }}>Légende :</strong>
                 {[
                   { label: 'L — Lire', allowed: true },
                   { label: 'C — Créer', allowed: true },
@@ -718,14 +718,14 @@ const Utilisateurs = () => {
                     <div style={{ padding: '16px 20px' }}>
                       <p style={{ fontSize: '13px', color: '#555', margin: '0 0 12px', lineHeight: '1.5' }}>{rc.desc}</p>
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-                        <span style={{ background: '#E8F5E9', color: '#1A7A4A', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 700 }}>
+                        <span style={{ background: '#E8F5E9', color: 'var(--color-success)', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 700 }}>
                           {actifs} actif{actifs > 1 ? 's' : ''}
                         </span>
-                        <span style={{ background: '#E3F0FB', color: '#1F5C99', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 700 }}>
+                        <span style={{ background: '#E3F0FB', color: 'var(--color-secondary)', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 700 }}>
                           {moduleCount} modules
                         </span>
                         {count - actifs > 0 && (
-                          <span style={{ background: '#FFE6E6', color: '#E60000', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 700 }}>
+                          <span style={{ background: 'var(--color-accent-light)', color: 'var(--color-accent)', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 700 }}>
                             {count - actifs} inactif{count - actifs > 1 ? 's' : ''}
                           </span>
                         )}
@@ -741,8 +741,8 @@ const Utilisateurs = () => {
                               <span key={mod.key} style={{
                                 fontSize: '10px', padding: '2px 7px', borderRadius: '4px', fontWeight: 600,
                                 background: !hasAccess ? '#F5F5F5' : fullAccess ? '#E8F5E9' : '#E3F0FB',
-                                color: !hasAccess ? '#C8C8D0' : fullAccess ? '#1A7A4A' : '#1F5C99',
-                                border: `1px solid ${!hasAccess ? '#E0E0E0' : fullAccess ? '#1A7A4A' : '#1F5C99'}`
+                                color: !hasAccess ? 'var(--color-border)' : fullAccess ? 'var(--color-success)' : 'var(--color-secondary)',
+                                border: `1px solid ${!hasAccess ? '#E0E0E0' : fullAccess ? 'var(--color-success)' : 'var(--color-secondary)'}`
                               }}>
                                 {!hasAccess ? '✗' : fullAccess ? '✓' : '◐'} {mod.label}
                               </span>
@@ -766,8 +766,8 @@ const Utilisateurs = () => {
                                 <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: rc.couleur, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800 }}>
                                   {getInitiales(u.nom)}
                                 </div>
-                                <span style={{ fontSize: '11px', color: '#1B2A4A', fontWeight: 600 }}>{u.nom.split(' ')[0]}</span>
-                                {!u.actif && <span style={{ fontSize: '9px', color: '#E60000' }}>⊘</span>}
+                                <span style={{ fontSize: '11px', color: 'var(--color-primary)', fontWeight: 600 }}>{u.nom.split(' ')[0]}</span>
+                                {!u.actif && <span style={{ fontSize: '9px', color: 'var(--color-accent)' }}>⊘</span>}
                               </div>
                             ))}
                           </div>
@@ -780,8 +780,8 @@ const Utilisateurs = () => {
             </div>
 
             {/* Règles de sécurité */}
-            <div style={{ background: 'white', borderRadius: '10px', padding: '20px 24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', borderLeft: '4px solid #E60000' }}>
-              <h3 style={{ color: '#1B2A4A', fontWeight: 800, fontSize: '15px', margin: '0 0 14px' }}>🛡️ Règles de sécurité du système</h3>
+            <div style={{ background: 'white', borderRadius: '10px', padding: '20px 24px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', borderLeft: '4px solid var(--color-accent)' }}>
+              <h3 style={{ color: 'var(--color-primary)', fontWeight: 800, fontSize: '15px', margin: '0 0 14px' }}>🛡️ Règles de sécurité du système</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
                 {[
                   { icon: '🔒', text: 'Les boutons non autorisés sont masqués, jamais seulement grisés' },
@@ -791,7 +791,7 @@ const Utilisateurs = () => {
                   { icon: '🛡️', text: 'Le dernier administrateur actif ne peut pas être supprimé' },
                   { icon: '🔑', text: 'Les mots de passe doivent contenir au minimum 6 caractères' },
                 ].map((r, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '10px', padding: '10px 14px', background: '#F8F9FA', borderRadius: '8px', fontSize: '13px', color: '#444' }}>
+                  <div key={i} style={{ display: 'flex', gap: '10px', padding: '10px 14px', background: 'var(--color-bg-light)', borderRadius: '8px', fontSize: '13px', color: '#444' }}>
                     <span>{r.icon}</span>
                     <span>{r.text}</span>
                   </div>
@@ -808,30 +808,30 @@ const Utilisateurs = () => {
           onClick={() => setModalDelete({ open: false, user: null })}>
           <div style={{ background: 'white', borderRadius: '12px', width: '420px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ background: '#E60000', padding: '16px 20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: 'var(--color-accent)', padding: '16px 20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 800, fontSize: '15px' }}>🗑️ Confirmer la suppression</span>
               <button onClick={() => setModalDelete({ open: false, user: null })} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>✕</button>
             </div>
             <div style={{ padding: '24px 20px' }}>
-              <p style={{ color: '#1B2A4A', fontWeight: 600, fontSize: '14px', margin: '0 0 8px' }}>
+              <p style={{ color: 'var(--color-primary)', fontWeight: 600, fontSize: '14px', margin: '0 0 8px' }}>
                 Voulez-vous vraiment supprimer cet utilisateur ?
               </p>
-              <div style={{ background: '#FFE6E6', borderRadius: '8px', padding: '12px 14px', marginTop: '12px' }}>
+              <div style={{ background: 'var(--color-accent-light)', borderRadius: '8px', padding: '12px 14px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#E60000', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--color-accent)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
                     {getInitiales(modalDelete.user?.nom)}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 800, color: '#1B2A4A' }}>{modalDelete.user?.nom}</div>
+                    <div style={{ fontWeight: 800, color: 'var(--color-primary)' }}>{modalDelete.user?.nom}</div>
                     <div style={{ fontSize: '12px', color: '#888' }}>Login : {modalDelete.user?.login} — {ROLE_CONFIG[modalDelete.user?.role]?.label}</div>
                   </div>
                 </div>
               </div>
-              <p style={{ color: '#E60000', fontSize: '12px', marginTop: '12px' }}>⚠️ Cette action est irréversible.</p>
+              <p style={{ color: 'var(--color-accent)', fontSize: '12px', marginTop: '12px' }}>⚠️ Cette action est irréversible.</p>
             </div>
-            <div style={{ padding: '12px 20px', borderTop: '1px solid #E8ECF4', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: '#F8F9FA' }}>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--color-surface-muted)', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: 'var(--color-bg-light)' }}>
               <BTN onClick={() => setModalDelete({ open: false, user: null })} color="#888" bg="#F0F0F0" disabled={loadingDelete}>Annuler</BTN>
-              <BTN onClick={handleConfirmDelete} color="#E60000" disabled={loadingDelete}>{loadingDelete ? '⏳ Suppression...' : '🗑️ Supprimer définitivement'}</BTN>
+              <BTN onClick={handleConfirmDelete} color="var(--color-accent)" disabled={loadingDelete}>{loadingDelete ? '⏳ Suppression...' : '🗑️ Supprimer définitivement'}</BTN>
             </div>
           </div>
         </div>
@@ -843,24 +843,24 @@ const Utilisateurs = () => {
           onClick={() => setModalReinit({ open: false, user: null, mdp: '', mdpConfirm: '' })}>
           <div style={{ background: 'white', borderRadius: '12px', width: '440px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ background: '#1B2A4A', padding: '16px 20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: 'var(--color-primary)', padding: '16px 20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 800, fontSize: '15px' }}>🔄 Réinitialiser le mot de passe</span>
               <button onClick={() => setModalReinit({ open: false, user: null, mdp: '', mdpConfirm: '' })} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>✕</button>
             </div>
             <div style={{ padding: '20px' }}>
               <p style={{ color: '#555', fontSize: '13px', margin: '0 0 16px' }}>
-                Définir un nouveau mot de passe pour <strong style={{ color: '#1B2A4A' }}>{modalReinit.user?.nom}</strong>
+                Définir un nouveau mot de passe pour <strong style={{ color: 'var(--color-primary)' }}>{modalReinit.user?.nom}</strong>
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
-                    Nouveau mot de passe <span style={{ color: '#E60000' }}>*</span>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                    Nouveau mot de passe <span style={{ color: 'var(--color-accent)' }}>*</span>
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input type={showPwd.reinit ? 'text' : 'password'} value={modalReinit.mdp}
                       onChange={e => setModalReinit(m => ({ ...m, mdp: e.target.value }))}
                       placeholder="Minimum 6 caractères"
-                      style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid #C8C8D0', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid var(--color-border)', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
                     />
                     <button type="button" onClick={() => setShowPwd(p => ({ ...p, reinit: !p.reinit }))}
                       style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
@@ -869,14 +869,14 @@ const Utilisateurs = () => {
                   </div>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
-                    Confirmer le mot de passe <span style={{ color: '#E60000' }}>*</span>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                    Confirmer le mot de passe <span style={{ color: 'var(--color-accent)' }}>*</span>
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input type={showPwd.reinitConf ? 'text' : 'password'} value={modalReinit.mdpConfirm}
                       onChange={e => setModalReinit(m => ({ ...m, mdpConfirm: e.target.value }))}
                       placeholder="Répéter le mot de passe"
-                      style={{ width: '100%', padding: '9px 36px 9px 12px', border: `1.5px solid ${modalReinit.mdp && modalReinit.mdpConfirm && modalReinit.mdp !== modalReinit.mdpConfirm ? '#E60000' : '#C8C8D0'}`, borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '9px 36px 9px 12px', border: `1.5px solid ${modalReinit.mdp && modalReinit.mdpConfirm && modalReinit.mdp !== modalReinit.mdpConfirm ? 'var(--color-accent)' : 'var(--color-border)'}`, borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
                     />
                     <button type="button" onClick={() => setShowPwd(p => ({ ...p, reinitConf: !p.reinitConf }))}
                       style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
@@ -884,19 +884,19 @@ const Utilisateurs = () => {
                     </button>
                   </div>
                   {modalReinit.mdp && modalReinit.mdpConfirm && modalReinit.mdp !== modalReinit.mdpConfirm && (
-                    <p style={{ color: '#E60000', fontSize: '11px', margin: '4px 0 0' }}>⚠️ Les mots de passe ne correspondent pas</p>
+                    <p style={{ color: 'var(--color-accent)', fontSize: '11px', margin: '4px 0 0' }}>⚠️ Les mots de passe ne correspondent pas</p>
                   )}
                 </div>
                 {modalReinit.mdp.length > 0 && (
-                  <div style={{ background: '#F8F9FA', borderRadius: '6px', padding: '8px 12px', fontSize: '12px' }}>
+                  <div style={{ background: 'var(--color-bg-light)', borderRadius: '6px', padding: '8px 12px', fontSize: '12px' }}>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                      <span style={{ color: modalReinit.mdp.length >= 6 ? '#1A7A4A' : '#E60000' }}>
+                      <span style={{ color: modalReinit.mdp.length >= 6 ? 'var(--color-success)' : 'var(--color-accent)' }}>
                         {modalReinit.mdp.length >= 6 ? '✓' : '✗'} Min. 6 caractères
                       </span>
-                      <span style={{ color: /[A-Z]/.test(modalReinit.mdp) ? '#1A7A4A' : '#C8C8D0' }}>
+                      <span style={{ color: /[A-Z]/.test(modalReinit.mdp) ? 'var(--color-success)' : 'var(--color-border)' }}>
                         {/[A-Z]/.test(modalReinit.mdp) ? '✓' : '○'} Majuscule
                       </span>
-                      <span style={{ color: /[0-9]/.test(modalReinit.mdp) ? '#1A7A4A' : '#C8C8D0' }}>
+                      <span style={{ color: /[0-9]/.test(modalReinit.mdp) ? 'var(--color-success)' : 'var(--color-border)' }}>
                         {/[0-9]/.test(modalReinit.mdp) ? '✓' : '○'} Chiffre
                       </span>
                     </div>
@@ -904,9 +904,9 @@ const Utilisateurs = () => {
                 )}
               </div>
             </div>
-            <div style={{ padding: '12px 20px', borderTop: '1px solid #E8ECF4', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: '#F8F9FA' }}>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--color-surface-muted)', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: 'var(--color-bg-light)' }}>
               <BTN onClick={() => setModalReinit({ open: false, user: null, mdp: '', mdpConfirm: '' })} color="#888" bg="#F0F0F0" disabled={loadingReinit}>Annuler</BTN>
-              <BTN onClick={handleConfirmReinit} color="#1B2A4A" disabled={loadingReinit}>{loadingReinit ? '⏳ En cours...' : '🔄 Réinitialiser'}</BTN>
+              <BTN onClick={handleConfirmReinit} color="var(--color-primary)" disabled={loadingReinit}>{loadingReinit ? '⏳ En cours...' : '🔄 Réinitialiser'}</BTN>
             </div>
           </div>
         </div>
@@ -917,25 +917,25 @@ const Utilisateurs = () => {
           onClick={() => setModalLierAuth({ open: false, user: null, mdp: '' })}>
           <div style={{ background: 'white', borderRadius: '12px', width: '440px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ background: '#1F5C99', padding: '16px 20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: 'var(--color-secondary)', padding: '16px 20px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 800, fontSize: '15px' }}>🔗 Lier à Supabase Auth</span>
               <button onClick={() => setModalLierAuth({ open: false, user: null, mdp: '' })} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>✕</button>
             </div>
             <div style={{ padding: '20px' }}>
-              <div style={{ background: '#E3F0FB', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px', fontSize: '13px', color: '#1F5C99', fontWeight: 600 }}>
+              <div style={{ background: '#E3F0FB', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px', fontSize: '13px', color: 'var(--color-secondary)', fontWeight: 600 }}>
                 🔗 <strong>{modalLierAuth.user?.nom}</strong> pourra se connecter avec son email et récupérer son mot de passe.
               </div>
               <div style={{ fontSize: '13px', color: '#555', marginBottom: '12px' }}>
                 Email : <strong>{modalLierAuth.user?.email}</strong>
               </div>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: '#1B2A4A' }}>
-                Définir un mot de passe <span style={{ color: '#E60000' }}>*</span>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>
+                Définir un mot de passe <span style={{ color: 'var(--color-accent)' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <input type={showPwd.lier ? 'text' : 'password'} value={modalLierAuth.mdp}
                   onChange={e => setModalLierAuth(m => ({ ...m, mdp: e.target.value }))}
                   placeholder="Minimum 6 caractères"
-                  style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid #C8C8D0', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '9px 36px 9px 12px', border: '1.5px solid var(--color-border)', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
                 />
                 <button type="button" onClick={() => setShowPwd(p => ({ ...p, lier: !p.lier }))}
                   style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}>
@@ -943,9 +943,9 @@ const Utilisateurs = () => {
                 </button>
               </div>
             </div>
-            <div style={{ padding: '12px 20px', borderTop: '1px solid #E8ECF4', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: '#F8F9FA' }}>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--color-surface-muted)', display: 'flex', gap: '8px', justifyContent: 'flex-end', background: 'var(--color-bg-light)' }}>
               <BTN onClick={() => setModalLierAuth({ open: false, user: null, mdp: '' })} color="#888" bg="#F0F0F0" disabled={loadingLier}>Annuler</BTN>
-              <BTN onClick={handleLierAuth} color="#1F5C99" disabled={loadingLier}>{loadingLier ? '⏳ Liaison...' : '🔗 Lier le compte'}</BTN>
+              <BTN onClick={handleLierAuth} color="var(--color-secondary)" disabled={loadingLier}>{loadingLier ? '⏳ Liaison...' : '🔗 Lier le compte'}</BTN>
             </div>
           </div>
         </div>

@@ -57,19 +57,19 @@ export default function ModalConversion({ ao, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+      <div className="bg-surface rounded-lg shadow-xl max-w-2xl w-full">
         <div className="bg-navy text-white px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold">Convertir en Devis</h2>
           <button
             onClick={onClose}
-            className="text-white hover:text-orange transition text-2xl"
+            className="text-white hover:text-rouge transition text-2xl"
           >
             ×
           </button>
         </div>
 
         <div className="p-6">
-          <div className="bg-orange-light border-l-4 border-orange p-4 mb-6">
+          <div className="bg-rouge-light border-l-4 border-rouge p-4 mb-6">
             <p className="text-sm text-gray-700">
               <strong>AO:</strong> {ao.numeroDevis} - {ao.client}
             </p>
@@ -90,7 +90,7 @@ export default function ModalConversion({ ao, onClose }) {
                   onClick={() => setTypeDevis(type.value)}
                   className={`p-4 border-2 rounded-lg text-left transition transform hover:scale-105 ${
                     typeDevis === type.value
-                      ? 'border-orange bg-orange-light'
+                      ? 'border-rouge bg-rouge-light'
                       : 'border-argent hover:border-bleu'
                   }`}
                 >
@@ -108,7 +108,7 @@ export default function ModalConversion({ ao, onClose }) {
             </div>
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+          <div className="bg-background p-4 rounded-lg mb-6">
             <h4 className="font-medium text-sm text-gray-700 mb-2">Informations pré-remplies:</h4>
             <ul className="text-sm text-gray-600 space-y-1">
               <li>✓ Client: {ao.client}</li>
@@ -130,7 +130,7 @@ export default function ModalConversion({ ao, onClose }) {
               disabled={!typeDevis}
               className={`px-6 py-2 rounded-lg transition ${
                 typeDevis
-                  ? 'bg-orange text-white hover:bg-orange-600'
+                  ? 'bg-rouge text-white hover:bg-rouge-600'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >

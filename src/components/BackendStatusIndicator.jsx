@@ -8,18 +8,18 @@ export default function BackendStatusIndicator({ variant = 'full' }) {
     return (
       <div className="flex items-center gap-2">
         <div className="relative">
-          <Database className="w-5 h-5 text-[#06006E]" />
+          <Database className="w-5 h-5 text-textMain" />
           <div 
             className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
               isChecking 
-                ? 'bg-orange-400 animate-pulse' 
+                ? 'bg-rouge-400 animate-pulse' 
                 : isConnected 
-                  ? 'bg-[#1A7A4A]' 
-                  : 'bg-[#E60000]'
+                  ? 'bg-success' 
+                  : 'bg-accent'
             }`}
           />
         </div>
-        <span className="text-xs font-medium text-[#06006E]">
+        <span className="text-xs font-medium text-textMain">
           {isChecking
             ? 'Vérification...'
             : isConnected
@@ -33,38 +33,38 @@ export default function BackendStatusIndicator({ variant = 'full' }) {
   }
 
   return (
-    <div className="bg-white border-2 border-[#C8C8D0] rounded-lg p-4 shadow-sm">
+    <div className="bg-surface border-2 border-border rounded-lg p-4 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Database className="w-8 h-8 text-[#06006E]" />
+            <Database className="w-8 h-8 text-textMain" />
             <div 
               className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
                 isChecking 
-                  ? 'bg-orange-400 animate-pulse' 
+                  ? 'bg-rouge-400 animate-pulse' 
                   : isConnected 
-                    ? 'bg-[#1A7A4A]' 
-                    : 'bg-[#E60000]'
+                    ? 'bg-success' 
+                    : 'bg-accent'
               }`}
             />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-[#06006E]">Backend Supabase</h3>
+              <h3 className="font-bold text-textMain">Backend Supabase</h3>
               {isConnected ? (
-                <Wifi className="w-4 h-4 text-[#1A7A4A]" />
+                <Wifi className="w-4 h-4 text-success" />
               ) : (
-                <WifiOff className="w-4 h-4 text-[#E60000]" />
+                <WifiOff className="w-4 h-4 text-accent" />
               )}
             </div>
             <p className={`text-sm font-medium ${
               isChecking
-                ? 'text-orange-600'
+                ? 'text-rouge-600'
                 : isConnected
-                  ? 'text-[#1A7A4A]'
+                  ? 'text-success'
                   : isReconnecting
-                    ? 'text-orange-500'
-                    : 'text-[#E60000]'
+                    ? 'text-rouge-500'
+                    : 'text-accent'
             }`}>
               {isChecking
                 ? 'Vérification de la connexion...'
@@ -80,7 +80,7 @@ export default function BackendStatusIndicator({ variant = 'full' }) {
               </p>
             )}
             {error && (
-              <div className="flex items-center gap-1 mt-2 text-xs text-[#E60000]">
+              <div className="flex items-center gap-1 mt-2 text-xs text-accent">
                 <AlertCircle className="w-3 h-3" />
                 <span>{error}</span>
               </div>
@@ -93,27 +93,27 @@ export default function BackendStatusIndicator({ variant = 'full' }) {
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           title={isReconnecting ? `Reconnexion en cours (#${reconnectAttempts})` : 'Actualiser la connexion'}
         >
-          <RefreshCw className={`w-5 h-5 text-[#06006E] ${isChecking || isReconnecting ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-5 h-5 text-textMain ${isChecking || isReconnecting ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-[#C8C8D0]">
+      <div className="mt-4 pt-4 border-t border-border">
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">Serveur :</span>
-            <span className="ml-2 font-medium text-[#06006E]">Supabase Cloud</span>
+            <span className="ml-2 font-medium text-textMain">Supabase Cloud</span>
           </div>
           <div>
             <span className="text-gray-600">Région :</span>
-            <span className="ml-2 font-medium text-[#06006E]">EU-West-1</span>
+            <span className="ml-2 font-medium text-textMain">EU-West-1</span>
           </div>
           <div>
             <span className="text-gray-600">Base de données :</span>
-            <span className="ml-2 font-medium text-[#06006E]">PostgreSQL 17</span>
+            <span className="ml-2 font-medium text-textMain">PostgreSQL 17</span>
           </div>
           <div>
             <span className="text-gray-600">Statut :</span>
-            <span className={`ml-2 font-bold ${isConnected ? 'text-[#1A7A4A]' : 'text-[#E60000]'}`}>
+            <span className={`ml-2 font-bold ${isConnected ? 'text-success' : 'text-accent'}`}>
               {isConnected ? 'ACTIF' : 'INACTIF'}
             </span>
           </div>
@@ -121,9 +121,9 @@ export default function BackendStatusIndicator({ variant = 'full' }) {
       </div>
 
       {isConnected && (
-        <div className="mt-4 bg-[#FFE6E6] border border-[#E60000] rounded-lg p-3">
-          <p className="text-xs text-[#06006E]">
-            <span className="font-bold text-[#E60000]">✓ Synchronisation active</span> - 
+        <div className="mt-4 bg-accentLight border border-accent rounded-lg p-3">
+          <p className="text-xs text-textMain">
+            <span className="font-bold text-accent">✓ Synchronisation active</span> - 
             Toutes les données sont sauvegardées en temps réel dans le cloud
           </p>
         </div>

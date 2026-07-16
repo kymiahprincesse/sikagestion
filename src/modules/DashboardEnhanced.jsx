@@ -6,8 +6,8 @@ import { useAOStore } from '../store/useAOStore'
 import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
 import { useClientsStore } from '../store/useClientsStore'
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts'
-import { TrendingUp, TrendingDown, DollarSign, FileText, Users, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { TrendingUp, DollarSign, FileText, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
 import { formatFCFA } from '../utils/format'
 import { isDevisEnAttente, isDevisVisibleDansListe } from '../utils/devisStatus'
 import BackendStatusIndicator from '../components/BackendStatusIndicator'
@@ -26,12 +26,12 @@ export default function DashboardEnhanced() {
   const getStatistiquesAO = useAOStore(state => state.getStatistiques)
 
   const statsFactures = useMemo(() => {
-    if (typeof getStatistiquesFactures === 'function') return getStatistiquesFactures()
+    if (typeof getStatistiquesFactures === 'function') return getStatistiquesFactures(factures)
     return { payees: 0, partielles: 0, impayees: 0 }
   }, [getStatistiquesFactures, factures])
 
   const statsAO = useMemo(() => {
-    if (typeof getStatistiquesAO === 'function') return getStatistiquesAO()
+    if (typeof getStatistiquesAO === 'function') return getStatistiquesAO(appelsDoffres)
     return { aChiffrer: 0, enAttente: 0, soumis: 0, gagne: 0, perdu: 0 }
   }, [getStatistiquesAO, appelsDoffres])
 
@@ -79,9 +79,9 @@ export default function DashboardEnhanced() {
   // Répartition factures par statut
   const repartitionFactures = useMemo(() => {
     return [
-      { name: 'Payées', value: statsFactures.payees, color: '#1A7A4A' },
-      { name: 'Partielles', value: statsFactures.partielles, color: '#E60000' },
-      { name: 'Impayées', value: statsFactures.impayees, color: '#E60000' }
+      { name: 'Payées', value: statsFactures.payees, color: 'var(--color-success)' },
+      { name: 'Partielles', value: statsFactures.partielles, color: 'var(--color-accent)' },
+      { name: 'Impayées', value: statsFactures.impayees, color: 'var(--color-accent)' }
     ]
   }, [statsFactures])
 
@@ -107,36 +107,26 @@ export default function DashboardEnhanced() {
   // Répartition AO par statut
   const repartitionAO = useMemo(() => {
     return [
-      { name: 'À chiffrer', value: statsAO.aChiffrer, color: '#06006E' },
-      { name: 'En attente', value: statsAO.enAttente, color: '#E60000' },
+      { name: 'À chiffrer', value: statsAO.aChiffrer, color: 'var(--color-primary)' },
+      { name: 'En attente', value: statsAO.enAttente, color: 'var(--color-accent)' },
       { name: 'Soumis', value: statsAO.soumis, color: '#9C27B0' },
-      { name: 'Gagné', value: statsAO.gagne, color: '#1A7A4A' },
-      { name: 'Perdu', value: statsAO.perdu, color: '#E60000' }
+      { name: 'Gagné', value: statsAO.gagne, color: 'var(--color-success)' },
+      { name: 'Perdu', value: statsAO.perdu, color: 'var(--color-accent)' }
     ]
   }, [statsAO])
 
   const tickFormatterMillions = useMemo(() => (value) => (typeof value === 'number' && isFinite(value)) ? `${(value / 1000000).toFixed(0)}M` : '0M', [])
   const tooltipFormatterFCFA = useMemo(() => (value) => formatFCFA(value), [])
 
-  // Projets par statut
-  const projetsParStatut = useMemo(() => {
-    const statuts = {}
-    projets.forEach(p => {
-      statuts[p.statut] = (statuts[p.statut] || 0) + 1
-    })
-    return Object.entries(statuts).map(([statut, count]) => ({
-      statut,
-      count
-    }))
-  }, [projets])
+
 
   return (
     <div className="space-y-6">
       {/* HEADER avec Horloge */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: '#06006E' }}>Tableau de Bord</h1>
-          <p className="text-lg mt-2" style={{ color: '#06006E' }}>Vue d'ensemble de votre activité SIKA INDUSTRIE</p>
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>Tableau de Bord</h1>
+          <p className="text-lg mt-2" style={{ color: 'var(--color-primary)' }}>Vue d'ensemble de votre activité SIKA INDUSTRIE</p>
         </div>
         <div className="flex items-center justify-start lg:justify-end">
           <SyncButton />
@@ -150,54 +140,54 @@ export default function DashboardEnhanced() {
 
       {/* KPIs PRINCIPAUX */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-in">
-        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: '#06006E' }}>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: 'var(--color-primary)' }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold tracking-wide text-slate-500 uppercase">Chiffre d'Affaires</p>
-              <p className="text-2xl font-bold mt-2" style={{ color: '#06006E' }}>
+              <p className="text-2xl font-bold mt-2" style={{ color: 'var(--color-primary)' }}>
                 {formatFCFA(stats.totalCA)}
               </p>
-              <p className="text-xs mt-1.5 font-medium" style={{ color: '#1A7A4A' }}>
+              <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--color-success)' }}>
                 <TrendingUp size={14} className="inline mr-1" />
                 +12% vs mois dernier
               </p>
             </div>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: '#E8ECF4' }}>
-              <DollarSign size={24} style={{ color: '#06006E' }} />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: 'var(--color-surface-muted)' }}>
+              <DollarSign size={24} style={{ color: 'var(--color-primary)' }} />
             </div>
           </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: '#1A7A4A' }}>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: 'var(--color-success)' }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold tracking-wide text-slate-500 uppercase">Encaissé</p>
-              <p className="text-2xl font-bold mt-2" style={{ color: '#06006E' }}>
+              <p className="text-2xl font-bold mt-2" style={{ color: 'var(--color-primary)' }}>
                 {formatFCFA(stats.totalEncaisse)}
               </p>
-              <p className="text-xs mt-1.5 font-medium" style={{ color: '#1A7A4A' }}>
+              <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--color-success)' }}>
                 {stats.tauxEncaissement.toFixed(1)}% du CA
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: '#E8F5E9' }}>
-              <CheckCircle size={24} style={{ color: '#1A7A4A' }} />
+              <CheckCircle size={24} style={{ color: 'var(--color-success)' }} />
             </div>
           </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: '#E60000' }}>
+        <div className="glass-panel p-6 rounded-xl shadow-lg border-l-4 glow-blue hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-out cursor-pointer" style={{ borderColor: 'var(--color-accent)' }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold tracking-wide text-slate-500 uppercase">Reste à Encaisser</p>
-              <p className="text-2xl font-bold mt-2" style={{ color: '#06006E' }}>
+              <p className="text-2xl font-bold mt-2" style={{ color: 'var(--color-primary)' }}>
                 {formatFCFA(stats.totalRestant)}
               </p>
-              <p className="text-xs mt-1.5 font-medium" style={{ color: '#E60000' }}>
+              <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--color-accent)' }}>
                 {statsFactures.impayees} factures impayées
               </p>
             </div>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: '#FFE6E6' }}>
-              <Clock size={24} style={{ color: '#E60000' }} />
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-inner" style={{ backgroundColor: 'var(--color-accent-light)' }}>
+              <Clock size={24} style={{ color: 'var(--color-accent)' }} />
             </div>
           </div>
         </div>
@@ -206,10 +196,10 @@ export default function DashboardEnhanced() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold tracking-wide text-slate-500 uppercase">Solde Caisse</p>
-              <p className="text-2xl font-bold mt-2" style={{ color: '#06006E' }}>
+              <p className="text-2xl font-bold mt-2" style={{ color: 'var(--color-primary)' }}>
                 {formatFCFA(stats.soldeCaisse)}
               </p>
-              <p className="text-xs mt-1.5 font-medium" style={{ color: '#06006E' }}>
+              <p className="text-xs mt-1.5 font-medium" style={{ color: 'var(--color-primary)' }}>
                 Disponible immédiatement
               </p>
             </div>
@@ -222,20 +212,20 @@ export default function DashboardEnhanced() {
 
       {/* STATISTIQUES RAPIDES */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: '#06006E' }}>
-          <p className="text-3xl font-extrabold" style={{ color: '#06006E' }}>{stats.nbClients}</p>
+        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: 'var(--color-primary)' }}>
+          <p className="text-3xl font-extrabold" style={{ color: 'var(--color-primary)' }}>{stats.nbClients}</p>
           <p className="text-xs font-semibold tracking-wider uppercase mt-1.5 text-slate-500">Clients</p>
         </div>
-        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: '#06006E' }}>
-          <p className="text-3xl font-extrabold" style={{ color: '#06006E' }}>{stats.nbProjets}</p>
+        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: 'var(--color-primary)' }}>
+          <p className="text-3xl font-extrabold" style={{ color: 'var(--color-primary)' }}>{stats.nbProjets}</p>
           <p className="text-xs font-semibold tracking-wider uppercase mt-1.5 text-slate-500">Projets</p>
         </div>
-        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: '#06006E' }}>
-          <p className="text-3xl font-extrabold" style={{ color: '#06006E' }}>{stats.nbDevis}</p>
+        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: 'var(--color-primary)' }}>
+          <p className="text-3xl font-extrabold" style={{ color: 'var(--color-primary)' }}>{stats.nbDevis}</p>
           <p className="text-xs font-semibold tracking-wider uppercase mt-1.5 text-slate-500">Devis</p>
         </div>
-        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: '#06006E' }}>
-          <p className="text-3xl font-extrabold" style={{ color: '#06006E' }}>{stats.nbAO}</p>
+        <div className="glass-panel p-5 rounded-xl shadow-md text-center hover:scale-[1.03] hover:shadow-lg transition-all duration-300 ease-out cursor-pointer border-t-2" style={{ borderTopColor: 'var(--color-primary)' }}>
+          <p className="text-3xl font-extrabold" style={{ color: 'var(--color-primary)' }}>{stats.nbAO}</p>
           <p className="text-xs font-semibold tracking-wider uppercase mt-1.5 text-slate-500">Appels d'Offres</p>
         </div>
       </div>
@@ -244,33 +234,33 @@ export default function DashboardEnhanced() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Évolution CA */}
         <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Évolution du Chiffre d'Affaires</h3>
+          <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--color-primary)' }}>Évolution du Chiffre d'Affaires</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={evolutionCA}>
               <defs>
                 <linearGradient id="colorCA" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06006E" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#06006E" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
                 </linearGradient>
                 <linearGradient id="colorEncaisse" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1A7A4A" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#1A7A4A" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="var(--color-success)" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="var(--color-success)" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
-              <XAxis dataKey="mois" stroke="#06006E" />
-              <YAxis stroke="#06006E" tickFormatter={tickFormatterMillions} domain={[0, 'auto']} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-muted)" />
+              <XAxis dataKey="mois" stroke="var(--color-primary)" />
+              <YAxis stroke="var(--color-primary)" tickFormatter={tickFormatterMillions} domain={[0, 'auto']} />
               <Tooltip formatter={tooltipFormatterFCFA} />
               <Legend />
-              <Area type="monotone" dataKey="CA" stroke="#06006E" fillOpacity={1} fill="url(#colorCA)" />
-              <Area type="monotone" dataKey="Encaissé" stroke="#1A7A4A" fillOpacity={1} fill="url(#colorEncaisse)" />
+              <Area type="monotone" dataKey="CA" stroke="var(--color-primary)" fillOpacity={1} fill="url(#colorCA)" />
+              <Area type="monotone" dataKey="Encaissé" stroke="var(--color-success)" fillOpacity={1} fill="url(#colorEncaisse)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         {/* Répartition Factures */}
         <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Répartition des Factures</h3>
+          <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--color-primary)' }}>Répartition des Factures</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -294,26 +284,26 @@ export default function DashboardEnhanced() {
 
         {/* Top 5 Clients */}
         <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Top 5 Clients par CA</h3>
+          <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--color-primary)' }}>Top 5 Clients par CA</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={topClients} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
-              <XAxis type="number" stroke="#06006E" tickFormatter={tickFormatterMillions} domain={[0, 'auto']} />
-              <YAxis type="category" dataKey="nom" stroke="#06006E" width={100} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-muted)" />
+              <XAxis type="number" stroke="var(--color-primary)" tickFormatter={tickFormatterMillions} domain={[0, 'auto']} />
+              <YAxis type="category" dataKey="nom" stroke="var(--color-primary)" width={100} />
               <Tooltip formatter={tooltipFormatterFCFA} />
-              <Bar dataKey="ca" fill="#E60000" radius={[0, 8, 8, 0]} />
+              <Bar dataKey="ca" fill="var(--color-accent)" radius={[0, 8, 8, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Répartition AO */}
         <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Appels d'Offres par Statut</h3>
+          <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--color-primary)' }}>Appels d'Offres par Statut</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={repartitionAO}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8ECF4" />
-              <XAxis dataKey="name" stroke="#06006E" />
-              <YAxis stroke="#06006E" domain={[0, 'auto']} allowDecimals={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-muted)" />
+              <XAxis dataKey="name" stroke="var(--color-primary)" />
+              <YAxis stroke="var(--color-primary)" domain={[0, 'auto']} allowDecimals={false} />
               <Tooltip />
               <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                 {repartitionAO.map((entry, index) => (
@@ -328,8 +318,8 @@ export default function DashboardEnhanced() {
       {/* ALERTES ET ACTIONS RAPIDES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: '#06006E' }}>
-            <AlertTriangle size={20} style={{ color: '#E60000' }} />
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--color-primary)' }}>
+            <AlertTriangle size={20} style={{ color: 'var(--color-accent)' }} />
             Alertes et Notifications
           </h3>
           <div className="space-y-3">
@@ -337,12 +327,12 @@ export default function DashboardEnhanced() {
               <div className="p-3.5 rounded-lg flex items-center justify-between transition-all duration-300 hover:shadow-md border-l-4 border-red-600 bg-red-500/10">
                 <div className="flex items-center gap-3">
                   <div className="w-2.5 h-2.5 rounded-full animate-pulse bg-red-600"></div>
-                  <span className="font-medium text-slate-800" style={{ color: '#06006E' }}>{statsFactures.impayees} facture(s) impayée(s)</span>
+                  <span className="font-medium text-slate-800" style={{ color: 'var(--color-primary)' }}>{statsFactures.impayees} facture(s) impayée(s)</span>
                 </div>
                 <button 
                   onClick={() => navigate('/factures')}
                   className="text-sm font-bold hover:underline py-1 px-3 rounded bg-red-600/10" 
-                  style={{ color: '#E60000' }}
+                  style={{ color: 'var(--color-accent)' }}
                 >
                   Voir →
                 </button>
@@ -351,45 +341,45 @@ export default function DashboardEnhanced() {
             {statsAO.aChiffrer > 0 && (
               <div className="p-3.5 rounded-lg flex items-center justify-between transition-all duration-300 hover:shadow-md border-l-4 border-navy bg-navy/10">
                 <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full animate-pulse bg-[#06006E]"></div>
-                  <span className="font-medium text-slate-800" style={{ color: '#06006E' }}>{statsAO.aChiffrer} AO à chiffrer</span>
+                  <div className="w-2.5 h-2.5 rounded-full animate-pulse bg-primary"></div>
+                  <span className="font-medium text-slate-800" style={{ color: 'var(--color-primary)' }}>{statsAO.aChiffrer} AO à chiffrer</span>
                 </div>
                 <button 
                   onClick={() => navigate('/ao')}
-                  className="text-sm font-bold hover:underline py-1 px-3 rounded bg-[#06006E]/10" 
-                  style={{ color: '#06006E' }}
+                  className="text-sm font-bold hover:underline py-1 px-3 rounded bg-[var(--color-primary)]/10" 
+                  style={{ color: 'var(--color-primary)' }}
                 >
                   Voir →
                 </button>
               </div>
             )}
-            <div className="p-3.5 rounded-lg flex items-center justify-between border-l-4 border-[#1A7A4A] bg-[#1A7A4A]/10">
+            <div className="p-3.5 rounded-lg flex items-center justify-between border-l-4 border-[var(--color-success)] bg-[var(--color-success)]/10">
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#1A7A4A]"></div>
-                <span className="font-medium text-slate-800" style={{ color: '#06006E' }}>Tout est à jour !</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-success"></div>
+                <span className="font-medium text-slate-800" style={{ color: 'var(--color-primary)' }}>Tout est à jour !</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="glass-panel p-6 rounded-xl shadow-lg glow-blue hover:shadow-xl transition-all duration-300">
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#06006E' }}>Actions Rapides</h3>
+          <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--color-primary)' }}>Actions Rapides</h3>
           <div className="grid grid-cols-2 gap-3">
             <button 
               onClick={() => navigate('/devis/liste')}
               className="p-4 rounded-xl text-left border border-slate-200/50 hover:border-slate-300 hover:scale-[1.03] hover:shadow-md transition-all duration-300" 
-              style={{ backgroundColor: '#E8ECF4' }}
+              style={{ backgroundColor: 'var(--color-surface-muted)' }}
             >
               <p className="text-2xl mb-2">📋</p>
-              <p className="font-semibold text-sm tracking-wide" style={{ color: '#06006E' }}>Nouveau Devis</p>
+              <p className="font-semibold text-sm tracking-wide" style={{ color: 'var(--color-primary)' }}>Nouveau Devis</p>
             </button>
             <button 
               onClick={() => navigate('/factures')}
               className="p-4 rounded-xl text-left border border-slate-200/50 hover:border-slate-300 hover:scale-[1.03] hover:shadow-md transition-all duration-300" 
-              style={{ backgroundColor: '#FFE6E6' }}
+              style={{ backgroundColor: 'var(--color-accent-light)' }}
             >
               <p className="text-2xl mb-2">🧾</p>
-              <p className="font-semibold text-sm tracking-wide" style={{ color: '#06006E' }}>Nouvelle Facture</p>
+              <p className="font-semibold text-sm tracking-wide" style={{ color: 'var(--color-primary)' }}>Nouvelle Facture</p>
             </button>
             <button 
               onClick={() => navigate('/encaissements')}
@@ -397,7 +387,7 @@ export default function DashboardEnhanced() {
               style={{ backgroundColor: '#E8F5E9' }}
             >
               <p className="text-2xl mb-2">💰</p>
-              <p className="font-semibold text-sm tracking-wide" style={{ color: '#06006E' }}>Encaissement</p>
+              <p className="font-semibold text-sm tracking-wide" style={{ color: 'var(--color-primary)' }}>Encaissement</p>
             </button>
             <button 
               onClick={() => navigate('/planification')}
@@ -405,7 +395,7 @@ export default function DashboardEnhanced() {
               style={{ backgroundColor: '#F3E5F5' }}
             >
               <p className="text-2xl mb-2">🚀</p>
-              <p className="font-semibold text-sm tracking-wide" style={{ color: '#06006E' }}>Nouveau Projet</p>
+              <p className="font-semibold text-sm tracking-wide" style={{ color: 'var(--color-primary)' }}>Nouveau Projet</p>
             </button>
           </div>
         </div>

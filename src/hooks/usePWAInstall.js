@@ -6,20 +6,27 @@ export function usePWAInstall() {
   const [isInstalled,      setIsInstalled]       = useState(() => {
     if (typeof window !== 'undefined') {
       if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return true;
-      try { if (sessionStorage.getItem('sika_pwa_installed') === 'true') return true; } catch (e) { /* ignore */ }
+      try { if (sessionStorage.getItem('sika_pwa_installed') === 'true') return true; } catch { /* ignore */ }
     }
     return false;
   });
   const [isInstalling,     setIsInstalling]      = useState(false);
   const [installSuccess,   setInstallSuccess]    = useState(false);
-  const [platform,         setPlatform]          = useState(() => {
+  const [platform]          = useState(() => {
     if (typeof window === 'undefined') return 'unknown';
     const ua = navigator.userAgent.toLowerCase();
     if (/iphone|ipad|ipod/.test(ua)) return 'ios';
     if (/android/.test(ua)) return 'android';
     return 'desktop';
   });
-  const [shouldShow, setShouldShow] = useState(true);
+  const [shouldShow] = useState(() => {
+    try {
+      const next = sessionStorage.getItem('sika_pwa_next_show');
+      return !next || Date.now() > parseInt(next);
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (isInstalled) return;
@@ -40,7 +47,7 @@ export function usePWAInstall() {
       setDeferredPrompt(null);
       try {
         sessionStorage.setItem('sika_pwa_installed', 'true');
-      } catch (e) {
+      } catch {
         // Ignorer erreur storage
       }
     };
@@ -75,7 +82,7 @@ export function usePWAInstall() {
         setCanInstall(false);
         return true;
       }
-    } catch (err) {
+    } catch {
       // Erreur silencieuse - l'installation a échoué ou été annulée
     } finally {
       setIsInstalling(false);
@@ -91,20 +98,12 @@ export function usePWAInstall() {
     const nextShow = Date.now() + 3 * 24 * 60 * 60 * 1000;
     try {
       sessionStorage.setItem('sika_pwa_next_show', nextShow.toString());
-    } catch (e) {
+    } catch {
       // Ignorer erreur storage
     }
   }, []);
 
-  // Vérifie si on doit afficher (respect du délai après refus)
-  useEffect(() => {
-    try {
-      const next = sessionStorage.getItem('sika_pwa_next_show');
-      setShouldShow(!next || Date.now() > parseInt(next));
-    } catch (e) {
-      setShouldShow(true);
-    }
-  }, [canInstall]);
+
 
   return {
     canInstall: canInstall && shouldShow,
