@@ -68,6 +68,8 @@ export const useAuthStore = create(
       timeoutId: null,
       avertissementId: null,
       sessionExpirant: false,
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       login: async (login, motDePasse) => {
         const trimmedLogin = (login || '').trim().toLowerCase();
@@ -289,6 +291,9 @@ export const useAuthStore = create(
     {
       name: 'sika_auth',
       storage: createJSONStorage(() => idbStorage),
+      onRehydrateStorage: () => (state) => {
+        state.setHasHydrated(true);
+      },
       partialize: (state) => ({
         utilisateurConnecte: state.utilisateurConnecte,
         derniereActivite: state.derniereActivite

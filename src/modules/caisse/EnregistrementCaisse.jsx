@@ -8,8 +8,10 @@ import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowMode
 import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant } from '../../utils/printUtils'
 import { supabase } from '../../lib/supabaseClient'
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function EnregistrementCaisse() {
+  useSupabaseRealtimeEnhanced(['mouvements_caisse'])
   const { mouvements, addMouvement, updateMouvement, deleteMouvement, setMouvements } = useCaisseStore()
   const { addLog } = useAuditStore()
   const { ajouterNotification } = useNotificationsStore()

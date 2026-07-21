@@ -9,18 +9,22 @@ import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useUtilisateursStore } from '../store/useUtilisateursStore'
-import { useAchatsStore } from '../store/useAchatsStore'
 import { useJournalStore } from '../store/useJournalStore'
+
+import { useAuthStore } from '../store/useAuthStore'
 
 /**
  * Hook amélioré pour la synchronisation temps réel Supabase
  * Utilise le ConnectionManager pour une reconnexion automatique robuste
  * Optimisé: utilise des refs pour éviter les dépendances massives
+ * 
+ * @param {string[]} tablesToSubscribe - Tableau des tables à écouter (ex: ['clients', 'factures']). Si vide ou omis, n'écoute rien par défaut pour éviter de surcharger le réseau.
  */
-export function useSupabaseRealtimeEnhanced() {
+export function useSupabaseRealtimeEnhanced(tablesToSubscribe = []) {
   // Les actions Zustand sont stables (ne changent jamais) - on les lit via getState()
   // pour éviter la création d'objets à chaque render qui causait la boucle infinie
   const actionsRef = useRef(null)
+  const utilisateurConnecte = useAuthStore(state => state.utilisateurConnecte)
 
   if (!actionsRef.current) {
     actionsRef.current = {
@@ -69,11 +73,7 @@ export function useSupabaseRealtimeEnhanced() {
         add: (...args) => useUtilisateursStore.getState().addUtilisateurFromRealtime(...args),
         remove: (...args) => useUtilisateursStore.getState().deleteUtilisateurFromRealtime(...args)
       },
-      achats: {
-        update: (...args) => useAchatsStore.getState().updateAchatFromRealtime(...args),
-        add: (...args) => useAchatsStore.getState().addAchatFromRealtime(...args),
-        remove: (...args) => useAchatsStore.getState().deleteAchatFromRealtime(...args)
-      },
+
       journal: {
         update: (...args) => useJournalStore.getState().updateEcritureFromRealtime(...args),
         add: (...args) => useJournalStore.getState().addEcritureFromRealtime(...args),
@@ -158,26 +158,7 @@ export function useSupabaseRealtimeEnhanced() {
           role: row.role, actif: row.is_actif, auth_user_id: row.auth_user_id || null,
           permissions: row.permissions || null
         }
-      case 'achats':
-        return {
-          id: row.id,
-          fournisseurId: row.fournisseur_id,
-          numeroFacture: row.numero_facture,
-          reference: row.reference,
-          dateAchat: row.date_achat,
-          categorie: row.categorie,
-          typeAchat: row.type_achat,
-          montantHT: parseFloat(row.montant_ht || 0),
-          montantTVA: parseFloat(row.montant_tva || 0),
-          montantTTC: parseFloat(row.montant_ttc || 0),
-          montantPaye: parseFloat(row.montant_paye || 0),
-          modePaiement: row.mode_paiement,
-          statut: row.statut,
-          projetId: row.projet_id,
-          description: row.description,
-          notes: row.notes,
-          dateCreation: row.date_creation,
-        }
+
       case 'ecritures_journal':
         return {
           id: row.id,
@@ -208,16 +189,24 @@ export function useSupabaseRealtimeEnhanced() {
     { name: 'mouvements_caisse', store: 'caisse', idField: 'id', stateField: 'mouvements' },
     { name: 'encaissements', store: 'encaissements', idField: 'id' },
     { name: 'utilisateurs', store: 'utilisateurs', idField: 'id' },
-    { name: 'achats', store: 'achats', idField: 'id' },
     { name: 'ecritures_journal', store: 'journal', idField: 'id' }
   ])
 
-  useEffect(() => {
-    // Enregistrer chaque canal avec le ConnectionManager
-    // Utiliser une fonction stable pour éviter les recréations de callbacks
-    const configs = tablesConfig.current
+  // Convertir en string pour éviter les re-rendus si on passe un tableau litéral
+  const tablesStr = tablesToSubscribe.join(',')
 
-    configs.forEach(config => {
+  useEffect(() => {
+    // Si l'utilisateur n'est pas connecté ou qu'aucune table n'est demandée, on ne s'abonne pas
+    if (!utilisateurConnecte || !tablesStr) return
+
+    const tablesToListen = tablesStr.split(',')
+    
+    // Filtrer les configurations pour ne garder que les tables demandées
+    const configsToApply = tablesConfig.current.filter(config => 
+      tablesToListen.includes(config.name)
+    )
+
+    configsToApply.forEach(config => {
       const actions = actionsRef.current[config.store]
       if (!actions) return
 
@@ -259,9 +248,9 @@ export function useSupabaseRealtimeEnhanced() {
 
     // Cleanup - ne désinscrire qu'une fois
     return () => {
-      configs.forEach(config => {
+      configsToApply.forEach(config => {
         connectionManager.unregisterChannel(config.name)
       })
     }
-  }, [mapRow])
+  }, [mapRow, utilisateurConnecte, tablesStr])
 }

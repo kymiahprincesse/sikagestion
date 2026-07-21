@@ -5,10 +5,10 @@
 
 // ── AUTHENTIFICATION & SESSION ───────────────────────────
 export const AUTH_CONFIG = {
-  // Timeout d'inactivité : 30 minutes
-  TIMEOUT_INACTIVITE: 30 * 60 * 1000,
-  // Avertissement avant expiration : 5 minutes avant (25 min)
-  AVERTISSEMENT_INACTIVITE: 25 * 60 * 1000,
+  // Timeout d'inactivité : 1 an (Désactivé)
+  TIMEOUT_INACTIVITE: 365 * 24 * 60 * 60 * 1000,
+  // Avertissement avant expiration : 365 jours
+  AVERTISSEMENT_INACTIVITE: 365 * 24 * 60 * 60 * 1000,
   // Durée minimale de session
   SESSION_MIN_DURATION: 5 * 60 * 1000,
 };

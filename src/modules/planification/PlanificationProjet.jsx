@@ -42,8 +42,10 @@ const calculerDureeJours = (dateDebut, dateFin) => {
   const fin = new Date(dateFin);
   return Math.ceil((fin - debut) / (1000 * 60 * 60 * 24));
 };
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function PlanificationProjet() {
+  useSupabaseRealtimeEnhanced(['projets', 'taches', 'ressources_hebdo'])
   const user = useAuthStore(state => state.utilisateurConnecte);
 
   const indemniteRepas = useParametresStore(state => state.indemniteRepas || 5000);

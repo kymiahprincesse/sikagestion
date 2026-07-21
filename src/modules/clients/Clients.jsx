@@ -9,8 +9,10 @@ import ConditionsPaiementSelector from '../../components/ConditionsPaiementSelec
 import * as XLSX from 'xlsx'
 import { formatFCFA } from '../../utils/format'
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate, openPDFForPrint } from '../../utils/printUtils'
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function Clients() {
+  useSupabaseRealtimeEnhanced(['clients'])
   const { clients, addClient, updateClient, deleteClient } = useClientsStore()
   const { addLog } = useAuditStore()
   const { devis } = useDevisStore()

@@ -24,8 +24,10 @@ const genererReferenceEncaissement = (encaissements) => {
   const prochain = numerosExistants.length > 0 ? Math.max(...numerosExistants) + 1 : 1
   return `${prefix}${String(prochain).padStart(3, '0')}`
 }
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function EncaissementParClient() {
+  useSupabaseRealtimeEnhanced(['encaissements'])
   const { encaissements, soldeInitial, addEncaissement, updateEncaissement, deleteEncaissement } = useEncaissementsStore()
   const { factures } = useFacturesStore()
   const { addLog } = useAuditStore()

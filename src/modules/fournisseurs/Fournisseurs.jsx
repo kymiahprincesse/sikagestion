@@ -27,8 +27,10 @@ const typesFournisseur = [
   { value: 'TRANSPORT', label: 'Transport & Logistique', icon: '🚚' },
   { value: 'AUTRE', label: 'Autre', icon: '📋' }
 ]
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function Fournisseurs() {
+  useSupabaseRealtimeEnhanced(['fournisseurs'])
   const { fournisseurs, setFournisseurs } = useFournisseursStore()
   const { addLog } = useAuditStore()
   const utilisateur = useAuthStore(state => state.utilisateurConnecte)

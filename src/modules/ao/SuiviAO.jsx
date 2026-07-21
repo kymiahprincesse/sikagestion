@@ -10,8 +10,10 @@ import ModalVoir from './ModalVoir';
 import * as XLSX from 'xlsx';
 import { formatDate } from '../../utils/format';
 import { createSikaPDF, finalizeSikaPDF, sikaTable, formatMontant, formatDate as formatDatePDF, openPDFForPrint } from '../../utils/printUtils';
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function SuiviAO() {
+  useSupabaseRealtimeEnhanced(['appels_offres'])
   const { appelsDoffres, deleteAO, getStatistiques, getAOUrgents } = useAOStore();
   const { addLog } = useAuditStore();
   const { success, error, confirmDelete } = useNotifications();

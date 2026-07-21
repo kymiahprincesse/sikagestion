@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabaseClient';
 import { crudSuccess, crudError } from '../utils/crudNotify';
 import { logger } from '../utils/logger';
 import { generateSecureId } from '../utils/format';
-import { useAchatsStore } from './useAchatsStore';
 import { idbStorage } from '../lib/idbStorage';
 
 function fournisseurToRow(f) {
@@ -103,35 +102,6 @@ export const useFournisseursStore = create(
       getFournisseursActifs: () => {
         const { fournisseurs } = get();
         return fournisseurs.filter((f) => f.isActif === true);
-      },
-
-      addAchat: async (achat) => {
-        return useAchatsStore.getState().addAchat(achat);
-      },
-
-      updateAchat: async (id, modifications) => {
-        return useAchatsStore.getState().updateAchat(id, modifications);
-      },
-
-      deleteAchat: async (id) => {
-        return useAchatsStore.getState().deleteAchat(id);
-      },
-
-      getAchatById: (id) => useAchatsStore.getState().getAchatById(id),
-
-      getAchatsByFournisseur: (fournisseurId) =>
-        useAchatsStore.getState().getAchatsByFournisseur(fournisseurId),
-
-      getAchatsByStatut: (statut) =>
-        useAchatsStore.getState().getAchatsByStatut(statut),
-
-      getTotalAchats: () => useAchatsStore.getState().getTotalAchats(),
-
-      getTotalImpayeFournisseur: (fournisseurId) => {
-        const achats = useAchatsStore.getState().getAchatsByFournisseur(fournisseurId);
-        return achats
-          .filter((a) => a.statut === 'EN_ATTENTE' || a.statut === 'PARTIEL')
-          .reduce((total, a) => total + (a.montantTTC - (a.montantPaye || 0)), 0);
       },
 
 

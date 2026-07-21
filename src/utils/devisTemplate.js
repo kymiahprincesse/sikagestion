@@ -128,7 +128,7 @@ export function generateDevisHTML(data, baseUrl = '') {
 
   // ── Spécifications techniques (bloc gris) ──
   let specsHTML = '';
-  if (specifications && Object.keys(specifications).length > 0) {
+  if (specifications && Object.keys(specifications).length > 0 && (!type || type.toUpperCase() !== 'PLIAGE')) {
     const items = Object.entries(specifications)
       .filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== 0)
       .map(([k, v]) => {
@@ -463,8 +463,7 @@ ${draftWatermark}
   <!-- ══ SPÉCIFICATIONS TECHNIQUES ══ -->
   ${specsHTML}
 
-  <!-- ══ I. TABLEAU DES PRESTATIONS ══ -->
-  <div class="section-title" style="margin-bottom:0;">I. Détail des prestations</div>
+  <!-- ══ TABLEAU DES PRESTATIONS ══ -->
   <table width="100%" style="border:1px solid #1A3A8F;margin-bottom:0;">
     <thead>
       ${tableHeaderHTML}

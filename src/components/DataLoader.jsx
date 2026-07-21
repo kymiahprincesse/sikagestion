@@ -11,9 +11,8 @@ import { useCaisseStore } from '../store/useCaisseStore'
 import { useEncaissementsStore } from '../store/useEncaissementsStore'
 import { useUtilisateursStore } from '../store/useUtilisateursStore'
 import { useNotificationsStore } from '../store/useNotificationsStore'
-import { useAchatsStore } from '../store/useAchatsStore'
 import { useJournalStore } from '../store/useJournalStore'
-import { useSupabaseRealtimeEnhanced } from '../hooks/useSupabaseRealtimeEnhanced'
+
 import { offlineQueue } from '../services/offlineQueue'
 import { logger } from '../utils/logger'
 
@@ -22,8 +21,8 @@ import { logger } from '../utils/logger'
  * ET active la synchronisation temps réel
  */
 export default function DataLoader() {
-  // Activer la sync temps réel améliorée avec reconnexion auto (couvre toutes les tables)
-  useSupabaseRealtimeEnhanced()
+  // La synchronisation temps réel est maintenant gérée par composant pour éviter de surcharger le réseau.
+  // useSupabaseRealtimeEnhanced() a été retiré d'ici.
 
   const utilisateurConnecte = useAuthStore(state => state.utilisateurConnecte)
   const isRefreshingRef = useRef(false)
@@ -37,7 +36,6 @@ export default function DataLoader() {
   const setRessourcesHebdo = usePlanificationStore(state => state.setRessourcesHebdo)
   const setEncaissements = useEncaissementsStore(state => state.setEncaissements)
   const setMouvements = useCaisseStore(state => state.setMouvements)
-  const setAchats = useAchatsStore(state => state.setAchats)
   const setEcritures = useJournalStore(state => state.setEcritures)
   // Utilisateurs : mis à jour directement via useUtilisateursStore.setState dans loadAllData
   const genererNotifications = useNotificationsStore(state => state.genererNotifications)
@@ -50,7 +48,7 @@ export default function DataLoader() {
 
     try {
       // Charger toutes les données en parallèle
-      const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, lignesDevisRes, achatsRes, ecrituresRes] = await Promise.all([
+      const [clientsRes, facturesRes, devisRes, aoRes, fournisseursRes, projetsRes, caisseRes, tachesRes, ressourcesRes, encaissementsRes, utilisateursRes, lignesDevisRes, ecrituresRes] = await Promise.all([
           supabase.from('clients').select('*').order('id'),
           supabase.from('factures').select('*').order('id'),
           supabase.from('devis').select('*').order('id'),
@@ -63,7 +61,6 @@ export default function DataLoader() {
           supabase.from('encaissements').select('*').order('id'),
           supabase.from('utilisateurs').select('*').order('id'),
           supabase.from('lignes_devis').select('*').order('ordre'),
-          supabase.from('achats').select('*, fournisseurs(nom)').order('date_achat', { ascending: false }),
           supabase.from('ecritures_journal').select('*').order('date', { ascending: false }),
         ])
         
@@ -316,31 +313,6 @@ export default function DataLoader() {
           setMouvements(mouvements)
         }
 
-        // ACHATS
-        if (!achatsRes.error && achatsRes.data?.length > 0) {
-          const achats = achatsRes.data.map(a => ({
-            id: a.id,
-            fournisseurId: a.fournisseur_id,
-            fournisseurNom: a.fournisseurs?.nom || null,
-            numeroFacture: a.numero_facture,
-            reference: a.reference,
-            dateAchat: a.date_achat,
-            categorie: a.categorie,
-            typeAchat: a.type_achat,
-            montantHT: parseFloat(a.montant_ht || 0),
-            montantTVA: parseFloat(a.montant_tva || 0),
-            montantTTC: parseFloat(a.montant_ttc || 0),
-            montantPaye: parseFloat(a.montant_paye || 0),
-            modePaiement: a.mode_paiement,
-            statut: a.statut,
-            projetId: a.projet_id,
-            description: a.description,
-            notes: a.notes,
-            dateCreation: a.date_creation,
-          }))
-          setAchats(achats)
-        }
-
         // ECRITURES JOURNAL
         if (!ecrituresRes.error && ecrituresRes.data?.length > 0) {
           const ecritures = ecrituresRes.data.map(e => ({
@@ -364,8 +336,7 @@ export default function DataLoader() {
         const devis = useDevisStore.getState().devis
         const ao = useAOStore.getState().appelsDoffres
         const projets = usePlanificationStore.getState().projets
-        const fournisseurs = useFournisseursStore.getState().fournisseurs
-        genererNotifications(factures, devis, ao, projets, fournisseurs)
+        genererNotifications(factures, devis, ao, projets)
 
         // Traiter la file d'attente offline si des opérations sont en attente
         const queueStats = offlineQueue.getStats()
@@ -436,7 +407,6 @@ export default function DataLoader() {
       setRessourcesHebdo,
       setEncaissements,
       setMouvements,
-      setAchats,
       setEcritures,
       genererNotifications
     ])

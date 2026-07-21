@@ -207,8 +207,8 @@ class ConnectionManager {
       }
     })
 
-    channel.subscribe((status) => {
-      logger.info(`📡 Canal ${name}: ${status}`)
+    channel.subscribe((status, err) => {
+      logger.info(`📡 Canal ${name}: ${status}${err ? ' - ' + JSON.stringify(err) : ''}`)
       // Le statut realtime est une source de vérité plus fiable que le simple ping REST
       if (status === 'SUBSCRIBED') {
         const wasConnected = this.isSupabaseConnected
@@ -222,7 +222,18 @@ class ConnectionManager {
       } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED' || status === 'TIMED_OUT') {
         this.isSupabaseConnected = false
         this.notifyListeners()
-        this.scheduleReconnect()
+        
+        // Si le canal est supprimé volontairement (unmounted), il ne sera plus dans la map.
+        // On évite ainsi de planifier une reconnexion infinie.
+        if (this.channels.has(name)) {
+          // Si c'est une erreur d'authentification ou RLS (souvent associée à CHANNEL_ERROR lors de la souscription initiale sans session valide)
+          // on limite les tentatives pour ne pas spammer le serveur.
+          if (status === 'CHANNEL_ERROR' && this.reconnectAttempts > 3) {
+             logger.warn(`⚠️ Erreur persistante sur le canal ${name}, pause des reconnexions. Vérifiez l'authentification.`)
+          } else {
+            this.scheduleReconnect()
+          }
+        }
       }
     })
 

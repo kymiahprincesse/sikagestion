@@ -203,9 +203,9 @@ export const useUtilisateursStore = create(
         }
 
         try {
-          // Si la fonction manage-users est disponible (MGMT_SECRET fourni), l'utiliser
-          if (MGMT_SECRET) {
-            const result = await callManageUsers('create', {
+          let response;
+          try {
+            response = await callManageUsers('create', {
               email: utilisateur.email,
               password: utilisateur.motDePasse,
               nom: utilisateur.nom,
@@ -213,44 +213,34 @@ export const useUtilisateursStore = create(
               role: roleToSend,
               telephone: utilisateur.telephone || null,
             });
-            const nouvelUtilisateur = rowToUtilisateur(result.user);
-            // Fallback: update telephone directly in case the edge function ignored it
-            if (utilisateur.telephone) {
-              await supabase.from('utilisateurs').update({ telephone: utilisateur.telephone }).eq('id', nouvelUtilisateur.id).catch(() => {});
-              nouvelUtilisateur.telephone = utilisateur.telephone;
-            }
-            set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
-            return { success: true, utilisateur: nouvelUtilisateur };
-          }
-
-          // Sinon, en DEV seulement, si nous avons le service_role, créer directement via Supabase Admin API
-          if (import.meta.env.DEV && import.meta.env.VITE_SUPABASE_SERVICE_ROLE) {
-            // Créer l'utilisateur dans Supabase Auth (admin)
-            const adminResult = await supabase.auth.admin.createUser({
-              email: utilisateur.email,
-              password: utilisateur.motDePasse,
-              user_metadata: { nom: utilisateur.nom, login: utilisateur.login, role: roleToSend }
-            });
-            if (adminResult.error) throw adminResult.error;
-
-            // Insérer la ligne dans la table `utilisateurs`
-            const { data: userRow, error: rowError } = await supabase.from('utilisateurs').insert({
+          } catch (err) {
+            logger.warn('manage-users echoué, tentative fallback local', err);
+            // Fallback: Insertion locale avec mot de passe haché
+            const nouveauHash = await hashLocal(utilisateur.motDePasse);
+            
+            const localUser = {
               nom: utilisateur.nom,
               login: utilisateur.login,
-              email: utilisateur.email,
-              telephone: utilisateur.telephone || null,
+              email: utilisateur.email || null,
               role: roleToSend,
-              is_actif: true,
-              auth_user_id: adminResult.data.user.id
-            }).select().single();
-            if (rowError) throw rowError;
-
-            const nouvelUtilisateur = rowToUtilisateur(userRow);
-            set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
-            return { success: true, utilisateur: nouvelUtilisateur };
+              is_actif: true
+              // Suppression de telephone car il n'existe pas dans la BDD Supabase
+            };
+            
+            const { data, error } = await supabase.from('utilisateurs').insert(localUser).select().single();
+            if (error) throw error;
+            
+            const newUser = rowToUtilisateur(data, { motDePasseHash: nouveauHash });
+            // On ajoute le telephone localement si besoin, même s'il n'est pas en BDD
+            newUser.telephone = utilisateur.telephone || null;
+            
+            set({ utilisateurs: [...utilisateurs, newUser] });
+            return { success: true, utilisateur: newUser, message: 'Utilisateur créé localement avec succès' };
           }
 
-          return { success: false, message: 'Gestion des utilisateurs non configurée sur ce serveur' };
+          const nouvelUtilisateur = rowToUtilisateur(response.user);
+          set({ utilisateurs: [...utilisateurs, nouvelUtilisateur] });
+          return { success: true, utilisateur: nouvelUtilisateur };
         } catch (err) {
           logger.error('ajouterUtilisateur error:', err);
           return { success: false, message: err.message || 'Erreur lors de la création de l\'utilisateur' };
@@ -281,7 +271,6 @@ export const useUtilisateursStore = create(
           email: modifies[index].email || null,
           role: modifies[index].role,
           is_actif: modifies[index].actif,
-          telephone: modifies[index].telephone || null,
           permissions: modifies[index].permissions || null,
         }).eq('id', id).then(({ error }) => {
           if (error) logger.error('Supabase modifierUtilisateur:', error.message);
@@ -374,26 +363,45 @@ export const useUtilisateursStore = create(
         return { success: true, utilisateur: modifies[index] };
       },
 
-      supprimerUtilisateur: async (id) => {
+      supprimerUtilisateur: async (id, currentUserRole) => {
+        if (currentUserRole !== 'ADMIN' && currentUserRole !== 'SUPER_ADMIN') {
+          return { success: false, message: 'Non autorisé : seuls les administrateurs peuvent supprimer.' };
+        }
+
         const { utilisateurs } = get();
         const user = utilisateurs.find(u => u.id === id);
         if (!user) return { success: false, message: 'Utilisateur non trouvé' };
 
-        if (user.role === 'ADMIN') {
-          const admins = utilisateurs.filter(u => u.role === 'ADMIN' && u.actif);
+        if (user.role === 'SUPER_ADMIN' && currentUserRole !== 'SUPER_ADMIN') {
+          return { success: false, message: 'Non autorisé : impossible de supprimer le SUPER_ADMIN.' };
+        }
+
+        if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+          const admins = utilisateurs.filter(u => (u.role === 'ADMIN' || u.role === 'SUPER_ADMIN') && u.actif);
           if (admins.length <= 1) {
             return { success: false, message: 'Impossible de supprimer le dernier administrateur actif' };
           }
         }
 
         try {
-          await callManageUsers('delete', {
-            id,
-            auth_user_id: user.auth_user_id || null,
-          });
+          if (MGMT_SECRET) {
+            await callManageUsers('delete', {
+              id,
+              auth_user_id: user.auth_user_id || null,
+            });
+          } else {
+            throw new Error("No edge function");
+          }
         } catch (err) {
-          if (!err.message.includes('not found') && !err.message.includes('0 rows')) {
-            return { success: false, message: err.message };
+          logger.warn('manage-users delete échoué, fallback local', err.message);
+          // Fallback : on supprime localement dans la table utilisateurs
+          const { error } = await supabase.from('utilisateurs').delete().eq('id', id);
+          if (error) {
+            return { success: false, message: error.message || 'Erreur lors de la suppression' };
+          }
+          // Si l'utilisateur a un compte Auth (et qu'on a la clé de service), on essaie de le supprimer de l'Auth
+          if (user.auth_user_id && import.meta.env.DEV && import.meta.env.VITE_SUPABASE_SERVICE_ROLE) {
+             await supabase.auth.admin.deleteUser(user.auth_user_id).catch(() => {});
           }
         }
 

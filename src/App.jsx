@@ -10,29 +10,49 @@ import PWAInstallBanner from './components/PWAInstallBanner'
 import PWAUpdateNotice from './components/PWAUpdateNotice'
 import { NetworkStatusBanner } from './components/NetworkStatusBanner'
 
-const DashboardEnhanced     = lazy(() => import('./modules/DashboardEnhanced'))
-const SuiviAOModule         = lazy(() => import('./modules/ao').then(m => ({ default: m.SuiviAO })))
-const SuiviFacturesModule   = lazy(() => import('./modules/factures').then(m => ({ default: m.SuiviFactures })))
-const ImportExport          = lazy(() => import('./modules/importexport/ImportExport'))
-const PlanificationProjet   = lazy(() => import('./modules/planification/PlanificationProjet'))
-const DevisCalorifuge       = lazy(() => import('./modules/devis/DevisCalorifuge'))
-const DevisPliage           = lazy(() => import('./modules/devis/DevisPliage'))
-const DevisReservoir        = lazy(() => import('./modules/devis/DevisReservoir'))
-const DevisSoudure          = lazy(() => import('./modules/devis/DevisSoudure'))
-const DevisCharpente        = lazy(() => import('./modules/devis/DevisCharpente'))
-const DevisTuyauterie       = lazy(() => import('./modules/devis/DevisTuyauterie'))
-const DevisChaudronnerie    = lazy(() => import('./modules/devis/DevisChaudronnerie'))
-const ListeDevis            = lazy(() => import('./modules/devis/ListeDevis'))
-const EnregistrementCaisse  = lazy(() => import('./modules/caisse/EnregistrementCaisse'))
-const JournalCaisse         = lazy(() => import('./modules/caisse/JournalCaisse'))
-const EncaissementParClient = lazy(() => import('./modules/encaissements/EncaissementParClient'))
-const Clients               = lazy(() => import('./modules/clients/Clients'))
-const Utilisateurs          = lazy(() => import('./modules/auth/Utilisateurs'))
-const FournisseursModule    = lazy(() => import('./modules/fournisseurs').then(m => ({ default: m.Fournisseurs })))
-const AchatsDepensesModule  = lazy(() => import('./modules/achats/AchatsDepenses'))
-const TourDeControle        = lazy(() => import('./components/TourDeControle'))
-const Parametres            = lazy(() => import('./components/Parametres'))
-const Rapport               = lazy(() => import('./modules/rapport/Rapport'))
+// Helper pour forcer le rafraîchissement si un module échoue au chargement (évite l'erreur Failed to fetch dynamically imported module)
+const lazyWithRetry = (componentImport) =>
+  lazy(async () => {
+    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
+    );
+
+    try {
+      const component = await componentImport();
+      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
+      return component;
+    } catch (error) {
+      if (!pageHasAlreadyBeenForceRefreshed) {
+        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
+
+const DashboardEnhanced     = lazyWithRetry(() => import('./modules/DashboardEnhanced'))
+const SuiviAOModule         = lazyWithRetry(() => import('./modules/ao').then(m => ({ default: m.SuiviAO })))
+const SuiviFacturesModule   = lazyWithRetry(() => import('./modules/factures').then(m => ({ default: m.SuiviFactures })))
+const ImportExport          = lazyWithRetry(() => import('./modules/importexport/ImportExport'))
+const PlanificationProjet   = lazyWithRetry(() => import('./modules/planification/PlanificationProjet'))
+const DevisCalorifuge       = lazyWithRetry(() => import('./modules/devis/DevisCalorifuge'))
+const DevisPliage           = lazyWithRetry(() => import('./modules/devis/DevisPliage'))
+const DevisReservoir        = lazyWithRetry(() => import('./modules/devis/DevisReservoir'))
+const DevisSoudure          = lazyWithRetry(() => import('./modules/devis/DevisSoudure'))
+const DevisCharpente        = lazyWithRetry(() => import('./modules/devis/DevisCharpente'))
+const DevisTuyauterie       = lazyWithRetry(() => import('./modules/devis/DevisTuyauterie'))
+const DevisChaudronnerie    = lazyWithRetry(() => import('./modules/devis/DevisChaudronnerie'))
+const ListeDevis            = lazyWithRetry(() => import('./modules/devis/ListeDevis'))
+const EnregistrementCaisse  = lazyWithRetry(() => import('./modules/caisse/EnregistrementCaisse'))
+const JournalCaisse         = lazyWithRetry(() => import('./modules/caisse/JournalCaisse'))
+const EncaissementParClient = lazyWithRetry(() => import('./modules/encaissements/EncaissementParClient'))
+const Clients               = lazyWithRetry(() => import('./modules/clients/Clients'))
+const Utilisateurs          = lazyWithRetry(() => import('./modules/auth/Utilisateurs'))
+const FournisseursModule    = lazyWithRetry(() => import('./modules/fournisseurs').then(m => ({ default: m.Fournisseurs })))
+const TourDeControle        = lazyWithRetry(() => import('./components/TourDeControle'))
+const Parametres            = lazyWithRetry(() => import('./components/Parametres'))
+const Rapport               = lazyWithRetry(() => import('./modules/rapport/Rapport'))
 
 const PageChargement = () => (
   <div className="flex items-center justify-center h-64">
@@ -42,9 +62,13 @@ const PageChargement = () => (
 
 function AdminRoute({ children }) {
   const utilisateurConnecte = useAuthStore(state => state.utilisateurConnecte)
+  const hasHydrated = useAuthStore(state => state._hasHydrated)
   const isAdmin = useAuthStore(state => state.isAdmin)
+  
+  if (!hasHydrated) return <PageChargement />
   if (!utilisateurConnecte) return <Navigate to="/login" replace />
   if (!isAdmin()) return <Navigate to="/dashboard" replace />
+  
   return children
 }
 
@@ -98,9 +122,6 @@ function App() {
               <Route path="caisse" element={<ErrorBoundary><EnregistrementCaisse /></ErrorBoundary>} />
               <Route path="journal" element={<ErrorBoundary><JournalCaisse /></ErrorBoundary>} />
               <Route path="fournisseurs" element={<ErrorBoundary><FournisseursModule /></ErrorBoundary>} />
-              <Route path="achats" element={<Navigate to="/achats-depenses" replace />} />
-              <Route path="depenses" element={<Navigate to="/achats-depenses" replace />} />
-              <Route path="achats-depenses" element={<ErrorBoundary><AchatsDepensesModule /></ErrorBoundary>} />
 
               {/* OUTILS */}
               <Route path="import-export" element={<ImportExport />} />

@@ -19,6 +19,7 @@ export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const utilisateurConnecte = useAuthStore((state) => state.utilisateurConnecte)
+  const hasHydrated = useAuthStore((state) => state._hasHydrated)
   const deconnexion = useAuthStore((state) => state.deconnexion)
   const sessionExpirant = useAuthStore((state) => state.sessionExpirant)
   const updateActivite = useAuthStore((state) => state.updateActivite)
@@ -37,10 +38,24 @@ export default function Layout() {
   useKeyboardShortcuts()
 
   useEffect(() => {
-    if (!utilisateurConnecte) {
+    if (hasHydrated && !utilisateurConnecte) {
       navigate('/login')
     }
-  }, [utilisateurConnecte, navigate])
+  }, [hasHydrated, utilisateurConnecte, navigate])
+
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <SikaLogo size="md" />
+          <div className="mt-6 flex justify-center">
+            <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-accent)', borderTopColor: 'transparent' }}></div>
+          </div>
+          <p className="mt-4 text-gray-500 dark:text-gray-400">Chargement de la session...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!utilisateurConnecte) {
     return (
@@ -122,9 +137,6 @@ export default function Layout() {
     if (path === '/caisse') items.push({ label: 'Enregistrement Caisse' })
     if (path === '/journal') items.push({ label: 'Journal de Caisse' })
     if (path === '/fournisseurs') items.push({ label: 'Fournisseurs' })
-    if (path === '/achats') items.push({ label: 'Achats' })
-    if (path === '/depenses') items.push({ label: 'Dépenses' })
-    if (path === '/achats-depenses') items.push({ label: 'Achats & Dépenses' })
     if (path === '/rapport') items.push({ label: 'Rapport de synthèse' })
     if (path === '/import-export') items.push({ label: 'Import / Export' })
     if (path === '/utilisateurs') items.push({ label: 'Utilisateurs' })
@@ -421,23 +433,6 @@ export default function Layout() {
             >
               <span className="text-base">🏭</span>
               <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Fournisseurs</span>
-            </Link>
-          )}
-
-          {/* ACHATS & DÉPENSES */}
-          {canAccess('CAISSE') && (
-            <Link
-              to="/achats-depenses"
-              onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }}
-              className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg mb-1.5 transition-all duration-300 ${
-                isActive('/achats-depenses')
-                  ? 'text-white font-semibold'
-                  : 'text-gray-400 hover:text-white hover:translate-x-1.5 hover:bg-[var(--color-secondary)]'
-              }`}
-              style={getSidebarItemStyles('/achats-depenses')}
-            >
-              <span className="text-base">🛒💸</span>
-              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Achats & Dépenses</span>
             </Link>
           )}
 

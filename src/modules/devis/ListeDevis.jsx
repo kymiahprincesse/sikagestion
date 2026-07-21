@@ -19,8 +19,10 @@ import { useUtilisateursStore } from '../../store/useUtilisateursStore'
 
 const STATUTS = ['BROUILLON', 'EN_ATTENTE', 'VALIDE', 'FACTURE', 'ANNULE']
 const TYPES = ['CALORIFUGE', 'PLIAGE', 'RESERVOIR', 'SOUDURE', 'CHARPENTE', 'TUYAUTERIE', 'CHAUDRONNERIE']
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function ListeDevis() {
+  useSupabaseRealtimeEnhanced(['devis', 'lignes_devis'])
   const navigate = useNavigate()
   const { devis, deleteDevis, updateDevis, transformerEnFacture } = useDevisStore()
   const { addFacture } = useFacturesStore()
@@ -1263,7 +1265,7 @@ export default function ListeDevis() {
               )}
 
               {/* ══ SPÉCIFICATIONS TECHNIQUES ══ */}
-              {devisSelectionne.specifications && Object.keys(devisSelectionne.specifications).length > 0 && (
+              {devisSelectionne.specifications && Object.keys(devisSelectionne.specifications).length > 0 && devisSelectionne.typeDevis?.toUpperCase() !== 'PLIAGE' && (
                 <div className="border rounded-lg overflow-hidden">
                   <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white" style={{ background: 'var(--color-primary)' }}>Spécifications techniques</div>
                   <div className="p-3 grid grid-cols-2 md:grid-cols-4 gap-3">

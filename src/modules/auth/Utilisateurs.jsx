@@ -5,6 +5,7 @@ import { useUtilisateursStore } from '../../store/useUtilisateursStore';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAudit } from '../../hooks/useAudit';
 import { filtrerSuperAdmin, isSuperAdmin, normalizeRole } from '../../utils/filterSuperAdmin';
+import { useNotifications } from '../../components/NotificationProvider';
 
 const ROLE_CONFIG = {
   ADMIN:      { couleur: 'var(--color-accent)', fond: 'var(--color-accent-light)', label: 'Administrateur', icone: '👑', desc: 'Accès complet à tous les modules. Gère les utilisateurs et les paramètres système.' },
@@ -91,7 +92,10 @@ const InputField = ({ label, type = 'text', value, onChange, placeholder, requir
   </div>
 );
 
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced';
+
 const Utilisateurs = () => {
+  useSupabaseRealtimeEnhanced(['utilisateurs'])
   const navigate = useNavigate();
   const utilisateurConnecte = useAuthStore((state) => state.utilisateurConnecte);
   const { enregistrerAction } = useAudit();
@@ -115,7 +119,7 @@ const Utilisateurs = () => {
   const [modeAjout, setModeAjout] = useState(false);
   const [formData, setFormData] = useState({});
   const [passwordData, setPasswordData] = useState({ ancien: '', nouveau: '', confirmation: '' });
-  const [message, setMessage] = useState(null);
+  const { success, error: showError } = useNotifications();
   const [modalDelete, setModalDelete] = useState({ open: false, user: null });
   const [modalReinit, setModalReinit] = useState({ open: false, user: null, mdp: '', mdpConfirm: '' });
   const [modalLierAuth, setModalLierAuth] = useState({ open: false, user: null, mdp: '' });
@@ -159,8 +163,8 @@ const Utilisateurs = () => {
   };
 
   const afficherMessage = (type, texte) => {
-    setMessage({ type, texte });
-    setTimeout(() => setMessage(null), 5000);
+    if (type === 'success') success(texte);
+    else showError(texte);
   };
 
   const handleEditer = (user) => {
@@ -252,7 +256,7 @@ const Utilisateurs = () => {
     if (!modalDelete.user) return;
     setLoadingDelete(true);
     try {
-      const result = await supprimerUtilisateur(modalDelete.user.id);
+      const result = await supprimerUtilisateur(modalDelete.user.id, connectedRole);
       if (result.success) {
         enregistrerAction('UTILISATEUR', 'SUPPRESSION', `Utilisateur ${modalDelete.user.nom} supprimé définitivement`);
         afficherMessage('success', `🗑️ ${result.message}`);
@@ -360,24 +364,7 @@ const Utilisateurs = () => {
 
       <div style={{ maxWidth: '1300px', margin: '0 auto', padding: '24px 28px' }}>
 
-        {/* ─── TOAST NOTIFICATION ──────────────────────────────────── */}
-        {message && (
-          <div style={{
-            position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
-            minWidth: '320px', maxWidth: '480px',
-            padding: '14px 18px', borderRadius: '12px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-            background: message.type === 'success' ? 'var(--color-success)' : 'var(--color-accent)',
-            color: 'white',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            fontWeight: 700, fontSize: '14px',
-            animation: 'slideInRight 0.3s ease-out',
-          }}>
-            <style>{`@keyframes slideInRight { from { transform: translateX(110%); opacity:0 } to { transform: translateX(0); opacity:1 } }`}</style>
-            <span>{message.texte}</span>
-            <button onClick={() => setMessage(null)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', fontSize: '14px', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: '12px', flexShrink: 0 }}>✕</button>
-          </div>
-        )}
+        {/* TOAST NOTIFICATION SUPPRIMÉ ICI CAR ON UTILISE LE SYSTEME GLOBAL */}
 
         {/* ══════════════════════════════════════════════════════════ */}
         {/* TAB : LISTE UTILISATEURS                                  */}

@@ -23,7 +23,7 @@ export const useNotificationsStore = create(
       notificationsLues: [],
       toasts: [], // Toasts éphémères qui s'affichent et disparaissent
 
-      genererNotifications: (factures, devis, ao, projets, fournisseurs) => {
+      genererNotifications: (factures, devis, ao, projets) => {
         const nouvelles = [];
         const aujourdhui = new Date();
 
@@ -126,29 +126,7 @@ export const useNotificationsStore = create(
           }
         });
 
-        fournisseurs.forEach((fournisseur) => {
-          const achatsEnAttente = fournisseur.achats?.filter(
-            a => a.statut === 'EN_ATTENTE' && a.dateEcheance
-          ) || [];
 
-          achatsEnAttente.forEach((achat) => {
-            const dateEcheance = new Date(achat.dateEcheance);
-            const joursRestants = Math.ceil((dateEcheance - aujourdhui) / (1000 * 60 * 60 * 24));
-
-            if (joursRestants >= 0 && joursRestants <= 7) {
-              nouvelles.push({
-                id: `fournisseur-paiement-${achat.id}`,
-                type: TYPES_NOTIFICATION.ATTENTION,
-                icone: '🟠',
-                titre: 'ATTENTION',
-                message: `Fournisseur ${fournisseur.nom} à payer cette semaine`,
-                date: new Date().toISOString(),
-                lien: '/fournisseurs',
-                donnees: { fournisseurId: fournisseur.id, achatId: achat.id }
-              });
-            }
-          });
-        });
 
         const anciennes = get().notifications;
         const notificationsIdentiques = 

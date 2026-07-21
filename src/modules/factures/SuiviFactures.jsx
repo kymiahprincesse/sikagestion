@@ -23,8 +23,10 @@ const genererNumeroFacture = (factures) => {
   const prochain = numerosExistants.length > 0 ? Math.max(...numerosExistants) + 1 : 1
   return `${prefix}${String(prochain).padStart(3, '0')}`
 }
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function SuiviFactures() {
+  useSupabaseRealtimeEnhanced(['factures'])
   const { factures, addFacture, updateFacture, deleteFacture, addPaiement, deletePaiement } = useFacturesStore()
   const { addLog } = useAuditStore()
   const { clients } = useClientsStore()
