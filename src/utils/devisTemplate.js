@@ -90,15 +90,16 @@ export function generateDevisHTML(data, baseUrl = '') {
     if (infos.etabliPar && infos.etabliPar !== 'SIKA INDUSTRIE' && infos.etabliPar !== 'Utilisateur') {
       const existingUser = usersList.find(u => 
         (u.nom && u.nom.toLowerCase() === infos.etabliPar.toLowerCase()) ||
-        (u.login && u.login.toLowerCase() === infos.etabliPar.toLowerCase())
+        (u.login && u.login.toLowerCase() === infos.etabliPar.toLowerCase()) ||
+        (u.prenomNom && u.prenomNom.toLowerCase() === infos.etabliPar.toLowerCase())
       );
-      if (existingUser) {
-        // L'utilisateur existe, on met à jour son numéro de téléphone en temps réel
-        infos.tel = existingUser.telephone || companyTel;
-      } else {
-        // L'utilisateur n'existe pas (supprimé ou autre), on repasse sur le numéro de l'entreprise
-        infos.tel = companyTel;
+      if (existingUser && existingUser.telephone) {
+        // L'utilisateur existe et a un numéro, on force son numéro de téléphone
+        infos.tel = existingUser.telephone;
+      } else if (user && user.telephone && (user.nom === infos.etabliPar || user.prenomNom === infos.etabliPar)) {
+        infos.tel = user.telephone;
       }
+      // Ne pas forcer companyTel si le numéro de l'utilisateur était déjà fourni
     }
   } catch {
     // Silencieusement ignoré hors du contexte React (ex: tests unitaires)
@@ -204,13 +205,12 @@ export function generateDevisHTML(data, baseUrl = '') {
       return `<tr style="background:${bg};">
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;color:#555;width:24px;">${i + 1}</td>
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;">${desig}</td>
-        <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:9pt;text-align:center;width:40px;">${ligne.unite || '—'}</td>
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:center;font-weight:bold;color:#1A3A8F;width:45px;">${fmt(ligne.qte || 0)}</td>
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;width:95px;">${fmt(ligne.pu || 0)}</td>
         <td style="padding:6px 8px;border:1px solid #e2e8f0;font-size:10pt;text-align:right;font-weight:bold;color:#1A3A8F;width:105px;">${fmt(montant)}</td>
       </tr>`;
     }
-  }).join('') : `<tr><td colspan="${hasMlOrPt ? 7 : 6}" style="text-align:center;color:#999;padding:20px;font-size:10pt;">Aucune ligne</td></tr>`;
+  }).join('') : `<tr><td colspan="${hasMlOrPt ? 7 : 5}" style="text-align:center;color:#999;padding:20px;font-size:10pt;">Aucune ligne</td></tr>`;
 
   const tableHeaderHTML = hasMlOrPt ? `
       <tr style="background:#1A3A8F;color:white;">
@@ -225,7 +225,6 @@ export function generateDevisHTML(data, baseUrl = '') {
       <tr style="background:#1A3A8F;color:white;">
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:24px;text-align:center;">N°</th>
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9.5pt;text-align:left;">DÉSIGNATION</th>
-        <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:40px;text-align:center;">U</th>
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:45px;text-align:center;">QTÉ</th>
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:95px;text-align:right;">P.U. (FCFA)</th>
         <th style="padding:6px 8px;border:1px solid #1A3A8F;font-size:9pt;width:105px;text-align:right;">MONTANT (FCFA)</th>
@@ -410,19 +409,16 @@ ${draftWatermark}
   <img class="header-img" src="${baseUrl}/entete-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
 
   <!-- ══ BANDEAU DEVIS ══ -->
-  <table width="100%" style="background:#1A3A8F;color:white;margin-bottom:10px;">
-    <tr>
-      <td width="30%" style="padding:8px 14px;font-size:20pt;font-weight:bold;letter-spacing:2px;vertical-align:middle;">DEVIS</td>
-      <td width="40%" style="padding:8px 14px;font-size:16pt;font-weight:bold;text-align:center;letter-spacing:1px;vertical-align:middle;white-space:nowrap;">
-        ${formattedRef}
-      </td>
-      <td width="30%" style="padding:8px 14px;text-align:right;font-size:9pt;vertical-align:middle;line-height:1.4;">
-        ${typeBadge}${statutBadge}<br/>
-        <span style="opacity:0.9;">Abidjan, le ${fmtDate(infos.date)}</span><br/>
-        <span style="opacity:0.8;">Validité : ${infos.validite || '30 jours'}</span>
-      </td>
-    </tr>
-  </table>
+  <div style="background: #1A3A8F; color: white; margin-bottom: 15px; border-radius: 6px; border-left: 6px solid #E30613; padding: 12px 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="font-size: 18pt; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">
+      DEVIS ${formattedRef}
+    </div>
+    <div style="font-size: 10.5pt; font-weight: normal;">
+      <span style="opacity: 0.95;">Abidjan, le ${fmtDate(infos.date)}</span>
+      <span style="margin: 0 12px; color: #E30613;">&bull;</span>
+      <span style="opacity: 0.95;">Validit&#233; : ${infos.validite || '30 jours'}</span>
+    </div>
+  </div>
 
   <!-- ══ BLOCS CLIENT + INFOS ══ -->
   <table width="100%" style="margin-bottom:10px;border:1px solid #e2e8f0;">
@@ -484,14 +480,14 @@ ${draftWatermark}
       <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;color:#1A3A8F;">
         Montant Hors Taxes (HT) <span style="font-size:8pt;font-weight:normal;color:#666;">&#8212; base imposable</span>
       </td>
-      <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#1A3A8F;">${fmt(montantHT)} FCFA</td>
+      <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#E60000;">${fmt(montantHT)} FCFA</td>
     </tr>
     ${tva > 0 ? `
     <tr style="background:#ffffff;">
       <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;color:#555;">
         TVA appliqu&#233;e &#8212; taux 18% <span style="font-size:8pt;color:#aaa;">(taxe sur la valeur ajout&#233;e)</span>
       </td>
-      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#555;">${fmt(tva)} FCFA</td>
+      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#E60000;">${fmt(tva)} FCFA</td>
     </tr>` : ''}
     <tr style="background:#1A3A8F;color:white;">
       <td style="padding:8px 12px;border:1px solid #1A3A8F;font-size:11pt;font-weight:bold;">
@@ -505,9 +501,9 @@ ${draftWatermark}
 
   <!-- ══ NOTES / OBSERVATIONS ══ -->
   ${notes ? `
-  <table width="100%" style="margin-bottom:10px;border:1px solid #e2e8f0;background:#fafafa;">
+  <table width="100%" style="margin-bottom:10px;border:1px solid #e2e8f0;background:#fafafa;table-layout:fixed;">
     <tr><td style="padding:4px 10px;font-size:8pt;font-weight:bold;color:#1A3A8F;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e2e8f0;">Notes / Observations</td></tr>
-    <tr><td style="padding:6px 10px;font-size:9pt;color:#333;line-height:1.6;">${notes}</td></tr>
+    <tr><td style="padding:6px 10px;font-size:9pt;color:#333;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;">${notes}</td></tr>
   </table>` : ''}
 
 
@@ -515,12 +511,15 @@ ${draftWatermark}
   <!-- Fermeture du wrapper global pour l'impression -->
     </td></tr></tbody>
     <tfoot><tr><td style="border: none;">
-      <div style="height: 35mm;"></div> <!-- Espace réservé pour le pied de page -->
+      <div style="height: 75mm;"></div> <!-- Espace réservé pour la signature et le pied de page -->
     </td></tr></tfoot>
   </table>
 
   <!-- ══ PIED DE PAGE UNIQUE ET AUTOMATIQUE ══ -->
   <div class="page-footer" id="page-footer">
+    <div style="text-align: right; padding-right: 35px; margin-bottom: 5px;">
+      <img src="${baseUrl}/signature.jpg" alt="Signature" style="height: 190px; width: auto;" onerror="this.style.display='none'"/>
+    </div>
     <img class="footer-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
   </div>
 

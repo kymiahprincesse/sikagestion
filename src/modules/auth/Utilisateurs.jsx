@@ -174,7 +174,7 @@ const Utilisateurs = () => {
   };
 
   const handleSauvegarderEdition = () => {
-    if (!formData.nom || !formData.login) { afficherMessage('error', 'Nom et login obligatoires'); return; }
+    if (!formData.nom || !formData.login || !formData.telephone) { afficherMessage('error', 'Nom, login et téléphone obligatoires'); return; }
     const result = modifierUtilisateur(modeEdition, formData);
     if (result.success) {
       enregistrerAction('UTILISATEUR', 'MODIFICATION', `Utilisateur ${formData.nom} modifié`);
@@ -225,7 +225,7 @@ const Utilisateurs = () => {
   };
 
   const handleSauvegarderAjout = async () => {
-    if (!formData.nom || !formData.login || !formData.motDePasse) { afficherMessage('error', 'Tous les champs sont obligatoires'); return; }
+    if (!formData.nom || !formData.login || !formData.motDePasse || !formData.telephone) { afficherMessage('error', 'Tous les champs (y compris le téléphone) sont obligatoires'); return; }
     if (!formData.email) { afficherMessage('error', 'L\'email est obligatoire pour créer un compte Supabase'); return; }
     if (formData.motDePasse.length < 6) { afficherMessage('error', 'Minimum 6 caractères pour le mot de passe'); return; }
 
@@ -413,7 +413,7 @@ const Utilisateurs = () => {
                   <InputField label="Nom complet" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} placeholder="Ex: KOUASSI Jean" required autoComplete="off" />
                   <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} placeholder="Ex: kouassi.j" required autoComplete="off" />
                   <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Ex: nom@sikaindustrie.ci" required autoComplete="off" />
-                  <InputField label="Téléphone" value={formData.telephone || ''} onChange={e => setFormData({ ...formData, telephone: e.target.value })} placeholder="Ex: 07 97 25 25 26" autoComplete="off" />
+                  <InputField label="Téléphone" value={formData.telephone || ''} onChange={e => setFormData({ ...formData, telephone: e.target.value })} placeholder="Ex: 07 97 25 25 26" required autoComplete="off" />
                   <div>
                     <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>
                       Mot de passe <span style={{ color: 'var(--color-accent)' }}>*</span>
@@ -487,7 +487,7 @@ const Utilisateurs = () => {
                             <InputField label="Nom" value={formData.nom || ''} onChange={e => setFormData({ ...formData, nom: e.target.value })} required autoComplete="off" />
                             <InputField label="Login" value={formData.login || ''} onChange={e => setFormData({ ...formData, login: e.target.value })} required autoComplete="off" />
                             <InputField label="Email" type="email" value={formData.email || ''} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="adresse@sikaindustrie.ci" autoComplete="off" />
-                            <InputField label="Téléphone" value={formData.telephone || ''} onChange={e => setFormData({ ...formData, telephone: e.target.value })} placeholder="07 97 25 25 26" autoComplete="off" />
+                            <InputField label="Téléphone" value={formData.telephone || ''} onChange={e => setFormData({ ...formData, telephone: e.target.value })} placeholder="07 97 25 25 26" required autoComplete="off" />
                             <div>
                               <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: 600, color: 'var(--color-primary)' }}>Rôle</label>
                               <select value={formData.role || ''} onChange={e => setFormData({ ...formData, role: e.target.value })}

@@ -961,7 +961,7 @@ export default function DevisReservoir() {
                 {devisData.tvaActive && (
                   <div className="flex justify-between items-center">
                     <span className="text-navy font-semibold">TVA 18%</span>
-                    <span className="text-lg font-bold text-bleu">{formatFCFA(totaux.tva)}</span>
+                    <span className="text-lg font-bold text-rouge">{formatFCFA(totaux.tva)}</span>
                   </div>
                 )}
                 
@@ -1112,7 +1112,7 @@ export default function DevisReservoir() {
                 <p>MONTANT BRUT : {formatFCFA(totaux.montantBrut)}</p>
                 <p>REMISE {devisData.tauxRemise}% : - {formatFCFA(totaux.remise)}</p>
                 <p className="font-bold">MONTANT TOTAL HT : {formatFCFA(totaux.montantHT)}</p>
-                <p>TVA 18% : {formatFCFA(totaux.tva)}</p>
+                <p className="font-bold text-rouge">TVA 18% : {formatFCFA(totaux.tva)}</p>
                 <p className="text-lg font-bold">MONTANT TTC : {formatFCFA(totaux.ttc)}</p>
               </div>
             </div>

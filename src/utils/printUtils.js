@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import enteteImg from '../assets/ENTETE SIKApng1.png';
 import piedImg from '../assets/ENTETE SIKA pied 1.png';
+import signatureImg from '../assets/signature.jpg';
 import { logger } from './logger.js';
 
 // ─── DIMENSIONS PAGE A4 ─────────────────────────────────────
@@ -49,17 +50,19 @@ export async function createSikaPDF(titre = '') {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   // Charge les deux images
-  let entete, pied;
+  let entete, pied, signature;
   try {
-    [entete, pied] = await Promise.all([
+    [entete, pied, signature] = await Promise.all([
       loadImageAsBase64(enteteImg),
       loadImageAsBase64(piedImg),
+      loadImageAsBase64(signatureImg).catch(() => null),
     ]);
   } catch (error) {
     logger.error('Erreur chargement images SIKA:', error);
     // Fallback: bandeau de couleur
     entete = null;
     pied = null;
+    signature = null;
   }
 
   const totalPages = () => doc.internal.getNumberOfPages();
@@ -105,6 +108,14 @@ export async function createSikaPDF(titre = '') {
       const piedH = piedW / piedRatio;
       const piedY = PAGE_H - piedH - 5;
 
+      if (signature) {
+        const sigW = 100; // Agrandissement final de la signature (100mm au lieu de 85mm)
+        const sigH = sigW / (signature.w / signature.h);
+        const sigX = PAGE_W - MARGE_D - sigW;
+        const sigY = piedY - sigH - 2;
+        doc.addImage(signature.data, 'JPEG', sigX, sigY, sigW, sigH);
+      }
+
       doc.addImage(pied.data, 'PNG', MARGE_G, piedY, piedW, piedH);
     } else {
       // Fallback: ligne + texte
@@ -137,7 +148,8 @@ export async function createSikaPDF(titre = '') {
   // endY = là où le contenu doit s'arrêter (avant le pied)
   const piedRatio = pied ? (pied.w / pied.h) : 1;
   const piedRenderedH = pied ? (CONTENT_W / piedRatio) : 15;
-  const endY = PAGE_H - piedRenderedH - 10;
+  const signatureRenderedH = signature ? (100 / (signature.w / signature.h)) : 40;
+  const endY = PAGE_H - piedRenderedH - signatureRenderedH - 10;
 
   return {
     doc,
@@ -151,8 +163,10 @@ export async function createSikaPDF(titre = '') {
     CONTENT_W,
     entete,
     pied,
+    signature,
     piedRenderedH,
     enteteRenderedH,
+    signatureRenderedH,
   };
 }
 
@@ -225,7 +239,7 @@ export async function finalizeSikaPDF(ctx, filename, user = null) {
 export function sikaTable(doc, columns, rows, startY, ctx) {
   autoTable(doc, {
     startY,
-    margin: { left: ctx.MARGE_G, right: ctx.MARGE_D, bottom: ctx.piedRenderedH + 15 },
+    margin: { left: ctx.MARGE_G, right: ctx.MARGE_D, bottom: ctx.piedRenderedH + (ctx.signatureRenderedH || 30) + 10 },
     head: [columns],
     body: rows,
     styles: {

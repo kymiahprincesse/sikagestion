@@ -434,7 +434,7 @@ export default function DevisChaudronnerie() {
             {devisData.tvaActive && (
               <div className="flex justify-between items-center">
                 <span className="text-navy font-semibold">TVA 18%</span>
-                <span className="text-lg font-bold text-bleu">{formatFCFA(totaux.tva)}</span>
+                <span className="text-lg font-bold text-rouge">{formatFCFA(totaux.tva)}</span>
               </div>
             )}
             

@@ -59,14 +59,16 @@ export const useDevisStore = create<DevisStoreState>()(
   persist(
     (set, get) => ({
       devis: [],
-      compteurGlobal: 930,
+      compteurGlobal: 990,
 
       getNextNumero: () => {
-        const { compteurGlobal } = get();
+        let { compteurGlobal } = get();
+        if (compteurGlobal < 990) {
+          compteurGlobal = 990;
+          setTimeout(() => set({ compteurGlobal: 990 }), 0); // Eviter set pendant le render
+        }
         const annee = new Date().getFullYear();
         const numero = `N°${compteurGlobal}/SIKA/${annee}`;
-        // Ne pas incrémenter ici - causerait setState pendant render
-        // L'incrémentation se fait dans addDevis quand le numéro est réellement utilisé
         return numero;
       },
 
@@ -542,9 +544,16 @@ export interface CompteurDevisStoreState {
 export const useCompteurDevisStore = create<CompteurDevisStoreState>()(
   persist(
     (set, get) => ({
-      compteur: 930,
+      compteur: 990,
       incrementer: () => set((state) => ({ compteur: state.compteur + 1 })),
-      getCompteur: () => get().compteur
+      getCompteur: () => {
+        let { compteur } = get();
+        if (compteur < 990) {
+          compteur = 990;
+          setTimeout(() => set({ compteur: 990 }), 0);
+        }
+        return compteur;
+      }
     }),
     { name: 'sika_compteur_devis' }
   )
