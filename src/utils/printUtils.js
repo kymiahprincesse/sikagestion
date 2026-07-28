@@ -5,7 +5,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import enteteImg from '../assets/ENTETE SIKApng1.png';
 import piedImg from '../assets/ENTETE SIKA pied 1.png';
-import signatureImg from '../assets/signature.jpg';
+import signatureImg from '../assets/signature-removebg-preview.png';
 import { logger } from './logger.js';
 
 // ─── DIMENSIONS PAGE A4 ─────────────────────────────────────
@@ -108,12 +108,13 @@ export async function createSikaPDF(titre = '') {
       const piedH = piedW / piedRatio;
       const piedY = PAGE_H - piedH - 5;
 
-      if (signature) {
-        const sigW = 100; // Agrandissement final de la signature (100mm au lieu de 85mm)
+      // Signature uniquement sur la dernière page pour éviter les doublons
+      if (signature && pageNum === totalPages()) {
+        const sigW = 145; 
         const sigH = sigW / (signature.w / signature.h);
         const sigX = PAGE_W - MARGE_D - sigW;
-        const sigY = piedY - sigH - 2;
-        doc.addImage(signature.data, 'JPEG', sigX, sigY, sigW, sigH);
+        const sigY = piedY - sigH + 5; // Ajustement naturel
+        doc.addImage(signature.data, 'PNG', sigX, sigY, sigW, sigH);
       }
 
       doc.addImage(pied.data, 'PNG', MARGE_G, piedY, piedW, piedH);

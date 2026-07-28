@@ -117,10 +117,10 @@ export function generateDevisHTML(data, baseUrl = '') {
   };
 
   // ── Badge couleur par type ──
-  const typeBadge = type ? `<span style="display:inline-block;border:1.5px solid #1A3A8F;color:#1A3A8F;font-size:8.5pt;font-weight:bold;padding:2px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;background:transparent;">${type}</span>` : '';
+  // const typeBadge = type ? `<span style="display:inline-block;border:1.5px solid #1A3A8F;color:#1A3A8F;font-size:8.5pt;font-weight:bold;padding:2px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;background:transparent;">${type}</span>` : '';
 
   // ── Badge statut ── (Désactivé à la demande pour l'impression)
-  const statutBadge = '';
+  // const statutBadge = '';
 
   const formattedRef = reference && (reference.startsWith('N°') || reference.startsWith('n°')) ? reference : `N° ${reference}`;
 
@@ -268,6 +268,7 @@ export function generateDevisHTML(data, baseUrl = '') {
       max-width: 190mm;
       margin: 0 auto;
       background: #fff;
+      position: relative;
     }
 
     /* ── Aperçu écran : feuille blanche sur fond gris ── */
@@ -386,6 +387,17 @@ export function generateDevisHTML(data, baseUrl = '') {
 
     /* ── Image entête ── */
     .header-img { width: 100%; display: block; margin-bottom: 0; }
+
+    /* ── Signature en fond (Uniquement à la fin) ── */
+    .signature-bg {
+      position: absolute;
+      top: -10mm;
+      right: 15mm;
+      z-index: 10;
+      opacity: 1;
+      transform: rotate(-4deg);
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -409,14 +421,9 @@ ${draftWatermark}
   <img class="header-img" src="${baseUrl}/entete-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
 
   <!-- ══ BANDEAU DEVIS ══ -->
-  <div style="background: #1A3A8F; color: white; margin-bottom: 15px; border-radius: 6px; border-left: 6px solid #E30613; padding: 12px 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-    <div style="font-size: 18pt; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px; text-transform: uppercase;">
+  <div style="background: #1A3A8F; color: white; margin-bottom: 12px; border-radius: 4px; border-left: 6px solid #E30613; padding: 8px 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="font-size: 16pt; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">
       DEVIS ${formattedRef}
-    </div>
-    <div style="font-size: 10.5pt; font-weight: normal;">
-      <span style="opacity: 0.95;">Abidjan, le ${fmtDate(infos.date)}</span>
-      <span style="margin: 0 12px; color: #E30613;">&bull;</span>
-      <span style="opacity: 0.95;">Validit&#233; : ${infos.validite || '30 jours'}</span>
     </div>
   </div>
 
@@ -480,7 +487,7 @@ ${draftWatermark}
       <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;color:#1A3A8F;">
         Montant Hors Taxes (HT) <span style="font-size:8pt;font-weight:normal;color:#666;">&#8212; base imposable</span>
       </td>
-      <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#E60000;">${fmt(montantHT)} FCFA</td>
+      <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#1A3A8F;">${fmt(montantHT)} FCFA</td>
     </tr>
     ${tva > 0 ? `
     <tr style="background:#ffffff;">
@@ -508,6 +515,15 @@ ${draftWatermark}
 
 
 
+  <!-- ══ SIGNATURE EN FOND (Dans le flux pour impression multi-pages) ══ -->
+    <tr><td style="border: none; padding: 0;">
+      <div style="position: relative; width: 100%; height: 0;">
+        <div class="signature-bg">
+          <img src="${baseUrl}/signature-removebg-preview.png" alt="Signature" style="height: 180px; width: auto;" onerror="this.style.display='none'"/>
+        </div>
+      </div>
+    </td></tr>
+    
   <!-- Fermeture du wrapper global pour l'impression -->
     </td></tr></tbody>
     <tfoot><tr><td style="border: none;">
@@ -515,11 +531,10 @@ ${draftWatermark}
     </td></tr></tfoot>
   </table>
 
+
+
   <!-- ══ PIED DE PAGE UNIQUE ET AUTOMATIQUE ══ -->
   <div class="page-footer" id="page-footer">
-    <div style="text-align: right; padding-right: 35px; margin-bottom: 5px;">
-      <img src="${baseUrl}/signature.jpg" alt="Signature" style="height: 190px; width: auto;" onerror="this.style.display='none'"/>
-    </div>
     <img class="footer-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
   </div>
 

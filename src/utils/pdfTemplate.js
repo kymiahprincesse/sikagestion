@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 import enteteImg from '../assets/ENTETE SIKApng1.png'
 import piedImg from '../assets/ENTETE SIKA pied 1.png'
-import signatureImg from '../assets/signature.jpg'
+import signatureImg from '../assets/signature-removebg-preview.png'
 
 /**
  * Ajoute l'en-tête SIKA à un document PDF
@@ -41,16 +41,18 @@ export const addSikaFooter = (doc, pageNumber = 1, totalPages = 1) => {
   const footerHeight = 15
   const footerY = pageHeight - footerHeight
   
-  // Signature électronique
-  const sigHeight = 35
-  const sigWidth = 80
-  const sigX = pageWidth - sigWidth - 14 // Alignée à droite, marge de 14mm
-  const sigY = footerY - sigHeight - 2 // 2mm au-dessus du pied de page
-  
-  try {
-    doc.addImage(signatureImg, 'JPEG', sigX, sigY, sigWidth, sigHeight)
-  } catch (e) {
-    console.error('Erreur chargement signature:', e)
+  // Signature électronique uniquement sur la dernière page
+  if (pageNumber === totalPages) {
+    const sigHeight = 65
+    const sigWidth = 145
+    const sigX = pageWidth - sigWidth - 14 // Alignée à droite
+    const sigY = footerY - sigHeight + 10 // Parfaitement positionnée au-dessus du pied de page
+    
+    try {
+      doc.addImage(signatureImg, 'PNG', sigX, sigY, sigWidth, sigHeight)
+    } catch (e) {
+      console.error('Erreur chargement signature:', e)
+    }
   }
   
   try {
