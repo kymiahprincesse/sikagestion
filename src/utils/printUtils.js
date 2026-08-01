@@ -108,9 +108,8 @@ export async function createSikaPDF(titre = '') {
       const piedH = piedW / piedRatio;
       const piedY = PAGE_H - piedH - 5;
 
-      // Signature uniquement sur la dernière page pour éviter les doublons
       if (signature && pageNum === totalPages()) {
-        const sigW = 145; 
+        const sigW = 55; 
         const sigH = sigW / (signature.w / signature.h);
         const sigX = PAGE_W - MARGE_D - sigW;
         const sigY = piedY - sigH + 5; // Ajustement naturel

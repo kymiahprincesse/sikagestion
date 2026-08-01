@@ -223,8 +223,8 @@ export const useUtilisateursStore = create(
               login: utilisateur.login,
               email: utilisateur.email || null,
               role: roleToSend,
+              telephone: utilisateur.telephone || null,
               is_actif: true
-              // Suppression de telephone car il n'existe pas dans la BDD Supabase
             };
             
             const { data, error } = await supabase.from('utilisateurs').insert(localUser).select().single();
@@ -269,6 +269,7 @@ export const useUtilisateursStore = create(
           nom: modifies[index].nom,
           login: modifies[index].login,
           email: modifies[index].email || null,
+          telephone: modifies[index].telephone || null,
           role: modifies[index].role,
           is_actif: modifies[index].actif,
           permissions: modifies[index].permissions || null,

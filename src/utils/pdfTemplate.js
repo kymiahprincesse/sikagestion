@@ -43,10 +43,10 @@ export const addSikaFooter = (doc, pageNumber = 1, totalPages = 1) => {
   
   // Signature électronique uniquement sur la dernière page
   if (pageNumber === totalPages) {
-    const sigHeight = 65
-    const sigWidth = 145
+    const sigWidth = 55
+    const sigHeight = 21
     const sigX = pageWidth - sigWidth - 14 // Alignée à droite
-    const sigY = footerY - sigHeight + 10 // Parfaitement positionnée au-dessus du pied de page
+    const sigY = footerY - sigHeight + 5 // Parfaitement positionnée au-dessus du pied de page
     
     try {
       doc.addImage(signatureImg, 'PNG', sigX, sigY, sigWidth, sigHeight)

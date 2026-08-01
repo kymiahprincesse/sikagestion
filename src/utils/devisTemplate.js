@@ -99,10 +99,16 @@ export function generateDevisHTML(data, baseUrl = '') {
       } else if (user && user.telephone && (user.nom === infos.etabliPar || user.prenomNom === infos.etabliPar)) {
         infos.tel = user.telephone;
       }
-      // Ne pas forcer companyTel si le numéro de l'utilisateur était déjà fourni
+      
+      // Override final pour Mme KOUASSI selon la requête
+      if (infos.etabliPar.toLowerCase().includes('kouassi')) {
+        infos.tel = '07 79 26 38 70';
+      }
     }
   } catch {
-    // Silencieusement ignoré hors du contexte React (ex: tests unitaires)
+    if (infos.etabliPar && infos.etabliPar.toLowerCase().includes('kouassi')) {
+      infos.tel = '07 79 26 38 70';
+    }
   }
 
   const fmt = (val) => {
@@ -116,18 +122,10 @@ export function generateDevisHTML(data, baseUrl = '') {
     catch { return date; }
   };
 
-  // ── Badge couleur par type ──
-  // const typeBadge = type ? `<span style="display:inline-block;border:1.5px solid #1A3A8F;color:#1A3A8F;font-size:8.5pt;font-weight:bold;padding:2px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;background:transparent;">${type}</span>` : '';
-
-  // ── Badge statut ── (Désactivé à la demande pour l'impression)
-  // const statutBadge = '';
-
   const formattedRef = reference && (reference.startsWith('N°') || reference.startsWith('n°')) ? reference : `N° ${reference}`;
 
-  // ── Watermark brouillon ── (Désactivé à la demande pour l'impression)
   const draftWatermark = '';
 
-  // ── Spécifications techniques (bloc gris) ──
   let specsHTML = '';
   if (specifications && Object.keys(specifications).length > 0 && (!type || type.toUpperCase() !== 'PLIAGE')) {
     const items = Object.entries(specifications)
@@ -154,7 +152,6 @@ export function generateDevisHTML(data, baseUrl = '') {
     }
   }
 
-  // ── Lignes du tableau ──
   const isCalorifuge = type && type.toUpperCase() === 'CALORIFUGE';
   const hasMlOrPt = isCalorifuge || lignes.some(l => 
     (l.ml !== undefined && l.ml !== null && l.ml !== '' && parseFloat(l.ml) > 0) || 
@@ -173,7 +170,6 @@ export function generateDevisHTML(data, baseUrl = '') {
     if (ligne.longueur && ligne.longueur > 0) details.push(`L: ${ligne.longueur}m`);
     if (ligne.surface && ligne.surface > 0) details.push(`${ligne.surface}m²`);
     
-    // We no longer append ML and PT inline if they have their own columns
     if (!hasMlOrPt) {
       const mlPtParts = [];
       if (ligne.ml && parseFloat(ligne.ml) > 0) mlPtParts.push(`ML: ${ligne.ml}`);
@@ -237,17 +233,12 @@ export function generateDevisHTML(data, baseUrl = '') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DEVIS ${reference}</title>
   <style>
-    /* ── Reset ── */
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
-    /* ── Forcer couleurs impression ── */
     * {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
       color-adjust: exact !important;
     }
-
-    /* ── Body ── */
     html, body {
       font-family: Arial, Helvetica, sans-serif;
       font-size: 10pt;
@@ -255,14 +246,10 @@ export function generateDevisHTML(data, baseUrl = '') {
       background: #fff;
       width: 100%;
     }
-
-    /* ── Page A4 ── */
     @page {
       size: A4 portrait;
-      margin: 10mm 10mm 10mm 10mm;
+      margin: 0;
     }
-
-    /* ── Conteneur ── */
     .page {
       width: 100%;
       max-width: 190mm;
@@ -270,65 +257,62 @@ export function generateDevisHTML(data, baseUrl = '') {
       background: #fff;
       position: relative;
     }
-
-    /* ── Aperçu écran : feuille blanche sur fond gris ── */
     @media screen {
-      html, body { background: #b0b0b0; min-height: 100vh; padding: 24px 0; }
+      html, body { background: #b0b0b0; min-height: 100vh; padding: 24px 0; overflow-x: auto; }
       .page {
         background: #fff;
         box-shadow: 0 6px 32px rgba(0,0,0,0.28);
-        padding: 10mm 10mm 10mm 10mm;
+        width: 794px !important;
+        min-height: 1123px !important;
+        padding: 45px 56px 105px 56px !important;
         margin: 0 auto;
+        position: relative;
+        flex-shrink: 0;
+        box-sizing: border-box;
+      }
+      .page-footer {
+        position: absolute;
+        bottom: 35px;
+        left: 56px;
+        right: 56px;
+        width: calc(100% - 112px);
       }
       .no-print-bar {
         position: sticky;
         top: 0;
-        z-index: 999;
+        left: 0;
+        right: 0;
+        z-index: 9999;
         background: #1A3A8F;
-        color: white;
         padding: 10px 20px;
         display: flex;
+        justify-content: flex-start;
         align-items: center;
-        gap: 16px;
+        gap: 15px;
+        color: white;
+        font-family: sans-serif;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       }
-    }
-
-    /* ── Impression ── */
-    @media print {
-      @page {
-        size: A4 portrait;
-        margin: 12mm 15mm 28mm 15mm;
-      }
-      html, body {
-        background: #fff !important;
-        padding: 0 !important;
-        margin: 0 !important;
-      }
-      .page {
-        box-shadow: none !important;
-        padding: 0 !important; /* Marges gérées proprement par @page */
-        max-width: 100% !important;
-      }
-      .no-print-bar { display: none !important; }
-      
-      .page-footer {
-        display: block !important;
-        position: fixed;
-        bottom: 0 !important; /* Position fixée au bord inférieur (gérée avec @page margin) */
-        left: 15mm !important;  /* Aligné avec les marges gauche/droite */
-        right: 15mm !important;
-        width: calc(100% - 30mm) !important;
+      .no-print-bar button {
         background: #fff;
-        z-index: 9999;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-weight: bold;
+        border-radius: 4px;
       }
+      .no-print-bar button.btn-blue { color: #1A3A8F; }
+      .no-print-bar button.btn-green { background: #10b981; color: white; }
+      .no-print-bar button.btn-red { background: #ef4444; color: white; }
     }
-
-    /* ── Tables ── */
+    @media print {
+      html, body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+      .page { box-shadow: none !important; padding: 0 !important; max-width: 100% !important; }
+      .no-print-bar { display: none !important; }
+      .page-footer { position: fixed; bottom: 0 !important; left: 15mm !important; right: 15mm !important; width: calc(100% - 30mm) !important; z-index: 9999; }
+    }
     table { border-collapse: collapse; width: 100%; }
-
-    /* ── Titres de section ── */
     .section-title {
       background: #1A3A8F !important;
       color: white !important;
@@ -339,95 +323,34 @@ export function generateDevisHTML(data, baseUrl = '') {
       letter-spacing: 1px;
       margin-top: 10px;
     }
-
-    /* ── Espace signature ── */
-    .sig-space { height: 55px; border-bottom: 2px solid #1A3A8F; }
-
-    /* ── Sauts de page propres ── */
-    tr { page-break-inside: avoid; break-inside: avoid; }
-    thead { display: table-header-group; }
-
-    /* ── Watermark brouillon ── */
-    .draft-watermark {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-35deg);
-      z-index: 1000;
-      color: #dc3545;
-      font-size: 60pt;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 8px;
-      opacity: 0.14;
-      pointer-events: none;
-      text-align: center;
-      white-space: nowrap;
-      border: 6px solid #dc3545;
-      padding: 20px 50px;
-      border-radius: 20px;
-    }
-
-    /* ── Numéros de page ── */
-    .page-number::after { content: counter(page); }
-    .page-number-total::after { content: counter(pages); }
-
-    /* ── Pied de page (Écran & Impression) ── */
-    .page-footer {
-      width: 100%;
-      margin-top: 30px;
-    }
-    
-
-    
-    .footer-img {
-      width: 100%;
-      display: block;
-    }
-
-    /* ── Image entête ── */
-    .header-img { width: 100%; display: block; margin-bottom: 0; }
-
-    /* ── Signature en fond (Uniquement à la fin) ── */
+    .footer-img { width: 100%; max-width: 100%; display: block; }
+    .header-img { width: 100%; max-width: 100%; display: block; margin-bottom: 0; }
     .signature-bg {
-      position: absolute;
-      top: -10mm;
-      right: 15mm;
-      z-index: 10;
-      opacity: 1;
-      transform: rotate(-4deg);
-      pointer-events: none;
+      text-align: right;
+      padding-right: 10mm;
+      margin-top: 5px;
+      margin-bottom: 5px;
+      transform: rotate(-2deg);
     }
+    .signature-img { max-width: 100%; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
-
-  <!-- ══ BARRE BOUTON (écran seulement) ══ -->
   <div class="no-print-bar">
-    <button onclick="window.print()" style="background:#1A3A8F;color:white;border:none;padding:8px 28px;font-size:10pt;font-weight:bold;border-radius:5px;cursor:pointer;">
-      &#128424; Imprimer / Enregistrer PDF
-    </button>
-    <span style="font-size:9pt;opacity:0.85;">Raccourci clavier : Ctrl + P</span>
-    <span style="margin-left:auto;font-size:9pt;opacity:0.7;">DEVIS ${reference} &mdash; ${type || 'SIKA INDUSTRIE'}</span>
+    <button class="btn-blue" onclick="window.print()">🖨️ Imprimer</button>
+    <button class="btn-green" onclick="telechargerPDF()">📥 Télécharger PDF</button>
+    <button id="btn-sig" class="btn-red" onclick="toggleSignature()">❌ Masquer la signature</button>
+    <span style="margin-left:auto;font-size:9pt;opacity:0.8;">DEVIS ${reference} &mdash; ${type || 'SIKA INDUSTRIE'}</span>
   </div>
 
-${draftWatermark}
-
 <div class="page">
-  <table style="width: 100%; border: none; margin: 0; padding: 0;">
-    <thead><tr><td style="border: none; height: 0;"></td></tr></thead>
-    <tbody><tr><td style="border: none; padding: 0;">
-  <!-- ══ ENTÊTE IMAGE SIKA — page 1 uniquement ══ -->
   <img class="header-img" src="${baseUrl}/entete-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
-
-  <!-- ══ BANDEAU DEVIS ══ -->
   <div style="background: #1A3A8F; color: white; margin-bottom: 12px; border-radius: 4px; border-left: 6px solid #E30613; padding: 8px 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
     <div style="font-size: 16pt; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">
       DEVIS ${formattedRef}
     </div>
   </div>
-
-  <!-- ══ BLOCS CLIENT + INFOS ══ -->
   <table width="100%" style="margin-bottom:10px;border:1px solid #e2e8f0;">
     <tr>
       <td width="52%" style="vertical-align:top;border-right:1px solid #e2e8f0;">
@@ -451,100 +374,85 @@ ${draftWatermark}
           <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">Validit&#233; :</b> ${infos.validite || '30 jours'}</td></tr>
           <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">&#201;tabli par :</b> ${infos.etabliPar || 'SIKA INDUSTRIE'}</td></tr>
           <tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">T&#233;l :</b> ${infos.tel || '(225) 07 97 25 25 26'}</td></tr>
-          ${infos.demandePar ? `<tr><td style="padding:2px 8px;font-size:9pt;"><b style="color:#1A3A8F;display:inline-block;width:95px;">À la demande de :</b> ${infos.demandePar}</td></tr>` : ''}
         </table>
       </td>
     </tr>
   </table>
-
-  <!-- ══ OBJET ══ -->
   <table width="100%" style="margin-bottom:10px;border-left:4px solid #1A3A8F;background:#f0f4ff;">
     <tr><td style="padding:4px 10px;font-size:8pt;font-weight:bold;color:#1A3A8F;text-transform:uppercase;letter-spacing:1px;">Objet du devis</td></tr>
     <tr><td style="padding:4px 10px 8px;font-size:10pt;color:#222;font-weight:bold;">${objet || '____________________________________________________________________________________'}</td></tr>
   </table>
-
-  <!-- ══ SPÉCIFICATIONS TECHNIQUES ══ -->
   ${specsHTML}
-
-  <!-- ══ TABLEAU DES PRESTATIONS ══ -->
   <table width="100%" style="border:1px solid #1A3A8F;margin-bottom:0;">
-    <thead>
-      ${tableHeaderHTML}
-    </thead>
+    <thead>${tableHeaderHTML}</thead>
     <tbody>${lignesHTML}</tbody>
   </table>
-
-  <!-- ══ RÉCAPITULATIF FINANCIER ══ -->
   <table width="100%" style="border:1px solid #e2e8f0;border-top:none;margin-bottom:10px;">
     ${montantBrut > 0 && remise > 0 ? `
     <tr style="background:#ffffff;">
-      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;color:#555;">
-        Remise commerciale accord&#233;e
-      </td>
+      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;color:#555;">Remise commerciale accord&#233;e</td>
       <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#555;">&#8722; ${fmt(remise)} FCFA</td>
     </tr>` : ''}
     <tr style="background:#E8ECF4;">
-      <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;color:#1A3A8F;">
-        Montant Hors Taxes (HT) <span style="font-size:8pt;font-weight:normal;color:#666;">&#8212; base imposable</span>
-      </td>
+      <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;color:#1A3A8F;">Montant Hors Taxes (HT)</td>
       <td style="padding:6px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#1A3A8F;">${fmt(montantHT)} FCFA</td>
     </tr>
     ${tva > 0 ? `
     <tr style="background:#ffffff;">
-      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;color:#555;">
-        TVA appliqu&#233;e &#8212; taux 18% <span style="font-size:8pt;color:#aaa;">(taxe sur la valeur ajout&#233;e)</span>
-      </td>
+      <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;color:#555;">TVA 18%</td>
       <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#E60000;">${fmt(tva)} FCFA</td>
     </tr>` : ''}
     <tr style="background:#1A3A8F;color:white;">
-      <td style="padding:8px 12px;border:1px solid #1A3A8F;font-size:11pt;font-weight:bold;">
-        MONTANT TOTAL &#192; PAYER (TTC)
-        <div style="font-size:8pt;font-weight:normal;opacity:0.75;margin-top:2px;">Toutes taxes comprises &#8212; net &#224; r&#233;gler</div>
-      </td>
+      <td style="padding:8px 12px;border:1px solid #1A3A8F;font-size:11pt;font-weight:bold;">MONTANT TOTAL (TTC)</td>
       <td style="padding:8px 12px;border:1px solid #1A3A8F;font-size:12pt;font-weight:bold;text-align:right;">${fmt(ttc)} FCFA</td>
     </tr>
-
   </table>
-
-  <!-- ══ NOTES / OBSERVATIONS ══ -->
   ${notes ? `
-  <table width="100%" style="margin-bottom:10px;border:1px solid #e2e8f0;background:#fafafa;table-layout:fixed;">
-    <tr><td style="padding:4px 10px;font-size:8pt;font-weight:bold;color:#1A3A8F;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e2e8f0;">Notes / Observations</td></tr>
-    <tr><td style="padding:6px 10px;font-size:9pt;color:#333;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;">${notes}</td></tr>
+  <table width="100%" style="margin-bottom:10px;border:1px solid #e2e8f0;background:#fafafa;">
+    <tr><td style="padding:4px 10px;font-size:8pt;font-weight:bold;color:#1A3A8F;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">Notes / Observations</td></tr>
+    <tr><td style="padding:6px 10px;font-size:9pt;color:#333;white-space:pre-wrap;">${notes}</td></tr>
   </table>` : ''}
-
-
-
-  <!-- ══ SIGNATURE EN FOND (Dans le flux pour impression multi-pages) ══ -->
-    <tr><td style="border: none; padding: 0;">
-      <div style="position: relative; width: 100%; height: 0;">
-        <div class="signature-bg">
-          <img src="${baseUrl}/signature-removebg-preview.png" alt="Signature" style="height: 180px; width: auto;" onerror="this.style.display='none'"/>
-        </div>
-      </div>
-    </td></tr>
-    
-  <!-- Fermeture du wrapper global pour l'impression -->
-    </td></tr></tbody>
-    <tfoot><tr><td style="border: none;">
-      <div style="height: 75mm;"></div> <!-- Espace réservé pour la signature et le pied de page -->
-    </td></tr></tfoot>
-  </table>
-
-
-
-  <!-- ══ PIED DE PAGE UNIQUE ET AUTOMATIQUE ══ -->
+  <div id="signature-box" style="margin-top:10px;">
+    <div class="signature-bg">
+      <img class="signature-img" src="${baseUrl}/signature-removebg-preview.png" alt="Signature" style="height: 210px; width: auto;" onerror="this.style.display='none'"/>
+    </div>
+  </div>
   <div class="page-footer" id="page-footer">
     <img class="footer-img" src="${baseUrl}/pied-sika.png" alt="SIKA INDUSTRIE" onerror="this.style.display='none'"/>
   </div>
-
 </div>
 
+<script>
+  function telechargerPDF() {
+    const element = document.querySelector('.page');
+    const btnBar = document.querySelector('.no-print-bar');
+    btnBar.style.display = 'none';
+    const opt = {
+      margin: 0,
+      filename: 'Devis_${String(reference).split("/").join("_")}.pdf',
+      image: { type: 'jpeg', quality: 1 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save().then(() => { btnBar.style.display = 'flex'; });
+  }
+  function toggleSignature() {
+    const sigBox = document.getElementById('signature-box');
+    const btn = document.getElementById('btn-sig');
+    if (sigBox.style.display === 'none') {
+      sigBox.style.display = 'block';
+      btn.innerHTML = '❌ Masquer la signature';
+      btn.style.background = '#ef4444';
+    } else {
+      sigBox.style.display = 'none';
+      btn.innerHTML = '✅ Afficher la signature';
+      btn.style.background = '#10b981';
+    }
+  }
+</script>
 </body>
 </html>`;
-}
-
-/**
+}/**
  * Génère un objet de données devis à partir des données existantes du store
  * pour n'importe quel type de devis
  */

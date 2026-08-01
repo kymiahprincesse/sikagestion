@@ -224,6 +224,16 @@
 }
 
 /* ═══════════════════════════════════════════
+   SIKA INDUSTRIE — SIGNATURE
+═══════════════════════════════════════════ */
+.signature-img {
+  width: 250px; /* Taille d'affichage standard dans un document / facture */
+  height: auto; /* Maintient les proportions exactes (ratio 2.66:1) */
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* ═══════════════════════════════════════════
    SIKA INDUSTRIE — STYLES D'IMPRESSION
 ═══════════════════════════════════════════ */
 @media print {
