@@ -53,6 +53,8 @@ const FournisseursModule    = lazyWithRetry(() => import('./modules/fournisseurs
 const TourDeControle        = lazyWithRetry(() => import('./components/TourDeControle'))
 const Parametres            = lazyWithRetry(() => import('./components/Parametres'))
 const Rapport               = lazyWithRetry(() => import('./modules/rapport/Rapport'))
+const SikaIntelligence      = lazyWithRetry(() => import('./modules/intelligence/SikaIntelligence'))
+
 
 const PageChargement = () => (
   <div className="flex items-center justify-center h-64">
