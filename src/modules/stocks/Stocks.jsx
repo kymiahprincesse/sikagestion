@@ -7,15 +7,15 @@ import { formatFCFA } from '../../utils/format';
 
 export default function Stocks() {
   const { stocks, fetchStocks, ajouterStock, modifierStock, supprimerStock } = useStocksStore();
-  const { fournisseurs, fetchFournisseurs } = useFournisseursStore();
+  const { fournisseurs } = useFournisseursStore();
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ nom: '', reference: '', categorie: 'Tôle', quantite: 0, seuilAlerte: 5, prixUnitaire: 0, unite: 'Unité', fournisseurId: '' });
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     fetchStocks();
-    fetchFournisseurs();
-  }, [fetchStocks, fetchFournisseurs]);
+    
+  }, [fetchStocks]);
 
   const stats = useMemo(() => {
     const totalValeur = stocks.reduce((sum, item) => sum + ((item.quantite || 0) * (item.prixUnitaire || 0)), 0);

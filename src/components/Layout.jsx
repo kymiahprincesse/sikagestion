@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { ChevronDown, ChevronRight, LogOut } from 'lucide-react'
+import { ChevronDown, ChevronRight, LogOut, LayoutDashboard, BrainCircuit, FileBarChart, Users, FileText, ClipboardList, Rocket, Truck, Package, DollarSign, Wallet, BookOpen, DownloadCloud, Shield, Settings } from 'lucide-react'
 import { useAuthStore } from '../store/useAuthStore'
 import { isSuperAdmin, normalizeRole } from '../utils/filterSuperAdmin'
 import Breadcrumb from './Breadcrumb'
@@ -200,13 +200,13 @@ export default function Layout() {
               <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>TABLEAU DE BORD</span>
             </Link>
             <Link to="/intelligence" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/intelligence') ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold shadow-md' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={!isActive('/intelligence') ? getSidebarItemStyles('/intelligence') : {}}>
-              <span className="text-base text-purple-400">âœ¨</span>
-              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Sika IA</span>
+              <BrainCircuit size={18} className="text-purple-400" />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Sika IA</span>
             </Link>
 
             <Link to="/rapport" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2.5 rounded-lg transition-all duration-300 ${isActive('/rapport') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/rapport')}>
-              <span className="text-base">📈</span>
-              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Rapport synthèse</span>
+              <FileBarChart size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Rapport synthèse</span>
             </Link>
           </div>
 
@@ -224,22 +224,22 @@ export default function Layout() {
                 <div className="mt-1 space-y-1">
                   {canAccess('CLIENTS') && (
                     <Link to="/clients" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/clients') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/clients')}>
-                      <span className="text-base">👥</span>
-                      <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Clients</span>
+                      <Users size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Clients</span>
                     </Link>
                   )}
                   {canAccess('AO') && (
                     <Link to="/ao" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/ao') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/ao')}>
-                      <span className="text-base">📋</span>
-                      <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Appels d'offres</span>
+                      <ClipboardList size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Appels d'offres</span>
                     </Link>
                   )}
                   {canAccess('DEVIS') && (
                     <div className={`${sidebarOpen ? 'ml-2' : ''} border-l border-white/10`}>
                       <button onClick={() => setDevisExpanded(!devisExpanded)} className={`w-full flex items-center ${sidebarOpen ? 'justify-between px-3' : 'justify-center'} py-2 rounded-lg transition-all hover:bg-white/5 text-gray-400 hover:text-white`}>
                         <div className={`flex items-center ${sidebarOpen ? 'gap-3' : ''}`}>
-                          <span className="text-base">📄</span>
-                          <span className={`text-sm font-semibold whitespace-nowrap overflow-hidden ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Devis</span>
+                          <FileText size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Devis</span>
                         </div>
                         {sidebarOpen && (devisExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
                       </button>
@@ -262,8 +262,8 @@ export default function Layout() {
                         </div>
                       )}
                       <Link to="/devis/liste" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-3 gap-3' : 'justify-center'} py-2 mt-1 rounded-lg transition-all duration-300 ${isActive('/devis/liste') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/devis/liste')}>
-                        <span className="text-base">📋</span>
-                        <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Suivi Devis</span>
+                        <ClipboardList size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Suivi Devis</span>
                       </Link>
                     </div>
                   )}
@@ -286,20 +286,20 @@ export default function Layout() {
                 <div className="mt-1 space-y-1">
                   {canAccess('PLANIFICATION') && (
                     <Link to="/planification" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/planification') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/planification')}>
-                      <span className="text-base">🚀</span>
-                      <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Projets</span>
+                      <Rocket size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Projets</span>
                     </Link>
                   )}
                                     {canAccess('FOURNISSEURS') && (
                     <Link to="/fournisseurs" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/fournisseurs') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/fournisseurs')}>
-                      <span className="text-base">ðŸ ­</span>
-                      <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Fournisseurs</span>
+                      <Truck size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Fournisseurs</span>
                     </Link>
                   )}
                   {canAccess('FOURNISSEURS') && (
                     <Link to="/stocks" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/stocks') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/stocks')}>
-                      <span className="text-base">ðŸ“¦</span>
-                      <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Stocks & Inv.</span>
+                      <Package size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Stocks & Inv.</span>
                     </Link>
                   )}
                 </div>
@@ -321,20 +321,20 @@ export default function Layout() {
                 <div className="mt-1 space-y-1">
                   {canAccess('ENCAISSEMENTS') && (
                     <Link to="/encaissements" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/encaissements') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/encaissements')}>
-                      <span className="text-base">💰</span>
-                      <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Encaissements</span>
+                      <DollarSign size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Encaissements</span>
                     </Link>
                   )}
                   {canAccess('CAISSE') && (
                     <Link to="/caisse" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/caisse') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/caisse')}>
-                      <span className="text-base">🏦</span>
-                      <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Caisse</span>
+                      <Wallet size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Caisse</span>
                     </Link>
                   )}
                   {canAccess('CAISSE') && (
                     <Link to="/journal" onClick={() => { if (window.innerWidth < 1024) setSidebarOpen(false); }} className={`flex items-center ${sidebarOpen ? 'px-4 gap-3' : 'justify-center'} py-2 rounded-lg transition-all duration-300 ${isActive('/journal') ? 'text-white font-semibold' : 'text-gray-400 hover:text-white hover:translate-x-1 hover:bg-[var(--color-secondary)]'}`} style={getSidebarItemStyles('/journal')}>
-                      <span className="text-base">📒</span>
-                      <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0 hidden lg:block'}`}>Journal Caisse</span>
+                      <BookOpen size={18} />
+              <span className={`text-sm font-semibold tracking-wide whitespace-nowrap overflow-hidden transition-all duration-300 ${sidebarOpen ? \'max-w-[200px] opacity-100 ml-2\' : \'max-w-0 opacity-0 ml-0 hidden lg:block\'}`}>Journal Caisse</span>
                     </Link>
                   )}
                 </div>
