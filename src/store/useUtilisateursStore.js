@@ -52,7 +52,7 @@ function rowToUtilisateur(row, localUser = null) {
   return {
     id: row.id,
     nom: row.nom,
-    login: row.login,
+    login: row.login || (row.email ? row.email.split("@")[0] : ""),
     email: row.email || '',
     telephone: row.telephone || '',
     role: normalizeRole(row.role) || row.role,
@@ -209,7 +209,7 @@ export const useUtilisateursStore = create(
               email: utilisateur.email,
               password: utilisateur.motDePasse,
               nom: utilisateur.nom,
-              login: utilisateur.login,
+              /* login: utilisateur.login, (Supprimé car inexistant en BDD) */
               role: roleToSend,
               telephone: utilisateur.telephone || null,
             });
@@ -220,7 +220,7 @@ export const useUtilisateursStore = create(
             
             const localUser = {
               nom: utilisateur.nom,
-              login: utilisateur.login,
+              /* login: utilisateur.login, (Supprimé car inexistant en BDD) */
               email: utilisateur.email || null,
               role: roleToSend,
               is_actif: true
@@ -267,7 +267,7 @@ export const useUtilisateursStore = create(
 
         supabase.from('utilisateurs').update({
           nom: modifies[index].nom,
-          login: modifies[index].login,
+          /* login: modifies[index].login, (Supprimé car inexistant en BDD) */
           email: modifies[index].email || null,
           role: modifies[index].role,
           is_actif: modifies[index].actif,

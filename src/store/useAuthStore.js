@@ -99,13 +99,9 @@ export const useAuthStore = create(
 
           // Récupérer l'email depuis le login si nécessaire
           if (!trimmedLogin.includes('@')) {
-            const { data: rows } = await supabase
-              .from('utilisateurs')
-              .select('email')
-              .ilike('login', trimmedLogin)
-              .maybeSingle();
-            if (rows?.email) emailForAuth = rows.email;
-          }
+              const localUser = useUtilisateursStore.getState().utilisateurs.find(u => u.login?.toLowerCase() === trimmedLogin || u.nom?.toLowerCase() === trimmedLogin);
+              if (localUser?.email) emailForAuth = localUser.email;
+            }
 
           if (emailForAuth.includes('@')) {
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -163,7 +159,7 @@ export const useAuthStore = create(
                 const utilisateur = {
                   id: userRow.id,
                   nom: userRow.nom,
-                  login: userRow.login,
+                  login: userRow.login || (userRow.email ? userRow.email.split("@")[0] : ""),
                   email: userRow.email,
                   role: normalizeRole(userRow.role),
                   actif: userRow.is_actif,
