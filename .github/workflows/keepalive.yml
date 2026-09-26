@@ -1,0 +1,29 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # S'exÃ©cute tous les jours Ã  08:00 UTC
+    - cron: '0 20 * * *' # S'exÃ©cute tous les jours Ã  20:00 UTC
+  workflow_dispatch: # Permet de dÃ©clencher manuellement via l'interface GitHub
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Automatique SikaGestion API (Supabase)
+        env:
+          URL: "https://bqxgcloykhzzzoqfgmlh.supabase.co/rest/v1/utilisateurs?select=id&limit=1"
+          ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxeGdjbG95a2h6enpvcWZnbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MzMzNTcsImV4cCI6MjEwNjAwOTM1N30.JQfmUS9nxzXuBrGy1Ni0zKDP8KVWk3nOvWeuiQSIC9g"
+        run: |
+          echo "Emission d'un petit 'pik' vers Supabase pour simuler une activitÃ©..."
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET "$URL" \
+            -H "apikey: $ANON_KEY" \
+            -H "Authorization: Bearer $ANON_KEY")
+          
+          echo "RÃ©ponse HTTP de Supabase : $STATUS_CODE"
+          
+          if [ "$STATUS_CODE" -eq 200 ]; then
+            echo "SuccÃ¨s ! Supabase croit que l'application SikaGestion vient d'Ãªtre utilisÃ©e."
+          else
+            echo "Avertissement : Le ping a retournÃ© le code $STATUS_CODE"
+          fi
