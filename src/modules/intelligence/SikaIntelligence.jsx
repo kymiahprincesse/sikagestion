@@ -17,10 +17,10 @@ export default function SikaIntelligence() {
 
   // --- ANALYSE IA (Local Compute) ---
   const insights = useMemo(() => {
-    if (!devis || devis.length === 0) return { aiMessage: "Pas assez de donnÃ©es pour l'analyse.", warnings: [], metrics: {} };
+    if (!devis || devis.length === 0) return { aiMessage: "Pas assez de données pour l'analyse.", warnings: [], metrics: { totalChiffreAffaire: 0, conversionRate: 0, bestService: '', recentCashIn: 0, recentCashOut: 0, cashFlow: 0 }, chartServices: [] };
 
     let totalDevis = devis.length;
-    let devisAccepte = devis.filter(d => d.statut === 'ACCEPTE' || d.statut === 'FACTURE');
+    let devisAccepte = (devis || []).filter(d => d.statut === 'ACCEPTE' || d.statut === 'FACTURE');
     let totalChiffreAffaire = devisAccepte.reduce((sum, d) => sum + (d.montant_ttc || 0), 0);
     let conversionRate = totalDevis > 0 ? (devisAccepte.length / totalDevis) * 100 : 0;
 
@@ -155,14 +155,14 @@ export default function SikaIntelligence() {
               <div className="bg-green-100 p-2 rounded-lg text-green-600 mt-1"><TrendingUp size={20}/></div>
               <div>
                 <h4 className="font-bold text-gray-800">Croissance estimÃ©e</h4>
-                <p className="text-sm text-gray-600">BasÃ© sur vos devis en attente, vous pourriez sÃ©curiser jusqu'Ã  {formatFCFA(devis.filter(d=>d.statut==='BROUILLON' || d.statut==='VALIDE').reduce((s,d)=>s+(d.montant_ttc||0),0))} supplÃ©mentaires ce trimestre.</p>
+                <p className="text-sm text-gray-600">BasÃ© sur vos devis en attente, vous pourriez sÃ©curiser jusqu'Ã  {formatFCFA((devis || []).filter(d=>d.statut==='BROUILLON' || d.statut==='VALIDE').reduce((s,d)=>s+(d.montant_ttc||0),0))} supplÃ©mentaires ce trimestre.</p>
               </div>
             </li>
             <li className="flex gap-4 items-start">
               <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mt-1"><Target size={20}/></div>
               <div>
                 <h4 className="font-bold text-gray-800">Action recommandÃ©e</h4>
-                <p className="text-sm text-gray-600">Contactez les clients ayant reÃ§u un devis depuis plus de 7 jours. {devis.filter(d=>d.statut==='VALIDE').length} devis sont actuellement en attente de rÃ©ponse.</p>
+                <p className="text-sm text-gray-600">Contactez les clients ayant reÃ§u un devis depuis plus de 7 jours. {(devis || []).filter(d=>d.statut==='VALIDE').length} devis sont actuellement en attente de rÃ©ponse.</p>
               </div>
             </li>
           </ul>
