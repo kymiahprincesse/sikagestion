@@ -39,6 +39,7 @@ export default function ListeDevis() {
   const [filtreDateDebut, setFiltreDateDebut] = useState('')
   const [filtreDateFin, setFiltreDateFin] = useState('')
   const [filtreClient, setFiltreClient] = useState('')
+  const [showSignaturePad, setShowSignaturePad] = useState(false)
   const [sorting, setSorting] = useState([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
   const [devisSelectionne, setDevisSelectionne] = useState(null)

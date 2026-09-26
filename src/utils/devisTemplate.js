@@ -39,6 +39,7 @@ export function generateDevisHTML(data, baseUrl = '') {
     notes = '',
     montantHT = 0,
     tva = 0,
+    tvaRate = 0.18,
     ttc = 0,
     remise = 0,
     montantBrut = 0
