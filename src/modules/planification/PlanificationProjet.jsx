@@ -1010,7 +1010,7 @@ function OngletTaches({ taches, onNouvelleTache, onModifierTache, onSupprimerTac
                   <td className="px-4 py-3 text-center">{getStatutBadge(tache.statut)}</td>
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => onModifierTache(tache)} className="text-bleu hover:text-rouge mr-2">📝</button>
-                    <button onClick={() => onSupprimerTache(tache.id)} className="text-rouge hover:text-rouge/80">🗑</button>
+                    <button onClick={() => { if (window.confirm("Êtes-vous sûr de vouloir supprimer cette tâche ?")) onSupprimerTache(tache.id); }} className="text-rouge hover:text-rouge/80">🗑</button>
                   </td>
                 </tr>
               ))

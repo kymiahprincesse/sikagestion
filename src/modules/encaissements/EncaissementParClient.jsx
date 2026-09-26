@@ -156,6 +156,8 @@ export default function EncaissementParClient() {
   }
 
   const handleDelete = useCallback(async (encaissement) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette donnée ? Cette action est irréversible et sera enregistrée.")) return;
+    
     const ok = await confirmDelete(`l'encaissement de ${formatFCFA(encaissement.montant)}`)
     if (!ok) return
     deleteEncaissement(encaissement.id)

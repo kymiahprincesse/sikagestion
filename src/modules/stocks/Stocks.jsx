@@ -86,7 +86,7 @@ export default function Stocks() {
                 </td>
                 <td className="p-4 flex gap-2">
                   <button onClick={() => { setFormData(item); setEditId(item.id); setShowModal(true); }} className="text-blue-500 hover:underline text-sm font-semibold">Modifier</button>
-                  <button onClick={() => supprimerStock(item.id)} className="text-red-500 hover:underline text-sm font-semibold">Supprimer</button>
+                  <button onClick={() => { if (window.confirm("Êtes-vous sûr de vouloir supprimer cet article du stock ?")) supprimerStock(item.id); }} className="text-red-500 hover:underline text-sm font-semibold">Supprimer</button>
                 </td>
               </tr>
             ))}

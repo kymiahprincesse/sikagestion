@@ -259,6 +259,8 @@ export default function ListeDevis() {
     }
   }
   const handleSupprimer = useCallback(async (devis) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette donnée ? Cette action est irréversible et sera enregistrée.")) return;
+    
     const ok = await confirmDelete(`le devis ${devis.numero}`)
     if (!ok) return
 

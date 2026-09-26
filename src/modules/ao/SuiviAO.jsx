@@ -98,6 +98,8 @@ export default function SuiviAO() {
   };
 
   const handleSupprimer = async (ao) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette donnée ? Cette action est irréversible et sera enregistrée.")) return;
+    
     const ok = await confirmDelete(`l'AO ${ao.numeroDevis || ao.id}`);
     if (!ok) return;
     try {

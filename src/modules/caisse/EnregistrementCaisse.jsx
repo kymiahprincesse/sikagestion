@@ -235,6 +235,8 @@ export default function EnregistrementCaisse() {
   }
 
   const handleDelete = useCallback(async (mouvement) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette donnée ? Cette action est irréversible et sera enregistrée.")) return;
+    
     const ok = await confirmDelete(`le mouvement "${mouvement.libelles}" de ${formatFCFA(mouvement.montant)}`)
     if (!ok) return
     deleteMouvement(mouvement.id)
