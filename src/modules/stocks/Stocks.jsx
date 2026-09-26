@@ -1,18 +1,21 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useStocksStore } from '../../store/useStocksStore';
+import { useFournisseursStore } from '../../store/useFournisseursStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Package, AlertTriangle, TrendingUp } from 'lucide-react';
 import { formatFCFA } from '../../utils/format';
 
 export default function Stocks() {
   const { stocks, fetchStocks, ajouterStock, modifierStock, supprimerStock } = useStocksStore();
+  const { fournisseurs, fetchFournisseurs } = useFournisseursStore();
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ nom: '', reference: '', categorie: 'TÃ´le', quantite: 0, seuilAlerte: 5, prixUnitaire: 0, unite: 'UnitÃ©' });
+  const [formData, setFormData] = useState({ nom: '', reference: '', categorie: 'Tôle', quantite: 0, seuilAlerte: 5, prixUnitaire: 0, unite: 'Unité', fournisseurId: '' });
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     fetchStocks();
-  }, [fetchStocks]);
+    fetchFournisseurs();
+  }, [fetchStocks, fetchFournisseurs]);
 
   const stats = useMemo(() => {
     const totalValeur = stocks.reduce((sum, item) => sum + ((item.quantite || 0) * (item.prixUnitaire || 0)), 0);
@@ -32,9 +35,9 @@ export default function Stocks() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>Gestion des Stocks</h1>
-          <p className="text-gray-500">MatiÃ¨res premiÃ¨res et consommables (Fallback actif hors-ligne)</p>
+          <p className="text-gray-500">Matières premières et consommables (Fallback actif hors-ligne)</p>
         </div>
-        <button onClick={() => { setFormData({ nom: '', reference: '', categorie: 'TÃ´le', quantite: 0, seuilAlerte: 5, prixUnitaire: 0, unite: 'UnitÃ©' }); setEditId(null); setShowModal(true); }} className="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg font-bold shadow-md hover:scale-105 transition-all">
+        <button onClick={() => { setFormData({ nom: '', reference: '', categorie: 'Tôle', quantite: 0, seuilAlerte: 5, prixUnitaire: 0, unite: 'Unité', fournisseurId: '' }); setEditId(null); setShowModal(true); }} className="bg-[var(--color-accent)] text-white px-4 py-2 rounded-lg font-bold shadow-md hover:scale-105 transition-all">
           + Ajouter un Article
         </button>
       </div>
@@ -43,7 +46,7 @@ export default function Stocks() {
         <div className="glass-panel p-6 rounded-xl border-l-4 border-[var(--color-primary)] shadow-lg">
           <div className="flex items-center gap-4">
             <Package size={32} style={{ color: 'var(--color-primary)' }} />
-            <div><p className="text-sm text-gray-500">Articles RÃ©fÃ©rencÃ©s</p><h3 className="text-2xl font-bold">{stocks.length}</h3></div>
+            <div><p className="text-sm text-gray-500">Articles Référencés</p><h3 className="text-2xl font-bold">{stocks.length}</h3></div>
           </div>
         </div>
         <div className="glass-panel p-6 rounded-xl border-l-4 border-red-500 bg-red-50/50 shadow-lg">
@@ -64,10 +67,11 @@ export default function Stocks() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[var(--color-surface-muted)] text-[var(--color-primary)]">
-              <th className="p-4 border-b border-gray-200">RÃ©fÃ©rence</th>
+              <th className="p-4 border-b border-gray-200">Référence</th>
               <th className="p-4 border-b border-gray-200">Nom de l'article</th>
-              <th className="p-4 border-b border-gray-200">CatÃ©gorie</th>
-              <th className="p-4 border-b border-gray-200">QuantitÃ©</th>
+              <th className="p-4 border-b border-gray-200">Catégorie</th>
+              <th className="p-4 border-b border-gray-200">Fournisseur</th>
+              <th className="p-4 border-b border-gray-200">Quantité</th>
               <th className="p-4 border-b border-gray-200">Statut</th>
               <th className="p-4 border-b border-gray-200">Actions</th>
             </tr>
@@ -78,6 +82,7 @@ export default function Stocks() {
                 <td className="p-4 font-mono text-sm">{item.reference || '-'}</td>
                 <td className="p-4 font-bold">{item.nom}</td>
                 <td className="p-4"><span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">{item.categorie}</span></td>
+                <td className="p-4 font-semibold text-sm text-gray-600">{fournisseurs.find(f => f.id === item.fournisseurId)?.nom || '-'}</td>
                 <td className="p-4 font-bold">{item.quantite} {item.unite}</td>
                 <td className="p-4">
                   {item.quantite <= item.seuilAlerte ? 
@@ -100,14 +105,20 @@ export default function Stocks() {
           <div className="bg-white p-6 rounded-xl w-full max-w-lg shadow-2xl">
             <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--color-primary)' }}>{editId ? 'Modifier Article' : 'Nouvel Article'}</h2>
             <div className="space-y-4">
-              <input type="text" placeholder="RÃ©fÃ©rence (ex: TOL-001)" value={formData.reference} onChange={e=>setFormData({...formData, reference: e.target.value})} className="w-full p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />
-              <input type="text" placeholder="Nom complet (ex: TÃ´le Acier 5mm)" value={formData.nom} onChange={e=>setFormData({...formData, nom: e.target.value})} className="w-full p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />
+              <input type="text" placeholder="Référence (ex: TOL-001)" value={formData.reference} onChange={e=>setFormData({...formData, reference: e.target.value})} className="w-full p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />
+              <input type="text" placeholder="Nom complet (ex: Tôle Acier 5mm)" value={formData.nom} onChange={e=>setFormData({...formData, nom: e.target.value})} className="w-full p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />
               <select value={formData.categorie} onChange={e=>setFormData({...formData, categorie: e.target.value})} className="w-full p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)] bg-white">
-                <option>TÃ´le</option><option>Tuyau</option><option>Vanne</option><option>Consommable (Soudure)</option><option>Autre</option>
+                <option>Tôle</option><option>Tuyau</option><option>Vanne</option><option>Consommable (Soudure)</option><option>Autre</option>
+              </select>
+              <select value={formData.fournisseurId || ''} onChange={e=>setFormData({...formData, fournisseurId: e.target.value})} className="w-full p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)] bg-white">
+                <option value="">-- Sélectionner un Fournisseur --</option>
+                {fournisseurs.map(f => (
+                  <option key={f.id} value={f.id}>{f.nom}</option>
+                ))}
               </select>
               <div className="flex gap-4">
-                <input type="number" placeholder="QuantitÃ© en stock" value={formData.quantite} onChange={e=>setFormData({...formData, quantite: parseFloat(e.target.value)})} className="w-1/2 p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />
-                <input type="text" placeholder="UnitÃ© (ex: kg, pce)" value={formData.unite} onChange={e=>setFormData({...formData, unite: e.target.value})} className="w-1/2 p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />
+                <input type="number" placeholder="Quantité en stock" value={formData.quantite} onChange={e=>setFormData({...formData, quantite: parseFloat(e.target.value)})} className="w-1/2 p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />
+                <input type="text" placeholder="Unité (ex: kg, pce)" value={formData.unite} onChange={e=>setFormData({...formData, unite: e.target.value})} className="w-1/2 p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />
               </div>
               <div className="flex gap-4">
                 <input type="number" placeholder="Seuil Alerte" value={formData.seuilAlerte} onChange={e=>setFormData({...formData, seuilAlerte: parseFloat(e.target.value)})} className="w-1/2 p-3 border border-gray-200 rounded-lg outline-none focus:border-[var(--color-accent)]" />

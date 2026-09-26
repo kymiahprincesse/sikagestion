@@ -577,7 +577,7 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
   const montantHT = parseFloat(devisData.montantHT) || (montantBrut - remise);
   const tvaActive = devisData.tvaActive !== false;
   
-  // RÃ©cupÃ©ration dynamique du taux TVA
+  // Récupération dynamique du taux TVA
   let currentTvaRate = 0.18;
   try {
     const params = useParametresStore.getState();
@@ -615,7 +615,7 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
         raisonSociale: client.raisonSociale || '',
         secteur: client.secteur || '',
         ville: client.ville || '',
-        pays: client.pays || 'CÃ´te d\'Ivoire',
+        pays: client.pays || 'Côte d\'Ivoire',
         conditionsPaiement: client.conditionsPaiement || ''
       },
     infos: {

@@ -255,7 +255,7 @@ export default function ListeDevis() {
   const handleSignatureSave = async (base64) => {
     if (showSignaturePad) {
       await signerDevis(showSignaturePad, base64);
-      addLog({ module: 'LISTE_DEVIS', action: 'MODIFICATION', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', details: 'Devis signÃ© par le client' });
+      addLog({ module: 'LISTE_DEVIS', action: 'MODIFICATION', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', details: 'Devis signé par le client' });
       setShowSignaturePad(null);
     }
   }
