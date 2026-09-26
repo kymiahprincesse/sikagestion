@@ -19,7 +19,7 @@ function toSupabaseRow(c) {
     contact_telephone: c.contactTelephone || null,
     contact_email: c.contactEmail || null,
     conditions_paiement: c.conditionsPaiement || 30,
-    type: c.type || 'CLIENT',
+    type: c.type || 'Entreprise',
     is_actif: c.isActif !== undefined ? c.isActif : true,
     notes: c.notes || null,
   };

@@ -43,7 +43,7 @@ export default function Clients() {
     contactTelephone: '',
     contactEmail: '',
     conditionsPaiement: 30,
-    type: 'CLIENT',
+    type: 'Entreprise',
     isActif: true,
     notes: ''
   })
@@ -122,7 +122,7 @@ export default function Clients() {
         contactTelephone: client.contactTelephone || '',
         contactEmail: client.contactEmail || '',
         conditionsPaiement: client.conditionsPaiement || 30,
-        type: client.type || 'CLIENT',
+        type: client.type || 'Entreprise',
         isActif: client.isActif !== undefined ? client.isActif : true,
         notes: client.notes || ''
       })
@@ -140,7 +140,7 @@ export default function Clients() {
         contactTelephone: '',
         contactEmail: '',
         conditionsPaiement: 30,
-        type: 'CLIENT',
+        type: 'Entreprise',
         isActif: true,
         notes: ''
       })
@@ -557,9 +557,8 @@ export default function Clients() {
               className="w-full px-3 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
             >
               <option value="">Tous les types</option>
-              <option value="CLIENT">CLIENT</option>
-              <option value="FOURNISSEUR">FOURNISSEUR</option>
-              <option value="LES DEUX">LES DEUX</option>
+              <option value="Personne individuelle">Personne individuelle</option>
+              <option value="Entreprise">Entreprise</option>
             </select>
           </div>
 
@@ -867,9 +866,8 @@ export default function Clients() {
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                     className="w-full px-4 py-2 border border-argent rounded-lg focus:outline-none focus:ring-2 focus:ring-rouge focus:border-rouge"
                   >
-                    <option value="CLIENT">CLIENT</option>
-                    <option value="FOURNISSEUR">FOURNISSEUR</option>
-                    <option value="LES DEUX">LES DEUX</option>
+                    <option value="Entreprise">Entreprise</option>
+                    <option value="Personne individuelle">Personne individuelle</option>
                   </select>
                 </div>
 
