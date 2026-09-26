@@ -31,7 +31,7 @@ export default function SikaIntelligence() {
     });
     const bestService = Object.keys(serviceMap).sort((a,b) => serviceMap[b] - serviceMap[a])[0];
 
-    // TrÃ©sorerie (30 derniers jours)
+    // Trésorerie (30 derniers jours)
     const thirtyDaysAgo = subMonths(new Date(), 1);
     let recentCashIn = 0;
     let recentCashOut = 0;
@@ -41,13 +41,13 @@ export default function SikaIntelligence() {
     });
 
     let warnings = [];
-    if (conversionRate < 40) warnings.push("Taux de conversion faible. RÃ©visez vos relances clients.");
-    if (recentCashOut > recentCashIn) warnings.push("Attention : DÃ©penses supÃ©rieures aux rentrÃ©es ce mois-ci.");
+    if (conversionRate < 40) warnings.push("Taux de conversion faible. Révisez vos relances clients.");
+    if (recentCashOut > recentCashIn) warnings.push("Attention : Dépenses supérieures aux rentrées ce mois-ci.");
 
-    // GÃ©nÃ©ration du message "IA"
+    // Génération du message "IA"
     let aiMessage = "Tout semble au vert !";
-    if (conversionRate >= 70) aiMessage = "Excellente dynamique commerciale. Pensez Ã  sÃ©curiser vos stocks pour rÃ©pondre Ã  la demande.";
-    else if (bestService) aiMessage = `Votre service "${bestService}" porte votre chiffre d'affaires. Envisagez une promotion ciblÃ©e sur ce secteur.`;
+    if (conversionRate >= 70) aiMessage = "Excellente dynamique commerciale. Pensez à sécuriser vos stocks pour répondre à la demande.";
+    else if (bestService) aiMessage = `Votre service "${bestService}" porte votre chiffre d'affaires. Envisagez une promotion ciblée sur ce secteur.`;
 
     // Data for charts
     const chartServices = Object.entries(serviceMap).map(([name, value]) => ({ name, value }));
@@ -75,7 +75,7 @@ export default function SikaIntelligence() {
         </div>
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Sika Intelligence</h1>
-          <p className="text-gray-500">Votre Assistant StratÃ©gique & Analytique</p>
+          <p className="text-gray-500">Votre Assistant Stratégique & Analytique</p>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ export default function SikaIntelligence() {
           </div>
         </div>
         <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
-          <p className="text-gray-500 text-sm mb-1">CA SÃ©curisÃ© (Global)</p>
+          <p className="text-gray-500 text-sm mb-1">CA Sécurisé (Global)</p>
           <h3 className="text-2xl font-bold text-indigo-600">{formatFCFA(insights.metrics.totalChiffreAffaire)}</h3>
         </div>
       </div>
@@ -131,7 +131,7 @@ export default function SikaIntelligence() {
       {/* GRAPHES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="font-bold text-gray-800 mb-6">RÃ©partition du CA par Service</h3>
+          <h3 className="font-bold text-gray-800 mb-6">Répartition du CA par Service</h3>
           <div className="h-[300px]">
             {insights.chartServices.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -143,26 +143,26 @@ export default function SikaIntelligence() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-gray-400">Aucune donnÃ©e</div>
+              <div className="flex h-full items-center justify-center text-gray-400">Aucune donnée</div>
             )}
           </div>
         </div>
         
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="font-bold text-gray-800 mb-6">PrÃ©dictions & OpportunitÃ©s</h3>
+          <h3 className="font-bold text-gray-800 mb-6">Prédictions & Opportunités</h3>
           <ul className="space-y-4">
             <li className="flex gap-4 items-start">
               <div className="bg-green-100 p-2 rounded-lg text-green-600 mt-1"><TrendingUp size={20}/></div>
               <div>
-                <h4 className="font-bold text-gray-800">Croissance estimÃ©e</h4>
-                <p className="text-sm text-gray-600">BasÃ© sur vos devis en attente, vous pourriez sÃ©curiser jusqu'Ã  {formatFCFA((devis || []).filter(d=>d.statut==='BROUILLON' || d.statut==='VALIDE').reduce((s,d)=>s+(d.montant_ttc||0),0))} supplÃ©mentaires ce trimestre.</p>
+                <h4 className="font-bold text-gray-800">Croissance estimée</h4>
+                <p className="text-sm text-gray-600">Basé sur vos devis en attente, vous pourriez sécuriser jusqu'à {formatFCFA((devis || []).filter(d=>d.statut==='BROUILLON' || d.statut==='VALIDE').reduce((s,d)=>s+(d.montant_ttc||0),0))} supplémentaires ce trimestre.</p>
               </div>
             </li>
             <li className="flex gap-4 items-start">
               <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mt-1"><Target size={20}/></div>
               <div>
-                <h4 className="font-bold text-gray-800">Action recommandÃ©e</h4>
-                <p className="text-sm text-gray-600">Contactez les clients ayant reÃ§u un devis depuis plus de 7 jours. {(devis || []).filter(d=>d.statut==='VALIDE').length} devis sont actuellement en attente de rÃ©ponse.</p>
+                <h4 className="font-bold text-gray-800">Action recommandée</h4>
+                <p className="text-sm text-gray-600">Contactez les clients ayant reçu un devis depuis plus de 7 jours. {(devis || []).filter(d=>d.statut==='VALIDE').length} devis sont actuellement en attente de réponse.</p>
               </div>
             </li>
           </ul>
