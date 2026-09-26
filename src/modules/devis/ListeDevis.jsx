@@ -1,3 +1,4 @@
+import SignaturePad from '../../components/SignaturePad'
 import { useState, useMemo, useCallback } from 'react'
 import { useNotifications } from '../../components/NotificationProvider'
 import { useDevisStore } from '../../store/useDevisStore'
@@ -10,16 +11,17 @@ import { isDevisEnAttente, isDevisVisibleDansListe, normalizeDevisStatut, detect
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table'
 import * as XLSX from 'xlsx'
 import { createSikaPDF, finalizeSikaPDF, openPDFForPrint, sikaTable, formatMontant, formatDate as formatDatePDF } from '../../utils/printUtils'
-import { printDevisHTML } from '../../utils/devisTemplate'
+import { printDevisHTML, prepareDevisData } from '../../utils/devisTemplate'
 import { useNavigate } from 'react-router-dom'
 import { useEscapeKey } from '../../hooks/useEscapeKey'
 import GestionDoublons from '../../components/GestionDoublons'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useUtilisateursStore } from '../../store/useUtilisateursStore'
 
+import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
+
 const STATUTS = ['BROUILLON', 'EN_ATTENTE', 'VALIDE', 'FACTURE', 'ANNULE']
 const TYPES = ['CALORIFUGE', 'PLIAGE', 'RESERVOIR', 'SOUDURE', 'CHARPENTE', 'TUYAUTERIE', 'CHAUDRONNERIE']
-import { useSupabaseRealtimeEnhanced } from '../../hooks/useSupabaseRealtimeEnhanced'
 
 export default function ListeDevis() {
   useSupabaseRealtimeEnhanced(['devis', 'lignes_devis'])
@@ -248,6 +250,14 @@ export default function ListeDevis() {
     addLog({ module: 'LISTE_DEVIS', action: 'MODIFIER', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero, type: typeDevis, id: devis.id } })
   }, [ajouterNotification, navigate, addLog, utilisateurConnecte])
 
+  const signerDevis = useDevisStore(state => state.signerDevis)
+  const handleSignatureSave = async (base64) => {
+    if (showSignaturePad) {
+      await signerDevis(showSignaturePad, base64);
+      addLog({ module: 'LISTE_DEVIS', action: 'MODIFICATION', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', details: 'Devis signÃ© par le client' });
+      setShowSignaturePad(null);
+    }
+  }
   const handleSupprimer = useCallback(async (devis) => {
     const ok = await confirmDelete(`le devis ${devis.numero}`)
     if (!ok) return
@@ -531,80 +541,8 @@ export default function ListeDevis() {
   }
 
   const handlePrintDevis = useCallback((devis) => {
-    const client = clients.find(c => c.id === devis.clientId) || {};
-
-    // Lignes normalisées
-    const lignesBrutes = devis.lignes || devis.lignesCommerciales || [];
-    const lignes = lignesBrutes.map(l => ({
-      designation: l.designation || '—',
-      unite: l.unite || '—',
-      qte: parseFloat(l.qte || l.quantite || l.longueur || 0),
-      pu: parseFloat(l.pu || l.prixUnitaire || 0),
-      montant: (l.montant !== '' && l.montant !== undefined && parseFloat(l.montant) !== 0) ? parseFloat(l.montant) : (parseFloat(l.qte || l.quantite || l.longueur || 0) * parseFloat(l.pu || l.prixUnitaire || 0)),
-      typeTravail: l.typeTravail || '',
-      materiau: l.materiau || '',
-      typeTole: l.typeTole || '',
-      epaisseur: l.epaisseur || 0,
-      typeTuyau: l.typeTuyau || '',
-      pression: l.pression || '',
-      longueur: l.longueur || 0,
-      ml: l.ml || 0,
-      pt: l.pt || 0,
-      surface: l.surface || 0,
-    }));
-
-    // Totaux
-    const montantBrut = parseFloat(devis.montantBrut) || lignes.reduce((s, l) => s + (parseFloat(l.montant) || (l.qte * l.pu) || 0), 0);
-    const tauxRemise = parseFloat(devis.tauxRemise) || 0;
-    const remise = parseFloat(devis.remise) || montantBrut * (tauxRemise / 100);
-    const montantHT = (parseFloat(devis.montantHT) > 0 ? parseFloat(devis.montantHT) : null) || (montantBrut - remise);
-    
-    const savedTva = devis.montantTVA !== undefined ? devis.montantTVA : devis.tva;
-    const tva = (savedTva !== undefined && savedTva !== null && savedTva !== '' && !isNaN(savedTva))
-      ? parseFloat(savedTva)
-      : (devis.tvaActive !== false ? montantHT * 0.18 : 0);
-
-    const savedTtc = devis.montantTTC !== undefined ? devis.montantTTC : devis.ttc;
-    const ttc = (savedTtc !== undefined && savedTtc !== null && savedTtc !== '' && !isNaN(savedTtc))
-      ? parseFloat(savedTtc)
-      : (montantHT + tva);
-
-    const templateData = {
-      reference: devis.numero,
-      objet: devis.objet || '',
-      type: devis.typeDevis || devis.type || '',
-      notes: devis.notes || '',
-      statut: devis.statut || 'BROUILLON',
-      client: {
-        nom: client.nom || devis.clientNom || '—',
-        interlocuteur: devis.demandePar || client.contactNom || '—',
-        adresse: client.adresse || '—',
-        telephone: client.telephone || client.contactTelephone || '',
-        email: client.email || client.contactEmail || '',
-        raisonSociale: client.raisonSociale || '',
-        secteur: client.secteur || '',
-        ville: client.ville || '',
-        pays: client.pays || 'Côte d\'Ivoire',
-        conditionsPaiement: client.conditionsPaiement || '',
-      },
-      infos: {
-        date: devis.date,
-        validite: '30 jours',
-        etabliPar: 'SIKA INDUSTRIE',
-        tel: '(225) 07 97 25 25 26',
-        demandePar: devis.demandePar || '',
-      },
-      specifications: devis.specifications || null,
-      lignes,
-      montantBrut,
-      remise,
-      montantHT,
-      tva,
-      ttc,
-    };
-
+    const templateData = prepareDevisData(devis, clients, utilisateurConnecte);
     printDevisHTML(templateData);
-
     addLog({ module: 'LISTE_DEVIS', action: 'IMPRESSION_DEVIS', utilisateur: utilisateurConnecte?.nom || 'Utilisateur', apres: { numero: devis.numero } });
   }, [clients, addLog, utilisateurConnecte])
 
@@ -718,9 +656,13 @@ export default function ListeDevis() {
           >
             🖨️
           </button>
-          {row.original.statut !== 'FACTURE' && (
-            <button
-              onClick={() => handleConvertirEnFacture(row.original)}
+{row.original.statut !== 'ACCEPTE' && row.original.statut !== 'FACTURE' && (
+  <button onClick={() => setShowSignaturePad(row.original.id)} className="px-2 py-1 bg-green-500 text-white rounded hover:bg-opacity-90 text-xs" title="Faire Signer le Devis">
+    âœ ï¸ 
+  </button>
+)}
+{row.original.statut !== 'FACTURE' && (
+  <button onClick={() => handleConvertirEnFacture(row.original)}
               className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
               title="Convertir en Facture"
             >
@@ -1022,9 +964,13 @@ export default function ListeDevis() {
                                         >
                                           🖨️
                                         </button>
-                                        {d.statut !== 'FACTURE' && (
-                                          <button
-                                            onClick={() => handleConvertirEnFacture(d)}
+{d.statut !== 'ACCEPTE' && d.statut !== 'FACTURE' && (
+  <button onClick={() => setShowSignaturePad(d.id)} className="px-2 py-1 bg-green-500 text-white rounded hover:bg-opacity-90 text-xs" title="Faire Signer le Devis">
+    âœ ï¸ 
+  </button>
+)}
+{d.statut !== 'FACTURE' && (
+  <button onClick={() => handleConvertirEnFacture(d)}
                                             className="px-2 py-1 bg-rouge text-white rounded hover:bg-opacity-90 text-xs"
                                             title="Convertir en Facture"
                                           >
@@ -1140,22 +1086,23 @@ export default function ListeDevis() {
 
       {/* Modal Visualisation */}
       {showModalVoir && devisSelectionne && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-surface border-b px-6 py-4 flex justify-between items-center">
-              <h2 className="text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
-                Détails du Devis {devisSelectionne.numero}
-              </h2>
-              <button
-                onClick={() => setShowModalVoir(false)}
-                className="text-2xl font-bold hover:opacity-70"
-                style={{ color: 'var(--color-accent)' }}
-              >
-                ×
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setShowModalVoir(false)}></div>
+          <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[95vh] overflow-hidden border border-gray-100">
+            
+            {/* EN-TÊTE FIXE */}
+            <div className="shrink-0 bg-gradient-to-r from-navy to-blue-800 text-white p-6 shadow-md z-10 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  Détails du Devis {devisSelectionne.numero}
+                </h2>
+                <p className="text-blue-200 text-sm mt-1">Aperçu complet du devis</p>
+              </div>
+              <button type="button" onClick={() => setShowModalVoir(false)} className="text-white/70 hover:text-white text-4xl leading-none transition-colors">&times;</button>
             </div>
 
-            <div className="p-6 space-y-4">
+            {/* CONTENU DÉFILANT */}
+            <div className="flex-1 overflow-y-auto min-h-0 p-6 sm:p-8 space-y-4">
 
               {/* ══ BANDEAU ENTÊTE ══ */}
               <div className="rounded-lg text-white px-5 py-4 flex justify-between items-start" style={{ background: 'var(--color-primary)' }}>
@@ -1497,6 +1444,12 @@ export default function ListeDevis() {
         <GestionDoublons 
           onClose={() => setShowGestionDoublons(false)} 
           type="devis"
+        />
+      )}
+          {showSignaturePad && (
+        <SignaturePad 
+          onSave={handleSignatureSave} 
+          onCancel={() => setShowSignaturePad(null)} 
         />
       )}
     </div>

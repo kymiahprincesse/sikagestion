@@ -33,7 +33,6 @@ const lazyWithRetry = (componentImport) =>
 
 const DashboardEnhanced     = lazyWithRetry(() => import('./modules/DashboardEnhanced'))
 const SuiviAOModule         = lazyWithRetry(() => import('./modules/ao').then(m => ({ default: m.SuiviAO })))
-const SuiviFacturesModule   = lazyWithRetry(() => import('./modules/factures').then(m => ({ default: m.SuiviFactures })))
 const ImportExport          = lazyWithRetry(() => import('./modules/importexport/ImportExport'))
 const PlanificationProjet   = lazyWithRetry(() => import('./modules/planification/PlanificationProjet'))
 const DevisCalorifuge       = lazyWithRetry(() => import('./modules/devis/DevisCalorifuge'))
@@ -49,6 +48,7 @@ const JournalCaisse         = lazyWithRetry(() => import('./modules/caisse/Journ
 const EncaissementParClient = lazyWithRetry(() => import('./modules/encaissements/EncaissementParClient'))
 const Clients               = lazyWithRetry(() => import('./modules/clients/Clients'))
 const Utilisateurs          = lazyWithRetry(() => import('./modules/auth/Utilisateurs'))
+const StocksModule          = lazyWithRetry(() => import('./modules/stocks/Stocks'))
 const FournisseursModule    = lazyWithRetry(() => import('./modules/fournisseurs').then(m => ({ default: m.Fournisseurs })))
 const TourDeControle        = lazyWithRetry(() => import('./components/TourDeControle'))
 const Parametres            = lazyWithRetry(() => import('./components/Parametres'))
@@ -117,14 +117,15 @@ function App() {
               <Route path="devis/liste" element={<ErrorBoundary><ListeDevis /></ErrorBoundary>} />
 
               {/* FINANCE */}
-              <Route path="factures" element={<ErrorBoundary><SuiviFacturesModule /></ErrorBoundary>} />
               <Route path="encaissements" element={<ErrorBoundary><EncaissementParClient /></ErrorBoundary>} />
               <Route path="caisse" element={<ErrorBoundary><EnregistrementCaisse /></ErrorBoundary>} />
               <Route path="journal" element={<ErrorBoundary><JournalCaisse /></ErrorBoundary>} />
               <Route path="fournisseurs" element={<ErrorBoundary><FournisseursModule /></ErrorBoundary>} />
+              <Route path="stocks" element={<ErrorBoundary><StocksModule /></ErrorBoundary>} />
 
               {/* OUTILS */}
-              <Route path="import-export" element={<ImportExport />} />
+              <Route path="intelligence" element={<ErrorBoundary><SikaIntelligence /></ErrorBoundary>} />
+                <Route path="import-export" element={<ImportExport />} />
 
               {/* PILOTAGE — ADMIN/SUPER_ADMIN uniquement */}
               <Route path="utilisateurs" element={<AdminRoute><Utilisateurs /></AdminRoute>} />

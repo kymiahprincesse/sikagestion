@@ -116,11 +116,6 @@ export function generateDevisHTML(data, baseUrl = '') {
     catch { return date; }
   };
 
-  // ── Badge couleur par type ──
-  const typeBadge = type ? `<span style="display:inline-block;border:1.5px solid #1A3A8F;color:#1A3A8F;font-size:8.5pt;font-weight:bold;padding:2px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;background:transparent;">${type}</span>` : '';
-
-  // ── Badge statut ── (Désactivé à la demande pour l'impression)
-  const statutBadge = '';
 
   const formattedRef = reference && (reference.startsWith('N°') || reference.startsWith('n°')) ? reference : `N° ${reference}`;
 
@@ -485,7 +480,7 @@ ${draftWatermark}
     ${tva > 0 ? `
     <tr style="background:#ffffff;">
       <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;color:#555;">
-        TVA appliqu&#233;e &#8212; taux 18% <span style="font-size:8pt;color:#aaa;">(taxe sur la valeur ajout&#233;e)</span>
+        TVA appliqu&#233;e &#8212; taux ${Math.round(tvaRate * 100)}% <span style="font-size:8pt;color:#aaa;">(taxe sur la valeur ajout&#233;e)</span>
       </td>
       <td style="padding:5px 12px;border:1px solid #e2e8f0;font-size:9pt;font-weight:bold;text-align:right;color:#E60000;">${fmt(tva)} FCFA</td>
     </tr>` : ''}
@@ -581,10 +576,21 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
   const montantHT = parseFloat(devisData.montantHT) || (montantBrut - remise);
   const tvaActive = devisData.tvaActive !== false;
   
+  // RÃ©cupÃ©ration dynamique du taux TVA
+  let currentTvaRate = 0.18;
+  try {
+    const params = useParametresStore.getState();
+    if (params && params.tvaRate !== undefined) {
+      currentTvaRate = params.tvaRate;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  
   const savedTva = devisData.montantTVA !== undefined ? devisData.montantTVA : devisData.tva;
   const tva = (savedTva !== undefined && savedTva !== null && savedTva !== '' && !isNaN(savedTva))
     ? parseFloat(savedTva)
-    : (tvaActive ? montantHT * 0.18 : 0);
+    : (tvaActive ? montantHT * currentTvaRate : 0);
 
   const savedTtc = devisData.montantTTC !== undefined ? devisData.montantTTC : devisData.ttc;
   const ttc = (savedTtc !== undefined && savedTtc !== null && savedTtc !== '' && !isNaN(savedTtc))
@@ -597,11 +603,20 @@ export function prepareDevisData(devisData, clients, utilisateur = {}) {
     type: devisData.type,
     notes: devisData.notes || '',
     statut: devisData.statut || 'BROUILLON',
+      signature_client: devisData.signature_client || null,
+      date_signature: devisData.date_signature || null,
     client: {
-      nom: client.nom || client.entreprise,
-      interlocuteur: client.contactNom || client.interlocuteur || devisData.demandePar,
-      site: client.ville || client.site || client.adresse
-    },
+        nom: client.nom || client.entreprise || devisData.clientNom || 'â€”',
+        interlocuteur: devisData.demandePar || client.contactNom || client.interlocuteur || 'â€”',
+        adresse: client.adresse || 'â€”',
+        telephone: client.telephone || client.contactTelephone || '',
+        email: client.email || client.contactEmail || '',
+        raisonSociale: client.raisonSociale || '',
+        secteur: client.secteur || '',
+        ville: client.ville || '',
+        pays: client.pays || 'CÃ´te d\'Ivoire',
+        conditionsPaiement: client.conditionsPaiement || ''
+      },
     infos: {
       date: devisData.date,
       validite: '30 jours',

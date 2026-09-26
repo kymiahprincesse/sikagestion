@@ -266,11 +266,12 @@ export const syncService = {
         results.caisse = await this.syncMouvementsCaisse(stores.mouvements)
       }
 
-      const totalSuccess = Object.values(results).filter(r => r.success).length
+            const hasErrors = Object.values(results).some(r => r.error)
       const totalCount = Object.values(results).reduce((sum, r) => sum + (r.count || 0), 0)
 
       return {
-        success: totalSuccess > 0,
+        success: !hasErrors,
+        error: hasErrors ? 'Une ou plusieurs tables ont �chou�.' : null,
         results,
         totalSynced: totalCount,
         timestamp: new Date().toISOString()
@@ -315,3 +316,4 @@ export const syncService = {
     }
   }
 }
+

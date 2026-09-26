@@ -89,8 +89,9 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-surface rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4 sm:p-6">
+      <div className="fixed inset-0" onClick={onClose}></div>
+      <div className="relative bg-surface rounded-lg shadow-xl w-full max-w-5xl mx-auto my-4 sm:my-8 flex flex-col overflow-hidden">
         {/* En-tête */}
         <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white p-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -271,3 +272,4 @@ export default function GestionDoublons({ onClose, type = 'devis' }) {
     </div>
   );
 }
+

@@ -5,6 +5,9 @@ import { useDevisStore } from '../store/useDevisStore'
 import { useAOStore } from '../store/useAOStore'
 import { usePlanificationStore } from '../store/usePlanificationStore'
 import { useCaisseStore } from '../store/useCaisseStore'
+import { useAuthStore } from '../store/useAuthStore'
+import { useAuditStore } from '../store/useAuditStore'
+import { Activity } from 'lucide-react'
 import { useClientsStore } from '../store/useClientsStore'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import { TrendingUp, DollarSign, FileText, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
@@ -24,6 +27,10 @@ export default function DashboardEnhanced() {
   const soldeCaisse = useCaisseStore(state => state.soldeCaisse || 0)
   const getStatistiquesFactures = useFacturesStore(state => state.getStatistiques)
   const getStatistiquesAO = useAOStore(state => state.getStatistiques)
+  const utilisateurConnecte = useAuthStore(state => state.utilisateurConnecte)
+  const logs = useAuditStore(state => state.logs || [])
+  const recentLogs = useMemo(() => logs.slice(0, 5), [logs]) // Top 5 actions
+
 
   const statsFactures = useMemo(() => {
     if (typeof getStatistiquesFactures === 'function') return getStatistiquesFactures(factures)
@@ -133,7 +140,17 @@ export default function DashboardEnhanced() {
         </div>
       </div>
 
-      {/* INDICATEUR BACKEND */}
+            {/* SYNTH�SE INTELLIGENTE */}
+      <div className="glass-panel p-6 rounded-xl shadow-lg mb-6 border-l-4" style={{ borderColor: 'var(--color-accent)', background: 'linear-gradient(to right, rgba(230,0,0,0.05), transparent)' }}>
+        <h3 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--color-primary)' }}>
+          <span className="text-2xl">?</span> Synth�se Intelligente de la Semaine
+        </h3>
+        <p className="text-slate-600 mt-2 text-sm">
+          F�licitations, vos indicateurs sont stables. Vous avez <strong>{statsFactures.impayees} factures en attente</strong> de paiement. La priorit� aujourd'hui est de suivre les <strong>{statsAO.aChiffrer} appels d'offres</strong> en cours pour maximiser le Chiffre d'Affaires du mois.
+        </p>
+      </div>
+
+        {/* INDICATEUR BACKEND */}
       <div className="grid grid-cols-1 gap-4">
         <BackendStatusIndicator variant="full" />
       </div>
@@ -403,3 +420,4 @@ export default function DashboardEnhanced() {
     </div>
   )
 }
+

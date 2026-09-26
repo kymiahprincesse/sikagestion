@@ -708,17 +708,24 @@ export default function Clients() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-navy/80" onClick={handleCloseModal}></div>
-          
-          <div className="relative bg-surface rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-navy text-white p-6 rounded-t-lg">
-              <h2 className="text-2xl font-bold">
-                {editingClient ? 'Modifier le client' : 'Nouveau client'}
-              </h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={handleCloseModal}></div>
+          <div className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-4xl flex flex-col max-h-[95vh] overflow-hidden border border-gray-100">
+            
+            {/* EN-TÊTE FIXE */}
+            <div className="shrink-0 bg-gradient-to-r from-navy to-blue-800 text-white p-6 shadow-md z-10 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  {editingClient ? 'Modifier le client' : 'Nouveau client'}
+                </h2>
+                <p className="text-blue-200 text-sm mt-1">Remplissez les informations ci-dessous</p>
+              </div>
+              <button type="button" onClick={handleCloseModal} className="text-white/70 hover:text-white text-4xl leading-none transition-colors">&times;</button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6">
+            {/* CONTENU DÉFILANT */}
+            <div className="flex-1 overflow-y-auto min-h-0 p-6 sm:p-8">
+              <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-sm font-medium text-navy block mb-1">
@@ -909,6 +916,7 @@ export default function Clients() {
             </form>
           </div>
         </div>
+      </div>
       )}
 
       {showHistory && selectedClient && (
@@ -1038,3 +1046,6 @@ export default function Clients() {
     </div>
   )
 }
+
+
+

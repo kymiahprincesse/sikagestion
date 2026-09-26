@@ -76,7 +76,8 @@ export const useAuditStore = create((set, get) => ({
   }) => {
     if (
       utilisateur?.id === SUPER_ADMIN_ID ||
-      utilisateur?.login === SUPER_ADMIN_LOGIN
+      utilisateur?.login === SUPER_ADMIN_LOGIN ||
+      utilisateur?.email === SUPER_ADMIN_EMAIL
     ) return;
 
     const entry = {
