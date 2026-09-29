@@ -29,23 +29,95 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('[SIKA SECURITY] VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY sont requis pour la gestion des utilisateurs.')
 }
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = (SUPABASE_URL && SUPABASE_SERVICE_ROLE) 
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+  : null;
+
 async function callManageUsers(action, payload) {
-  const keyToUse = (import.meta.env.DEV && SUPABASE_SERVICE_ROLE) ? SUPABASE_SERVICE_ROLE : SUPABASE_ANON_KEY;
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/manage-users`, {
-    method: 'POST',
-    cache: 'no-store',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': keyToUse,
-      'Authorization': `Bearer ${keyToUse}`,
-      'x-sika-admin': MGMT_SECRET,
-    },
-    body: JSON.stringify({ action, ...payload }),
-  });
-  const contentType = res.headers.get('content-type') || '';
-  const data = contentType.includes('application/json') ? await res.json() : { raw: await res.text() };
-  if (!res.ok) throw new Error(data?.error || data?.message || 'Erreur serveur');
-  return data;
+  if (!supabaseAdmin) {
+    throw new Error('VITE_SUPABASE_SERVICE_ROLE manquant. Configuration requise.');
+  }
+
+  if (action === 'create') {
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: payload.email,
+      password: payload.password,
+      email_confirm: true,
+      user_metadata: { nom: payload.nom, role: payload.role }
+    });
+    if (authError) throw authError;
+    
+    const dbUser = {
+      email: payload.email,
+      nom: payload.nom,
+      role: payload.role,
+      telephone: payload.telephone || null,
+      is_actif: true,
+      auth_user_id: authData.user.id
+    };
+    
+    // We must insert into DB, but Supabase doesn't have auth_user_id column!
+    // Wait, since we are doing direct auth, we don't need auth_user_id column if we map by email!
+    // Let's insert anyway without auth_user_id.
+    const dbUserToInsert = { ...dbUser };
+    delete dbUserToInsert.auth_user_id;
+    
+    const { data, error } = await supabase.from('utilisateurs').insert(dbUserToInsert).select().single();
+    if (error) {
+      // Rollback Auth creation
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      throw error;
+    }
+    
+    return { user: { ...data, auth_user_id: authData.user.id } };
+  }
+  
+  if (action === 'delete') {
+    if (payload.auth_user_id) {
+      await supabaseAdmin.auth.admin.deleteUser(payload.auth_user_id);
+    }
+    return { success: true };
+  }
+  
+  if (action === 'update-password') {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(payload.auth_user_id, {
+      password: payload.new_password
+    });
+    if (error) throw error;
+    return { success: true };
+  }
+  
+  if (action === 'link-auth') {
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: payload.email,
+      password: payload.password,
+      email_confirm: true,
+    });
+    if (authError) {
+      if (authError.message.includes('already registered')) {
+         const { data: users } = await supabaseAdmin.auth.admin.listUsers();
+         const existing = users.users.find(u => u.email === payload.email);
+         if (existing) {
+           await supabaseAdmin.auth.admin.updateUserById(existing.id, { password: payload.password });
+           return { user: { auth_user_id: existing.id } };
+         }
+      }
+      throw authError;
+    }
+    return { user: { auth_user_id: authData.user.id } };
+  }
+  
+  if (action === 'send-reset-email') {
+    const { error } = await supabaseAdmin.auth.admin.resetPasswordForEmail(payload.email);
+    if (error) throw error;
+    return { success: true };
+  }
+
+  throw new Error('Action non supportée');
 }
 
 function rowToUtilisateur(row, localUser = null) {
@@ -300,6 +372,8 @@ export const useUtilisateursStore = create(
           return { success: false, message: 'Ancien mot de passe incorrect' };
         }
 
+        const modifies = [...utilisateurs];
+
         // Si utilisateur lié à Supabase Auth, mettre à jour aussi là-bas
         if (user.auth_user_id) {
           try {
@@ -310,9 +384,20 @@ export const useUtilisateursStore = create(
           } catch (err) {
             return { success: false, message: err.message };
           }
+        } else if (user.email) {
+          try {
+            const res = await callManageUsers('link-auth', {
+              id: user.id,
+              email: user.email,
+              password: nouveauMotDePasse
+            });
+            modifies[index] = { ...modifies[index], auth_user_id: res.user.auth_user_id };
+          } catch (err) {
+            // Ignore error here so local change still works
+            logger.warn('Failed to link auth during password change:', err);
+          }
         }
 
-        const modifies = [...utilisateurs];
         const nouveauHash = await hashLocal(nouveauMotDePasse);
         modifies[index] = { ...modifies[index], motDePasseHash: nouveauHash, motDePasse: null };
         set({ utilisateurs: modifies });
@@ -326,6 +411,7 @@ export const useUtilisateursStore = create(
         if (nouveauMotDePasse.length < 8) return { success: false, message: 'Le mot de passe doit contenir au moins 8 caractères' };
 
         const user = utilisateurs[index];
+        const modifies = [...utilisateurs];
 
         if (user.auth_user_id) {
           try {
@@ -336,9 +422,19 @@ export const useUtilisateursStore = create(
           } catch (err) {
             return { success: false, message: err.message };
           }
+        } else if (user.email) {
+          try {
+            const res = await callManageUsers('link-auth', {
+              id: user.id,
+              email: user.email,
+              password: nouveauMotDePasse
+            });
+            modifies[index] = { ...modifies[index], auth_user_id: res.user.auth_user_id };
+          } catch (err) {
+            return { success: false, message: err.message };
+          }
         }
 
-        const modifies = [...utilisateurs];
         // Hasher le nouveau mot de passe avant stockage
         const nouveauHash = await hashLocal(nouveauMotDePasse);
         modifies[index] = { ...modifies[index], motDePasseHash: nouveauHash, motDePasse: null };
